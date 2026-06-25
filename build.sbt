@@ -9,16 +9,25 @@ ThisBuild / scalaVersion := "3.3.4" // Scala 3 LTS
 ThisBuild / organization := "io.github.reggieperry"
 ThisBuild / version      := "0.1.0-SNAPSHOT"
 
-lazy val catsCore        = "org.typelevel"  %% "cats-core"        % "2.12.0"
-lazy val catsEffect      = "org.typelevel"  %% "cats-effect"      % "3.5.4"
-lazy val munit           = "org.scalameta"  %% "munit"            % "1.0.0"  % Test
-lazy val munitScalacheck = "org.scalameta"  %% "munit-scalacheck" % "1.0.0"  % Test
-lazy val scalacheck      = "org.scalacheck" %% "scalacheck"       % "1.18.0" % Test
+lazy val catsCore        = "org.typelevel"  %% "cats-core"         % "2.12.0"
+lazy val catsEffect      = "org.typelevel"  %% "cats-effect"       % "3.5.4"
+lazy val munit           = "org.scalameta"  %% "munit"             % "1.0.0"  % Test
+lazy val munitScalacheck = "org.scalameta"  %% "munit-scalacheck"  % "1.0.0"  % Test
+lazy val scalacheck      = "org.scalacheck" %% "scalacheck"        % "1.18.0" % Test
+// Law-checking: discipline `checkAll` against the cats / algebra law bundles, run in munit.
+lazy val catsLaws        = "org.typelevel"  %% "cats-laws"         % "2.12.0" % Test
+lazy val algebraLaws     = "org.typelevel"  %% "algebra-laws"      % "2.12.0" % Test
+lazy val disciplineMunit = "org.typelevel"  %% "discipline-munit"  % "2.0.0"  % Test
+lazy val munitCatsEffect = "org.typelevel"  %% "munit-cats-effect" % "2.0.0"  % Test
 
 lazy val root = (project in file("."))
   .settings(
     name := "claim-algebra-lab",
-    libraryDependencies ++= Seq(catsCore, catsEffect, munit, munitScalacheck, scalacheck),
+    libraryDependencies ++= Seq(
+      catsCore, catsEffect,
+      munit, munitScalacheck, scalacheck,
+      catsLaws, algebraLaws, disciplineMunit, munitCatsEffect
+    ),
     scalacOptions ++= Seq(
       "-deprecation",
       "-feature",
