@@ -9,7 +9,7 @@ paths:
 
 The theory of data abstraction that makes modules safe to build and change independently. Sources: Barbara Liskov & Stephen Zilles, *Programming with Abstract Data Types* (1974); Barbara Liskov, *Data Abstraction and Hierarchy* (1987, the origin of the substitution principle).
 
-> See `craft-complexity.md` for deep modules and information hiding (the same idea from the design side), the language overlay (`go-types.md`, the `python-*` set) for encoding these abstractions in the type system, and `craft-domain-modeling.md` for value objects and intention-revealing interfaces.
+> See `craft-complexity.md` for deep modules and information hiding (the same idea from the design side), the language overlay (`scala-types.md`) for encoding these abstractions in the type system, and `craft-domain-modeling.md` for value objects and intention-revealing interfaces.
 
 ## An abstraction is a specification, not an implementation
 

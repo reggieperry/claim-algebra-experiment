@@ -9,7 +9,7 @@ paths:
 
 How tests drive design, not just verify it. Source: Steve Freeman & Nat Pryce, *Growing Object-Oriented Software, Guided by Tests*. The mechanics of writing tests live in the language overlay; this rule is the cadence and the design discipline.
 
-> See the active language overlay (`go-testing.md`, the `python-*` set) for test mechanics and property testing, `craft-complexity.md` for the deep modules testable code tends toward, and `craft-abstraction.md` for the small interfaces that "mock roles, not objects" produces.
+> See the active language overlay (`scala-testing.md`) for test mechanics and property testing, `craft-complexity.md` for the deep modules testable code tends toward, and `craft-abstraction.md` for the small interfaces that "mock roles, not objects" produces.
 
 ## The cycle and its purpose
 
