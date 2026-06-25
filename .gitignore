@@ -1,0 +1,11 @@
+target/
+project/target/
+project/project/
+.bsp/
+.bloop/
+.metals/
+.scala-build/
+*.class
+*.tasty
+.idea/
+.DS_Store

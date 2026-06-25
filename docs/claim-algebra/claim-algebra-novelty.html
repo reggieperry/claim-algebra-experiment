@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How cutting-edge is the verifiable claim algebra? — research results (Rev 2, bilattice-completed)</title>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['\\(','\\)']], displayMath: [['$$','$$']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<style>
+  :root{--ink:#1a1a2e;--muted:#5a5a72;--line:#dcdce4;--accent:#3a5a9e;--bg:#f4f5f8;--panel:#fff;
+        --warn:#9e4b3a;--ok:#2a8c5a;--amber:#b9892a;--code:#f5f6f9;--violet:#553a85;
+        --mono:"SF Mono",Menlo,Consolas,monospace;}
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:16px/1.62 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:880px;margin:0 auto;padding:2.4rem 1.3rem 5rem;}
+
+  header.title{border-bottom:3px solid var(--ink);padding-bottom:1.1rem;margin-bottom:1.6rem;}
+  .eyebrow{font:700 .68rem/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:.7rem;}
+  header.title h1{font-size:1.7rem;line-height:1.22;margin:0 0 .55rem;letter-spacing:-.015em;}
+  header.title .sub{color:var(--muted);font-size:1rem;}
+  header.title .meta{color:var(--muted);font-size:.8rem;margin-top:.8rem;font-family:var(--mono);}
+
+  h2{font-size:1.3rem;margin:2.6rem 0 .7rem;padding-top:.7rem;border-top:1px solid var(--line);letter-spacing:-.01em;}
+  h3{font-size:1.05rem;margin:1.4rem 0 .4rem;color:#2a2a44;}
+  p{margin:.7rem 0;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid #c3cee3;}
+  a:hover{border-bottom-color:var(--accent);}
+  .lead{font-size:1.05rem;color:#23233c;}
+  code{font:.86em/1.4 var(--mono);background:var(--code);border:1px solid var(--line);border-radius:4px;padding:.04em .34em;}
+  .mono{font-family:var(--mono);}
+  strong{color:var(--ink);}
+  em.term{font-style:normal;font-weight:600;color:var(--violet);}
+
+  .callout{background:#eef3fb;border-left:3px solid var(--accent);padding:.85rem 1.1rem;border-radius:0 7px 7px 0;margin:1.4rem 0;font-size:.96rem;}
+  .callout.warn{background:#fbefec;border-left-color:var(--warn);}
+  .callout.ok{background:#eafaf0;border-left-color:var(--ok);}
+  .callout.amber{background:#fbf5e7;border-left-color:var(--amber);}
+  .callout.rev{background:#fff6ec;border-left-color:#c8862a;}
+  .callout .h{display:block;font-weight:700;margin-bottom:.25rem;}
+
+  table{width:100%;border-collapse:collapse;margin:1.2rem 0;font-size:.85rem;}
+  th,td{border:1px solid var(--line);padding:.5rem .6rem;text-align:left;vertical-align:top;}
+  th{background:#eef0f4;font:700 .72rem/1.3 var(--mono);text-transform:uppercase;letter-spacing:.03em;color:var(--muted);}
+  td.work{font-weight:600;}
+  ul,ol{margin:.7rem 0;padding-left:1.35rem;}
+  li{margin:.4rem 0;}
+  .small{font-size:.84rem;color:var(--muted);}
+  .provnote{font-size:.86rem;color:var(--muted);font-style:italic;margin-top:2.2rem;border-top:1px solid var(--line);padding-top:1rem;}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px;}
+  @media print{body{background:#fff;}h2{break-after:avoid;}table{break-inside:avoid;}}
+  @media (max-width:560px){header.title h1{font-size:1.4rem;}.wrap{padding:1.6rem 1rem 3rem;}table{font-size:.78rem;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="title">
+  <div class="eyebrow">Working note · novelty assessment · Rev 2 — bilattice-completed</div>
+  <h1>How cutting-edge is the verifiable claim algebra?</h1>
+  <div class="sub">A web-grounded re-assessment, re-established against the Belnap-completed revision — what is genuinely original, what is settled prior art, and the closest neighbors to distinguish from.</div>
+  <div class="meta">Companion to <span class="mono">claim-algebra-belnap.html</span> (the object) and <span class="mono">falsifying-the-claim-algebra.html</span> (the test) · math via MathJax · every citation verified by fetch</div>
+</header>
+
+<p class="lead">The proposal under assessment: that every message between LLM agents (and between a model and a human) be a typed <code>Claim[K, A]</code> / <code>Axia[K, A]</code> — a value annotated by an element of a graded <em>distributive bilattice</em> (Belnap's four values, realized as two evidential channels, support-for and support-against, over the free provenance semiring) carried with two-channel provenance, a graded confidence, and a verification predicate — with fail-closed semantics (the knowledge-meet annihilator \(\mathbf{N}\otimes_k x=\mathbf{N}\)), pluggable trust via per-channel provenance homomorphisms through the twist, and verification as a <em>third</em> axis orthogonal to both the confidence grade and the evidential for/against pair.</p>
+
+<h2>Method and scope — two sweeps, two registers</h2>
+
+<p>The Rev-1 assessment (June 2026) was established against the <em>semiring</em> framing: four independent agents searched math foundations, the agent-protocol and trust landscape, multi-agent-LLM reliability, and verifiable/uncertainty-aware output, fetched primary sources, and verified citations. That sweep searched the single-channel positive-semiring object — and never ran the bilattice register.</p>
+
+<p>This update (2026-06-23) re-searches the framing Rev 2 introduced: bilattice, four-valued, paraconsistent, and subjective-logic-graded. The revision matters because subjective logic — now <em>inside</em> the algebra as its graded \([0,1]^2\) form — carries a mature multi-agent trust-fusion literature, and paraconsistent/bilattice logic carries a mature gap-versus-glut literature, that the semiring search could not surface. Every citation reported here was verified — arXiv ID, venue, year, authors — by fetch or search against arXiv, ACM, Springer, and MDPI; no identifier was composed from memory, and the three the citation pass found misstated on author detail are corrected in the references.</p>
+
+<div class="callout">
+  <span class="h">The evidence-of-absence finding, stated explicitly</span>
+  The June-2026 survey of execution provenance in LLM agents — Wang et al., <a href="https://arxiv.org/abs/2606.04990">arXiv:2606.04990</a> — maps exactly Rev 2's problem space and lists <code>Contradict</code> and <code>Invalidate</code> as first-class provenance <em>relations</em>, yet catalogs no work using semiring, bilattice, or four-valued logic for message grades, no gap-distinct-from-glut typed value, and no fail-closed-by-construction wire invariant; contradiction lives only as a graph edge. Direct searches for the bilattice-plus-provenance-plus-agent-protocol combination return a void. This is evidence of absence, not proof — the standard caveat below holds — but it is the decisive negative result on the inter-agent axis.
+</div>
+
+<h2>Headline verdict</h2>
+
+<div class="callout ok">
+  <span class="h">Holds and reinforced: a novel <em>synthesis of old parts</em></span>
+  Moving from semiring to graded distributive bilattice does not weaken the claim — it strengthens it, because Rev 2 now openly bridges <em>more</em> disjoint fields into one typed inter-agent wire object: provenance-with-negation (database theory), paraconsistent/Belnap logic, <em>and</em> subjective-logic trust fusion. The adversarial bilattice sweep — the register the Rev-1 semiring search never ran — surfaced no work occupying the locus that matters: a graded-bilattice value carried as the typed, fail-closed, trust-pluggable <em>inter-agent message</em>.
+</div>
+
+<p>What changed materially is the moat, not the verdict. Gap-distinct-from-glut and fail-closed are no longer clean differentiators in the abstract: Koomullil's <em>Proof-Carrying Certificates for LLM Pipelines</em> (<a href="https://arxiv.org/abs/2605.16407">arXiv:2605.16407</a>, May 2026) independently lands both — plus verification-separate-from-confidence — with an LLM, machine-checked in Lean 4. The differentiator must therefore re-pin from "gap \(\neq\) glut and fail-closed are novel" to the pairing that remains unclaimed: a graded-bilattice value as the typed inter-agent wire contract, made trust-pluggable by a <em>per-channel</em> provenance-semiring homomorphism through the twist. Gap \(\neq\) glut, fail-closed, and verification-as-a-third-axis are necessary ingredients, not the moat.</p>
+
+<p>The qualification that matters: this is a <strong>contested 2026 frontier, not a blue ocean.</strong> Several 2026 papers independently touch two or three components; one touches all three of the bilattice axes at once. The window in which the <em>full</em> synthesis is unclaimed is real but plausibly closing.</p>
+
+<h2>What is old (granted)</h2>
+
+<table>
+  <thead><tr><th style="width:30%">Ingredient</th><th style="width:42%">Settled prior art</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>"Compute provenance once, evaluate many measures via homomorphisms"</td><td>Green, Karvounarakis &amp; Tannen, <em>Provenance Semirings</em>, PODS 2007</td><td>The cited theorem, not a contribution</td></tr>
+    <tr><td>Two-channel (for/against) provenance with positive·negative annihilation</td><td>Grädel &amp; Tannen, dual-indeterminate provenance \(\mathbb{N}[X,\bar X]\) for first-order logic with negation, <a href="https://arxiv.org/abs/2412.07986">arXiv:2412.07986</a> (expanding <a href="https://arxiv.org/abs/1712.01980">arXiv:1712.01980</a>)</td><td>The existing named construct the twist reuses</td></tr>
+    <tr><td>The <em>other</em> route to negation in provenance (monus)</td><td>Geerts &amp; Poggi, m-semirings; Amsterdamer, Deutch &amp; Tannen, <em>On the limitations of provenance for queries with difference</em>, <a href="https://arxiv.org/abs/1105.2255">arXiv:1105.2255</a></td><td>The known, hard alternative the bilattice route supplants</td></tr>
+    <tr><td>Belnap's four values; gap \(\neq\) glut; the bilattice and the twist</td><td>Belnap 1977; Dunn 1976; Ginsberg–Fitting bilattices; Fitting 1991 (twist)</td><td>Decades old; the value space, granted</td></tr>
+    <tr><td>Fail-closed = the knowledge-meet annihilator \(\mathbf{N}\otimes_k x=\mathbf{N}\)</td><td>A re-labeling of a standard bilattice identity</td><td>A naming of a known law</td></tr>
+    <tr><td>Verification orthogonal to the confidence grade <em>and</em> to the for/against pair</td><td>A decidable recompute-against-provenance predicate; not one of Belnap's two evidential orders</td><td>A distinct third axis (see the correction below)</td></tr>
+    <tr><td>Trust grades / fusion for agents; the graded \([0,1]^2\) form</td><td>Jøsang subjective logic (Springer 2016); EBSL (<a href="https://arxiv.org/abs/1402.3319">arXiv:1402.3319</a>); Shenoy–Shafer valuation algebras</td><td>Decades old; now <em>inside</em> the algebra</td></tr>
+    <tr><td>The graded <code>Validation</code> applicative (lineage accumulation)</td><td>McBride &amp; Paterson, standard FP</td><td>Standard</td></tr>
+  </tbody>
+</table>
+
+<div class="callout warn">
+  <span class="h">The inherited error, corrected</span>
+  Rev 1 — and the Rev-1 novelty doc after it — called verification "a <em>second</em> axis orthogonal to confidence, the bilattice information-vs-truth structure." That conflated two different things. Belnap's two orders are <em>truth</em> (false→true) and <em>knowledge</em> (gap→glut), and both are evidential. Verification — does the value recompute against its cited provenance — is <em>neither</em>; it is a third axis. Rev 2 makes the for/against evidential pair <em>be</em> the Belnap value (the two-channel structure) and keeps verification as a separate, decidable predicate that refines any Belnap value. Koomullil's certificate architecture also separates verification from confidence, so this correctness is not itself a differentiator — it is table stakes the doc had previously gotten wrong.
+</div>
+
+<h2>What the field does instead — and why it isn't this</h2>
+
+<p>The motivating problem is hot ("verification, not generation, is the bottleneck" is a 2026 thesis), but every solution shape differs from a fail-closed, bilattice-graded wire contract:</p>
+
+<ul>
+  <li><strong>Single-agent bilattice trust gates.</strong> Koomullil's <em>Proof-Carrying Certificates</em> (<a href="https://arxiv.org/abs/2605.16407">2605.16407</a>) classifies each claim over Belnap {Supported, Contradicted, Contested, Unknown} and blocks emission below a proven, fail-closed threshold. It is a pre-emission gate that computes the value <em>locally</em> as a certificate — the bilattice value never travels between agents, and there is no provenance-semiring homomorphism for pluggable trust.</li>
+  <li><strong>Belnap reasoning grounded in an LLM.</strong> Allen et al. (<a href="https://arxiv.org/abs/2507.09751">2507.09751</a>) ground a sound-and-complete four-valued reasoner in LLM interpretations, with gaps and gluts distinct ("92 gluts" in a medication-safety KB). Single-agent tableau reasoning, no wire format, no provenance algebra.</li>
+  <li><strong>Bilattice multi-source fusion, classic.</strong> Bruns &amp; Huth's Belnap access control (TISSEC 2011) and the PAL2v network-routing line (Sensors 2021) keep gap (unspecified) and glut (conflict) distinct and compose from multiple sources via bilattice meet/join — but as a policy or node-internal <em>evaluation</em> value, with no provenance lineage, homomorphism, verification, or agent setting.</li>
+  <li><strong>Subjective-logic trust fusion.</strong> Jøsang trust networks (TNA-SL) and EBSL (<a href="https://arxiv.org/abs/1402.3319">1402.3319</a>) carry the exact (belief, disbelief, uncertainty) triple Rev 2 absorbs, and EBSL routes <em>evidence</em> through the graph then reads off trust — the per-channel-homomorphism instinct. But the opinion <em>is</em> the value: reputation derivation, no payload, no verify()-against-provenance, no glut as a named pole (conflict is normalized away), not a wire contract.</li>
+  <li><strong>Inter-agent conflict detectors.</strong> Acharya's <em>Semantic Consensus</em> (<a href="https://arxiv.org/abs/2604.16339">2604.16339</a>) lands the algebra's own glut example — "A approves while B rejects the same loan" — and blocks it, as a postcondition-incompatibility detector with a confidence node-attribute; Co-Sight (<a href="https://arxiv.org/abs/2510.21557">2510.21557</a>) allocates compute to disagreement hotspots. Detection and reconciliation, not a typed propagating value distinct from ignorance.</li>
+  <li><strong>Identity attestation and audit.</strong> LDP (<a href="https://arxiv.org/abs/2603.18043">2603.18043</a>), Proof-Carrying Numbers (<a href="https://arxiv.org/abs/2509.06902">2509.06902</a>), and <em>From Fluent to Verifiable</em> (<a href="https://arxiv.org/abs/2602.13855">2602.13855</a>) secure the <em>envelope</em> or audit the <em>claim</em> — claimed-vs-attested identity, re-executable numeric provenance, claim-level provenance graphs recording conflicts. None carries gap \(\neq\) glut as an algebraic value over a semiring with a cross-hop annihilator.</li>
+  <li><strong>Provenance over agent messages, surveyed.</strong> Wang et al. (<a href="https://arxiv.org/abs/2606.04990">2606.04990</a>) define execution provenance with <code>Contradict</code>/<code>Invalidate</code> relations but no semiring, bilattice, or four-valued message grade — contradiction is a graph edge, never a Belnap value on the wire.</li>
+</ul>
+
+<h2>The distinctive moves (the moat), re-pinned</h2>
+
+<p>The differentiator is now the <em>pairing</em>, not any single ingredient. Four moves, the first two of which carry the load:</p>
+
+<ol>
+  <li><strong>A graded-bilattice value as the typed inter-agent wire contract.</strong> The bilattice value travels between agents as the message, fail-closed by the knowledge-meet annihilator \(\mathbf{N}\otimes_k x=\mathbf{N}\) propagating across arbitrarily many hops — the field <em>detects, scores, reconciles, or gates locally</em>; the claim algebra carries the typed value on the wire and prevents laundering by construction. No catalogued agent work does this (<a href="https://arxiv.org/abs/2606.04990">2606.04990</a> is the evidence of absence).</li>
+  <li><strong>Per-channel homomorphism via the twist, for pluggable trust.</strong> A bilattice is not a semiring, so the GKT homomorphism does not apply once — but via the twist \(\mathsf{FOUR}\cong\mathsf{TWO}\odot\mathsf{TWO}\) it applies <em>twice</em>: a pro-lineage \(p^{+}\) and a con-lineage \(p^{-}\), each evaluated by its own homomorphism into the underlying lattice \(L\). "Compute provenance once, evaluate many trust models" survives per channel. This is a genuine cost, not a free lunch — two polynomials, two evaluations — and EBSL's evidence-then-derive-trust is the nearest cousin, but stated there as an aggregation procedure, never as a free-object universal property or a wire contract.</li>
+  <li><strong>The for/against bilattice value: gap \(\neq\) glut, fail-closed by the knowledge-meet.</strong> "Told nothing" (\(\mathbf{N}\)) and "told both" (\(\mathbf{B}\)) are distinct values that propagate differently and license different downstream actions (search vs. reconcile/escalate). Necessary, but <strong>not novel in the LLM space</strong> — Koomullil (<a href="https://arxiv.org/abs/2605.16407">2605.16407</a>) has gap \(\neq\) glut and a fail-closed gate, with an LLM, machine-checked.</li>
+  <li><strong>Verification as a separate orthogonal predicate.</strong> A decidable recompute-against-provenance check, a <em>third</em> axis distinct from both the confidence grade and the for/against pair. Also necessary and also <strong>not a differentiator</strong> — Koomullil separates verification from confidence too.</li>
+</ol>
+
+<div class="callout">
+  <span class="h">The two central moves, formally</span>
+  <em>Fail-closed across hops</em> is the knowledge-meet annihilator, preserved by every channel homomorphism \(\hat h\), so it survives under every trust model at once:
+  $$\mathbf{N}\otimes_k x=\mathbf{N},\qquad \hat h\big(\mathbf{N}\otimes_k x\big)=\hat h(\mathbf{N})\quad\text{for every}\ \hat h.$$
+  <em>Pluggable trust</em> is the per-channel homomorphism through the twist. A derived claim carries two lineage polynomials \(p^{+},p^{-}\in\mathbb{N}[X]\) over the leaf sources \(X\); each is evaluated by the unique homomorphism \(\hat h:\mathbb{N}[X]\to L\) extending a valuation \(\nu:X\to L\), and the Belnap value is read off the pair:
+  $$\big(\hat h(p^{+}),\ \hat h(p^{-})\big)\in L\odot L,\qquad \text{glut}\iff \hat h(p^{+})\neq\bot\ \wedge\ \hat h(p^{-})\neq\bot.$$
+  Compute the two lineages once; swap the trust model by swapping \(\hat h\) — the Green–Karvounarakis–Tannen guarantee, now holding channel-wise.
+</div>
+
+<p>The synthesis is the contribution: moves 3 and 4 are settled ingredients; move 1 paired with move 2 is the locus the bilattice sweep confirms is unclaimed.</p>
+
+<h2>Closest prior art — distinguish from these explicitly</h2>
+
+<p class="small">Every entry verified real by the citation-integrity pass; no unverified entry appears in this table.</p>
+
+<table>
+  <thead><tr><th style="width:21%">Work</th><th style="width:25%">What it is</th><th style="width:22%">Shares</th><th style="width:22%">Lacks</th><th>Link</th></tr></thead>
+  <tbody>
+    <tr><td class="work">Proof-Carrying Certificates for LLM Pipelines (Koomullil, May 2026)</td><td>Single-agent pre-emission trust-boundary gate over Belnap {Supported, Contradicted, Contested, Unknown}, fail-closed emission lemma, Lean 4</td><td><strong>The new closest.</strong> Gap \(\neq\) glut + fail-closed + verification-separate-from-confidence, with an LLM, machine-checked</td><td>A <em>local</em> certificate, not a value that travels between agents; no provenance-semiring homomorphism; no inter-agent wire contract</td><td><a href="https://arxiv.org/abs/2605.16407">arXiv:2605.16407</a></td></tr>
+    <tr><td class="work">Grädel &amp; Tannen — dual-indeterminate provenance \(\mathbb{N}[X,\bar X]\)</td><td>Semiring provenance for first-order logic <em>with negation</em>, positive·negative annihilation</td><td>The existing named <strong>two-channel for/against provenance</strong> the twist reuses</td><td>Model-checking over a fixed structure; not a bilattice framing, no graded confidence, no agent contract — cite as ancestor</td><td><a href="https://arxiv.org/abs/2412.07986">arXiv:2412.07986</a></td></tr>
+    <tr><td class="work">Evidence-Based Subjective Logic (EBSL) (Škorić, de Hoogh &amp; Zannone, 2015)</td><td>Reputation via routing <em>evidence</em> (not opinions) through a trust graph</td><td>Nearest trust-side cousin: evidence-then-derive-trust, and the (belief, disbelief, uncertainty) triple Rev 2 absorbs</td><td>Single-channel reputation derivation (the opinion <em>is</em> the value); no glut pole, no payload, no verify(), no annihilator, not a wire contract</td><td><a href="https://arxiv.org/abs/1402.3319">arXiv:1402.3319</a></td></tr>
+    <tr><td class="work">Jøsang trust networks (TNA-SL) / Subjective Logic (Jøsang, Hayward &amp; Pope 2006; Jøsang 2016)</td><td>Opinion propagation and fusion along transitive trust paths</td><td>The graded \([0,1]^2\) opinion and the fusion suite Rev 2 reads as corroboration</td><td>Trust derivation, not a payload-bearing typed contract; conflict normalized away, no gap \(\neq\) glut as named poles; pre-LLM</td><td>ACSC 2006; <a href="https://doi.org/10.1007/978-3-319-42337-1">doi:10.1007/978-3-319-42337-1</a></td></tr>
+    <tr><td class="work">Sound and Complete Neurosymbolic Reasoning (Allen et al.)</td><td>Belnap four-valued reasoning grounded in LLM interpretations, gaps and gluts distinct</td><td>The Belnap-plus-LLM substrate with explicit gap \(\neq\) glut</td><td>Single-agent reasoning, no wire format, no provenance semiring, no homomorphism</td><td><a href="https://arxiv.org/abs/2507.09751">arXiv:2507.09751</a></td></tr>
+    <tr><td class="work">From Agent Traces to Trust (Wang et al., Jun 2026)</td><td>Survey of execution provenance in LLM agents; <code>Contradict</code>/<code>Invalidate</code> relations</td><td>Maps Rev 2's exact problem space; contradiction is acknowledged</td><td>Evidence of absence: no semiring/bilattice/four-valued message grade; contradiction only a graph edge</td><td><a href="https://arxiv.org/abs/2606.04990">arXiv:2606.04990</a></td></tr>
+    <tr><td class="work">Access control via Belnap logic (Bruns &amp; Huth, 2011)</td><td>Four-valued policy composition, gap and glut distinct, bilattice meet/join</td><td>The bilattice multi-source-fusion move, kept distinct gap/glut</td><td>A policy-<em>evaluation</em> value, not a message; no provenance, homomorphism, verification, or LLM setting</td><td><a href="https://doi.org/10.1145/1952982.1952991">doi:10.1145/1952982.1952991</a></td></tr>
+    <tr><td class="work">LDP / The Provenance Paradox in Multi-Agent LLM Routing (Prakash, Mar 2026)</td><td>Delegation contracts; claimed-vs-attested identity across hops</td><td>A genuine wire-form contract with poison-on-broken-chain (annihilator-flavored)</td><td>Attestation is cryptographic identity, not value-recompute; no semiring; no gap \(\neq\) glut</td><td><a href="https://arxiv.org/abs/2603.18043">arXiv:2603.18043</a></td></tr>
+    <tr><td class="work">Proof-Carrying Numbers (Solatorio)</td><td>Re-executable provenance on numeric claims; names "fail-closed"</td><td>The closest single-axis verification realization</td><td>Binary, no semiring, no bilattice, single-LLM not inter-agent</td><td><a href="https://arxiv.org/abs/2509.06902">arXiv:2509.06902</a></td></tr>
+    <tr><td class="work">Beyond Message Passing: A Semantic View of Agent Communication Protocols (Yuan et al., Apr 2026)</td><td>Survey: messages should carry semantics/verification, not prompts</td><td>The closest <em>framing instinct</em></td><td>Diagnostic; no algebra, no bilattice, no gap \(\neq\) glut, no fail-closed object</td><td><a href="https://arxiv.org/abs/2604.02369">arXiv:2604.02369</a></td></tr>
+    <tr><td class="work">CONSTRUCT (Goh &amp; Mueller, 2026)</td><td>Real-time per-field trust scoring for structured outputs</td><td>Computed confidence on typed fields</td><td>Scalar per field, explicitly no cross-step composition; no algebra</td><td><a href="https://arxiv.org/abs/2603.18014">arXiv:2603.18014</a></td></tr>
+    <tr><td class="work">From Fluent to Verifiable (Rasheed et al., Feb 2026)</td><td>Claim-level provenance graphs recording conflicts</td><td>Closest "claim-level + provenance + verification" framing</td><td>Conflict is a graph metric, not a typed bilattice value; no annihilator; single-agent</td><td><a href="https://arxiv.org/abs/2602.13855">arXiv:2602.13855</a></td></tr>
+  </tbody>
+</table>
+
+<h2>Citation verification</h2>
+
+<p>Every work in the table above, every foundation cite, and the Rev-1 carry-forwards resolve to a real paper with a correct arXiv ID / DOI / venue / year, verified by fetch or search. No fabrications, no wrong identifiers.</p>
+
+<ul>
+  <li><strong>New under Rev 2, confirmed real by fetch:</strong> Koomullil 2605.16407 (sole author George Koomullil, 2026-05-13, cs.LO; Belnap {Supported, Contradicted, Contested, Unknown}, Lean 4 emission-gate soundness); Grädel &amp; Tannen 2412.07986 (dual-indeterminate \(\mathbb{N}[X,\bar X]\), expands 1712.01980); Allen et al. 2507.09751 (five named authors, NeSy 2025); Škorić, de Hoogh &amp; Zannone 1402.3319 (Int. J. Information Security 15(4), 2015, doi:10.1007/s10207-015-0298-5); Wang et al. 2606.04990 (lead Yiqi Wang, 2026-06-16).</li>
+  <li><strong>Foundation cites, real:</strong> Belnap 1977 (<em>A Useful Four-Valued Logic</em>, Reidel); Dunn 1976 (<em>Philosophical Studies</em> 29(3); published title uses the plural "first-degree entailments"); Fitting 1991 (<em>Bilattices and the Semantics of Logic Programming</em>, twist representation); Green, Karvounarakis &amp; Tannen 2007 (PODS, doi:10.1145/1265530.1265535); Jøsang 2016 (Springer, doi:10.1007/978-3-319-42337-1).</li>
+  <li><strong>Author corrections applied:</strong> the TNA-SL paper is Jøsang, Hayward <strong>and Pope</strong> (three authors); the difference-limitations paper (1105.2255) is Amsterdamer, Deutch <strong>and Tannen</strong> (three authors — the earlier "Milo" attribution was erroneous; Tova Milo co-authored <em>different</em> papers with this group).</li>
+  <li><strong>Rev-1 carry-forwards, re-checked real:</strong> LDP 2603.18043, PCN 2509.06902, Semantic-View 2604.02369, CONSTRUCT 2603.18014, From-Fluent 2602.13855, Hu &amp; Rong 2511.03434. (From-Spark-to-Fire 2603.04474 was a Rev-1 entry; it is not in the Rev-2 verified neighbor set and is dropped from the table.)</li>
+  <li><strong>Upgraded and noted in-text, not in the table:</strong> G2CP 2602.13370 (Ben Khaled &amp; Monticolo, AAMAS 2026) — upgraded from unverified to real, confirmed graph-grounded rather than bilattice-typed.</li>
+  <li><strong>Real but with one unconfirmed detail:</strong> Co-Sight 2510.21557 — id and title correct; the "Zhang/Lu et al., ZTE" attribution could not be confirmed and is not material.</li>
+</ul>
+
+<h2>Honest caveats</h2>
+
+<ul>
+  <li><strong>"Found nothing" is evidence of absence, not proof.</strong> Two sweeps in two registers still have coverage and recency limits; a fast-moving 2026 frontier can hold unindexed, very recent, or non-English work.</li>
+  <li><strong>Contested edge, not empty field.</strong> Koomullil (2605.16407) lands all three bilattice axes together, with an LLM, machine-checked. The differentiator is narrower than Rev 1 claimed, and the window is plausibly closing.</li>
+  <li><strong>The bilattice components are individually well-trodden.</strong> Gap \(\neq\) glut and multi-source fusion go back to Bruns &amp; Huth (2011) and the PAL-routing line; two-channel for/against provenance is Grädel &amp; Tannen's named construct; the (belief, disbelief, uncertainty) triple is two decades of subjective logic. The originality is the synthesis and the inter-agent locus, not any ingredient.</li>
+  <li><strong>Grading carries a cost.</strong> The \([0,1]^2\) instance makes exact inference under shared evidence \(\#\mathrm{P}\)-hard, and a glut from sources that secretly share a latent cause can be spurious — a sharpening of the correlation-blindness limit, inherited, not cured.</li>
+</ul>
+
+<h2>Implication</h2>
+
+<p>The contribution is real, distinctive, and time-sensitive — and the genuinely original part is the <em>synthesis</em>: a graded-bilattice value carried as the typed inter-agent wire contract, made trust-pluggable by a per-channel provenance homomorphism through the twist. The bilattice re-search did not kill the claim; it narrowed and better-evidenced it. Gap \(\neq\) glut, fail-closed, and verification-separate-from-confidence each now have strong independent prior art — Koomullil, Allen, Bruns &amp; Huth, Grädel &amp; Tannen, the subjective-logic cluster — so the moat must rest on the pairing, not on any ingredient. The closest neighbors still have <strong>no clean number attributing a confident-wrong (or contradiction-laundered) reduction to the wire format itself.</strong> The falsification experiment (<span class="mono">falsifying-the-claim-algebra.html</span> / <span class="mono">falsification-experiment.md</span>) is therefore the one result that would empirically differentiate this work from the convergent crowd, and the case for running it — and running it soon — is stronger under Rev 2 than it was under Rev 1.</p>
+
+<p class="provnote">Provenance note. The Rev-1 assessment (June 2026) was established against the single-channel semiring framing. This update (2026-06-23) re-searched the bilattice, four-valued, paraconsistent, and subjective-logic-graded framing — the register the Rev-1 search never ran — and re-pinned the moat accordingly. Verdict: holds and reinforced. Markdown companion: <span class="mono">claim-algebra-novelty.md</span>.</p>
+
+</div>
+</body>
+</html>

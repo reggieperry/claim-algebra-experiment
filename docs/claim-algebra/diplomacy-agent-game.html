@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diplomacy as a claim-algebra agent game — design and actor-model implementation</title>
+<script>
+  window.MathJax = { tex: { inlineMath: [['\\(','\\)']], displayMath: [['$$','$$']] }, svg: { fontCache: 'global' } };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true, theme:'neutral', flowchart:{useMaxWidth:false}, sequence:{useMaxWidth:false}});</script>
+<style>
+  :root{--ink:#1a1a2e;--muted:#5a5a72;--line:#dcdce4;--accent:#3a5a9e;--bg:#f4f5f8;--panel:#fff;
+        --warn:#9e4b3a;--ok:#2a8c5a;--code:#f5f6f9;--violet:#553a85;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:880px;margin:0 auto;padding:2.4rem 1.3rem 5rem;}
+  header.title{border-bottom:3px solid var(--ink);padding-bottom:1rem;margin-bottom:1.6rem;}
+  header.title h1{font-size:1.7rem;line-height:1.25;margin:0 0 .5rem;letter-spacing:-.01em;}
+  header.title .sub{color:var(--muted);font-size:.98rem;}
+  header.title .meta{color:var(--muted);font-size:.8rem;margin-top:.7rem;}
+  h2{font-size:1.32rem;margin:2.4rem 0 .7rem;padding-top:.6rem;border-top:1px solid var(--line);letter-spacing:-.01em;}
+  h3{font-size:1.08rem;margin:1.5rem 0 .4rem;color:#2a2a44;}
+  p{margin:.7rem 0;} a{color:var(--accent);}
+  code{font:.88em/1.4 "SF Mono",Menlo,Consolas,monospace;background:var(--code);border:1px solid var(--line);border-radius:4px;padding:.04em .35em;}
+  pre{background:#1f2233;color:#e7e9f3;border-radius:9px;padding:1rem 1.1rem;overflow-x:auto;font:.8rem/1.55 "SF Mono",Menlo,Consolas,monospace;}
+  pre code{background:none;border:none;color:inherit;padding:0;}
+  .lead{font-size:1.08rem;color:#2a2a44;}
+  .callout{background:#eef3fb;border-left:3px solid var(--accent);padding:.85rem 1.1rem;border-radius:0 7px 7px 0;margin:1.4rem 0;font-size:.96rem;}
+  .callout.warn{background:#fbefec;border-left-color:var(--warn);}
+  .callout.ok{background:#eafaf0;border-left-color:var(--ok);}
+  .callout strong{color:var(--ink);}
+  figure{margin:1.6rem 0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1rem;}
+  figure .diagram{overflow-x:auto;display:flex;justify-content:center;}
+  figcaption{color:var(--muted);font-size:.84rem;margin-top:.7rem;text-align:center;line-height:1.45;}
+  table{width:100%;border-collapse:collapse;margin:1.2rem 0;font-size:.9rem;}
+  th,td{border:1px solid var(--line);padding:.5rem .65rem;text-align:left;vertical-align:top;}
+  th{background:#eef0f4;font-size:.82rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);}
+  .mono{font-family:"SF Mono",Menlo,Consolas,monospace;}
+  ol.refs{font-size:.86rem;line-height:1.5;color:#2a2a44;} ol.refs li{margin:.4rem 0;}
+  .toc{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.9rem 1.2rem;font-size:.92rem;}
+  .toc ol{margin:.3rem 0;padding-left:1.3rem;}
+  .small{font-size:.86rem;color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="title">
+  <h1>Diplomacy as a claim-algebra agent game</h1>
+  <div class="sub">Design and actor-model implementation — seven LLM powers negotiating and moving over a verifiable substrate, with the inter-agent message as a typed claim.</div>
+  <div class="meta">Companion to <code>verifiable-claim-algebra.html</code> (§8, the adversarial instance) · the implementation spec for hand-off is <code>diplomacy-implementation.md</code> · math via MathJax, diagrams via Mermaid</div>
+</header>
+
+<p class="lead">The claim algebra has two cooperative instances — the credit workbench (a confidence semiring) and an agent fulfillment network (a tropical cost semiring). This document develops the third, adversarial instance in full: a game of Diplomacy played by seven LLM agents, where the board and its adjudication are the claim algebra working at its cleanest, and the negotiation is the claim algebra meeting its honest boundary. It then lands the design on the <strong>actor model</strong> as the communication layer and describes the game loop concretely enough to build from.</p>
+
+<div class="toc">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#game">The game and its rules</a></li>
+    <li><a href="#substrate">The communication substrate and the mathematics</a></li>
+    <li><a href="#turn">How a turn proceeds</a></li>
+    <li><a href="#scala">The Scala realization</a></li>
+    <li><a href="#actors">The actor model as the communication layer</a></li>
+    <li><a href="#loop">The game loop, in code</a></li>
+    <li><a href="#refs">References</a></li>
+  </ol>
+</div>
+
+<h2 id="game">1 · The game and its rules</h2>
+<p>Diplomacy (Calhamer, 1959 [<a href="#r-calhamer">1</a>]) is a seven-player game on a map of 1901 Europe. Its defining property — and the reason it is the standard AI-negotiation benchmark — is that it has <strong>no dice, no cards, and no hidden draws</strong>: every outcome is decided entirely by the orders and how they interact. All variance is in the negotiation and in predicting the others.</p>
+<ul>
+  <li><strong>Powers (7):</strong> England, France, Germany, Italy, Austria-Hungary, Russia, Turkey.</li>
+  <li><strong>Map:</strong> ~75 provinces (land, sea, coastal). <strong>34 are Supply Centers (SCs).</strong> Each power begins on its home SCs with <strong>3 units</strong> (Russia 4). Units are <strong>Armies</strong> (land) or <strong>Fleets</strong> (sea / coast).</li>
+  <li><strong>Goal:</strong> control <strong>18 of the 34 SCs</strong> — a majority — for a solo win; otherwise a negotiated draw among survivors.</li>
+  <li><strong>Simultaneity:</strong> all powers write orders <em>secretly</em>, then all orders are revealed and <strong>adjudicated at once</strong>.</li>
+</ul>
+<p><strong>The four order types.</strong> Every unit issues exactly one:</p>
+<table>
+  <tr><th>Order</th><th>Meaning and rule</th></tr>
+  <tr><td><strong>Hold</strong></td><td>Stay in place (defensive strength 1, plus any support).</td></tr>
+  <tr><td><strong>Move</strong> (attack)</td><td>Attempt to move to an adjacent province. An army moves to adjacent land; a fleet to an adjacent sea or along coasts.</td></tr>
+  <tr><td><strong>Support</strong></td><td>Add +1 strength to another unit's hold or move. The supporter must itself be able to reach the target province. <strong>Support is cut</strong> if the supporter is attacked from any province other than the one it is supporting into.</td></tr>
+  <tr><td><strong>Convoy</strong></td><td>A fleet (or a chain of fleets) in sea provinces carries an army across the water from one coast to another.</td></tr>
+</table>
+<p><strong>Resolution.</strong> Base strength is 1; each valid support adds 1. A move succeeds only if it <em>out-strengths</em> the opposition; equal strength is a <strong>standoff</strong> (a bounce — nobody moves). A unit cannot dislodge one supported to equal strength, and cannot dislodge its own unit. A dislodged unit must <strong>retreat</strong> to an empty adjacent province (not the one it was attacked from, not a province that stood off) or be <strong>disbanded</strong>.</p>
+<p><strong>The year.</strong> <strong>Spring</strong> then <strong>Fall</strong>, each a movement phase followed by a retreat phase. After Fall comes an <strong>adjustment phase</strong>: count SCs — control more SCs than you have units and you <strong>build</strong> on a vacant home SC; control fewer and you <strong>disband</strong>.</p>
+<p><strong>Negotiation.</strong> Before orders, powers negotiate freely — alliances, non-aggression pacts, coordinated attacks. Crucially, <strong>negotiation is non-binding</strong>: there is no enforcement, and betrayal is a feature of the game, not a violation of it. The full rules' worth of adjudication intricacy (support-cutting, beleaguered garrisons, convoy paradoxes) is exactly specified by the community's <strong>DATC</strong> adjudicator test cases [<a href="#r-datc">2</a>], which any engine must pass.</p>
+
+<h2 id="substrate">2 · The communication substrate and the mathematics</h2>
+<p>This is the third instance of the claim algebra, and the only one that straddles the boundary the parent document draws. It separates into two regimes that meet at adjudication.</p>
+
+<h3>2.1 · Two regimes, three claim types</h3>
+<p>Everything an agent emits is a <code>Claim[K, A]</code> from the parent document. Diplomacy uses two semirings \(K\) and three claim types:</p>
+<table>
+  <tr><th>Claim type</th><th>Semiring \(K\)</th><th>What it is</th><th>Verification</th></tr>
+  <tr><td><code>StateClaim</code></td><td>Verification (Boolean)</td><td>A board fact — who holds which province, where each unit is.</td><td>Immediate, against the engine. Fail-closed: a board fact that does not verify is rejected; <strong>no power can hallucinate the board.</strong></td></tr>
+  <tr><td><code>Order</code></td><td>Verification (Boolean)</td><td>A Hold / Move / Support / Convoy commitment, submitted privately.</td><td>Legality is checked; an illegal order hits the annihilator and is dropped to a Hold. Adjudication is deterministic.</td></tr>
+  <tr><td><code>Deal</code></td><td>Trust (subjective logic)</td><td>A negotiation message — a conditional promise ("I support you into Galicia if you move there").</td><td><strong>Deferred</strong> — resolved only at adjudication ("did your orders match your pledge?"). Feeds reputation.</td></tr>
+</table>
+
+<h3>2.2 · The substrate is the claim algebra proper</h3>
+<p>Board, orders, and adjudication are a clean verification-semiring instance. Adjudication is a pure, deterministic function</p>
+$$ \mathrm{adjudicate} : \mathrm{Orders} \times \mathrm{Board} \longrightarrow (\mathrm{Board}', \mathrm{Outcomes}), $$
+<p>and the engine is the verification oracle. Every resulting board fact is a verified derivation from the submitted orders — so the whole substrate is fail-closed and auditable. The annihilator does real work here: an illegal or unverifiable order contributes nothing (it becomes a Hold), and a power that cannot confirm a fact cannot assert it.</p>
+
+<h3>2.3 · Negotiation leaves the clean semiring</h3>
+<p>A <code>Deal</code> is a <strong>promise — a claim whose verification is deferred</strong>. At assertion time it is <span class="mono">UNRESOLVED</span>-as-fact; the algebra refuses to let cheap talk pose as a board fact. What a receiving power attaches is a <em>trust</em> confidence, and — exactly as the parent document's limits warn ("calibration is exogenous", "no theory of adversarial sources") — that number does <strong>not</strong> come from provenance. It is a <strong>subjective-logic opinion</strong> [<a href="#r-josang">3</a>]:</p>
+$$ \omega = (b,\, d,\, u,\, a), \qquad b + d + u = 1, \qquad \mathbb{E}[\omega] = b + a\,u, $$
+<p>belief / disbelief / uncertainty over "will this power keep its word", with base rate \(a\) and expected trust \(b + au\). The opinion is updated by <strong>reputation</strong> — the verification <em>outcomes</em> of past promises — via subjective logic's fusion (combine evidence) and discounting (trust through a third party) operators. Those operators approximate, but are not, a clean commutative semiring: this is precisely the boundary, made concrete.</p>
+
+<div class="callout">
+  <strong>The clean separation.</strong> The <em>structure</em> of a promise is claim-algebra (a <code>Claim</code> with a deferred verifier); the <em>number</em> on it is game theory (a reputation-updated opinion). A power therefore cannot lie about the board or move illegally — those are verified, fail-closed — but it can lie in negotiation, which is cheap talk and is the game. The algebra <strong>shrinks the attack surface to exactly the strategic layer where deception belongs</strong>, and the full transcript is a replayable provenance DAG.
+</div>
+
+<h2 id="turn">3 · How a turn proceeds</h2>
+<p>A phase is a deferred-verification loop. Negotiation produces trust-claims; orders produce verification-claims; adjudication is the moment every promise becomes checkable; reputation closes the loop.</p>
+<figure>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  N["NEGOTIATE (timed window)<br/>powers exchange Deal claims via the press<br/>each updates a private opponent model + reputation"]
+  O["ORDER (deadline)<br/>each power submits Order claims privately<br/>legality-checked; no power sees another's"]
+  J["ADJUDICATE (atomic)<br/>pure engine resolves all orders at once<br/>— the deferred-verification moment"]
+  S["BROADCAST<br/>new board as verified StateClaims<br/>+ per-order outcomes"]
+  R["REPUTATION<br/>promise vs action per Deal<br/>updates each power's trust opinions"]
+  N --> O --> J --> S --> R -->|"retreats / builds, then next phase"| N
+  classDef trust fill:#f3eefb,stroke:#553a85,color:#1a1a2e;
+  classDef ver fill:#eafaf0,stroke:#2a8c5a,color:#14502f;
+  classDef adj fill:#fff8e8,stroke:#caa53a,color:#6b5410;
+  class N,R trust; class O,S ver; class J adj;
+</pre>
+  </div>
+  <figcaption>Figure 1 — One phase. The substrate (Order → Adjudicate → Broadcast) is the verification-semiring claim algebra, fail-closed. The diplomacy (Negotiate → Reputation) leaves it: a promise is verified only after the fact, and its confidence is a reputation supplied by game theory.</figcaption>
+</figure>
+<p>Sub-phases (retreat after a movement phase, build after Fall) follow the same submit-then-adjudicate pattern. After each adjudication the GameMaster checks for a solo (18 SCs), eliminations, or an agreed draw.</p>
+
+<h2 id="scala">4 · The Scala realization</h2>
+<p>The types specialize the parent document's <code>Claim[K, A]</code> to the two semirings. The substrate is pure and deterministic; the agent is the only place an LLM is called.</p>
+<pre><code>// ── The verifiable substrate (claim algebra proper) ──────────────────────────
+enum Power { case England, France, Germany, Italy, Austria, Russia, Turkey }
+enum Kind  { case Army, Fleet }
+enum Season { case Spring, Fall }
+final case class UnitAt(power: Power, kind: Kind, prov: ProvId)
+
+enum Order:                                            // the four order types
+  case Hold(at: ProvId)
+  case Move(from: ProvId, to: ProvId, viaConvoy: Boolean = false)
+  case Support(at: ProvId, target: Order)              // support a Hold or a Move
+  case Convoy(fleet: ProvId, army: Order.Move)
+
+final case class BoardState(
+  units:  Set[UnitAt],
+  owners: Map[ProvId, Power],                          // SC ownership
+  year:   Int, season: Season)
+
+final case class Outcome(order: Order, result: Result) // Succeeded | Bounced | Cut | Dislodged | Illegal
+final case class Outcomes(perOrder: Map[(Power, Order), Outcome])
+
+// Adjudication is the verification ORACLE: pure, deterministic, DATC-correct.
+def adjudicate(orders: Map[Power, Set[Order]], s: BoardState): (BoardState, Outcomes)
+
+type StateClaim = Claim[Verified, UnitAt]              // verify() checks against the engine
+
+// ── The diplomacy layer (leaves the clean semiring → subjective logic) ───────
+final case class Opinion(b: Double, d: Double, u: Double, base: Double):
+  def expected: Double = b + base * u                  // trust value in [0,1]
+  def fuse(ev: Opinion): Opinion                       // subjective-logic cumulative fusion (corroborate)
+  def discount(via: Opinion): Opinion                  // trust through a third party
+
+final case class Reputation(of: Map[Power, Opinion]):
+  // promise-vs-action: every Deal the other made, scored against what they actually ordered
+  def observe(power: Power, promised: Set[Order], actual: Set[Order]): Reputation
+
+final case class Deal(from: Power, to: Power, iPledge: Set[Order], iExpect: Set[Order])
+type DealClaim = Claim[Opinion, Deal]                  // K = trust; UNRESOLVED-as-fact until adjudication
+
+// ── The agent: the only LLM seam (bounded, structured calls) ─────────────────
+trait PowerAgent:
+  def me: Power
+  def negotiate(view: BoardState, rep: Reputation, inbox: Vector[Deal]): Vector[Deal]   // LLM
+  def chooseOrders(view: BoardState, rep: Reputation, deals: Vector[Deal]): Set[Order]  // LLM
+  def reflect(rep: Reputation, promised: Map[Power, Set[Order]], outcomes: Outcomes): Reputation
+</code></pre>
+<p>Three things are worth noting. The <code>adjudicate</code> function is the spine and must pass the DATC suite [<a href="#r-datc">2</a>] — it is the verification oracle the whole game trusts. <code>chooseOrders</code> returns <em>legal-by-construction-or-dropped</em> orders; the adjudicator re-checks. And <code>reflect</code> turns the gap between <code>iPledge</code> and the actual orders into reputation — the deferred verification of every <code>Deal</code>, made into an opinion update.</p>
+
+<h2 id="actors">5 · The actor model as the communication layer</h2>
+<p>The actor model is the natural substrate: each power has <strong>private state</strong> (its secret intentions and its model of everyone else), the press is <strong>message-passing</strong>, adjudication is a <strong>serialization point</strong>, and the whole game is a <strong>durable, replayable</strong> log. This is the same substrate the focused-harness actor-model design develops; here it is specialized to a turn-based game with a referee.</p>
+
+<h3>5.1 · The actors</h3>
+<table>
+  <tr><th>Actor</th><th>Responsibility</th><th>State</th></tr>
+  <tr><td><strong>GameMaster</strong></td><td>The phase state machine and clock — opens negotiation windows, sets order deadlines, sequences movement → retreat → build, checks victory/draw. Orchestrates; does not adjudicate.</td><td>Phase, deadlines, the canonical board (as verified StateClaims).</td></tr>
+  <tr><td><strong>Adjudicator</strong></td><td>The pure rules engine and verification oracle. Receives the full order set, resolves it atomically, emits the new board + outcomes. DATC-correct.</td><td>None — a pure function behind an actor for serialization.</td></tr>
+  <tr><td><strong>PowerAgent</strong> ×7</td><td>An LLM-backed player. Negotiates, chooses orders, updates its reputation model. Isolated: its secret intentions never leak except via messages it chooses to send.</td><td>Private: opponent model, reputation opinions, draft orders.</td></tr>
+  <tr><td><strong>PressRouter</strong></td><td>Routes <code>Deal</code> / message traffic between powers — private channels, and optional public ("white"), anonymous ("grey"), or forged-attribution ("black") press.</td><td>Channel topology; message log.</td></tr>
+  <tr><td><strong>Chronicle</strong></td><td>Append-only durable log of every claim and adjudication — the provenance DAG. Enables replay, audit, crash recovery, and evals.</td><td>The full ordered event history.</td></tr>
+</table>
+<figure>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  GM["GameMaster<br/>phase clock + state machine"]
+  ADJ["Adjudicator<br/>pure DATC engine · the serialization window"]
+  PR["PressRouter<br/>private / white / grey / black press"]
+  CH[("Chronicle<br/>append-only provenance DAG")]
+  subgraph POWERS["7 PowerAgents — isolated, LLM-backed"]
+    P1["England"]; P2["France"]; P3["Germany"]; P4["…Italy/Austria/Russia/Turkey"]
+  end
+  GM -->|"PhaseStart / OrderDeadline (StateClaims)"| POWERS
+  POWERS -->|"Deal claims"| PR --> POWERS
+  POWERS -->|"Order claims (private)"| GM
+  GM -->|"full order set"| ADJ
+  ADJ -->|"new board + Outcomes"| GM
+  GM -->|"Adjudicated (StateClaims)"| POWERS
+  GM -.->|"every event"| CH
+  ADJ -.-> CH
+  PR -.-> CH
+  classDef gm fill:#fff8e8,stroke:#caa53a,color:#6b5410;
+  classDef adj fill:#eafaf0,stroke:#2a8c5a,color:#14502f;
+  classDef p fill:#eef3fb,stroke:#3a5a9e,color:#1a1a2e;
+  classDef s fill:#f5f5f7,stroke:#b9b9c4,color:#5a5a72;
+  class GM gm; class ADJ adj; class P1,P2,P3,P4,PR p; class CH s;
+</pre>
+  </div>
+  <figcaption>Figure 2 — The actor topology. PowerAgents are isolated (private state, message-only contact); the PressRouter carries diplomacy; the GameMaster sequences; the Adjudicator is the single serialization point that resolves accumulated orders atomically; the Chronicle is the durable provenance DAG.</figcaption>
+</figure>
+
+<h3>5.2 · The actor-model properties that earn their keep</h3>
+<ul>
+  <li><strong>Isolation = private information.</strong> Diplomacy is a game of secrets. Each PowerAgent's intentions and opponent model are its own state, unreachable except through messages it elects to send. The actor boundary <em>is</em> the information boundary.</li>
+  <li><strong>Fail-closed via NMR.</strong> A PowerAgent that misses the order deadline (crash, timeout, or a model that stalls) defaults to <strong>all Holds</strong> — the standard "No Moves Received" rule. A silent agent can neither stall the game nor be exploited beyond holding. This is the annihilator at the orchestration level.</li>
+  <li><strong>Supervision.</strong> A crashed PowerAgent is restarted from the Chronicle's public state and resumes next phase; the game never blocks on one player.</li>
+  <li><strong>The serialization window.</strong> Orders arrive asynchronously and accumulate; the Adjudicator then performs one atomic, deterministic resolve. This is the lease-scoped serialization the actor-model design names — the Adjudicator holds the resolve lease, and nothing observes a half-resolved board.</li>
+  <li><strong>Durability and replay.</strong> The Chronicle is append-only and the Adjudicator is pure, so the entire game replays deterministically — the provenance DAG that makes the game auditable, debuggable, and usable as an eval/training corpus.</li>
+  <li><strong>Location transparency.</strong> PowerAgents may run on different LLM providers or hosts; the GameMaster does not care, which makes mixed-model tournaments trivial.</li>
+</ul>
+
+<h2 id="loop">6 · The game loop, in code</h2>
+<p>The loop is an actor choreography driven by the GameMaster's phase state machine. In a typed-actor style (Akka/Pekko Typed), the protocol is an ADT of messages and the GameMaster is a behavior that advances on timers and on receipt of all orders.</p>
+<pre><code>// ── The actor message protocol (the wire = Claim values + control) ───────────
+enum GMsg:
+  case Register(power: Power, ref: ActorRef[AgentMsg])
+  case OrdersFrom(power: Power, orders: Set[Order])      // a PowerAgent's submission
+  case Resolved(board: BoardState, outcomes: Outcomes)   // from the Adjudicator
+  case Tick                                              // the clock (deadlines)
+
+enum AgentMsg:
+  case PhaseStart(board: BoardState, phase: Phase, negotiateBy: Deadline, orderBy: Deadline)
+  case Inbound(deal: Deal)                               // a Deal routed by the PressRouter
+  case Adjudicated(board: BoardState, outcomes: Outcomes)
+
+enum AdjMsg:
+  case Resolve(orders: Map[Power, Set[Order]], board: BoardState, replyTo: ActorRef[GMsg])
+
+// ── The GameMaster: the phase state machine ──────────────────────────────────
+def gameMaster(s: GameState): Behavior[GMsg] = Behaviors.receive { (ctx, msg) =&gt; msg match
+  case Tick if s.phase == Negotiating &amp;&amp; past(s.negotiateBy) =&gt;
+    s.powers.foreach(_ ! PhaseStart(s.board, s.phase, expired, s.orderBy))   // open the order window
+    gameMaster(s.copy(phase = Ordering))
+
+  case OrdersFrom(p, os) =&gt;
+    val s2 = s.recordOrders(p, legalize(os, s.board))                        // illegal → Hold (annihilator)
+    if s2.haveAllOrders || past(s.orderBy) then
+      val full = s2.ordersOrHold(s.powers)                                   // NMR: missing power → all Holds
+      ctx.spawnAdjudication(full, s2.board)                                  // Resolve → Adjudicator
+      gameMaster(s2.copy(phase = Adjudicating))
+    else gameMaster(s2)
+
+  case Resolved(board2, outcomes) =&gt;
+    chronicle.append(board2, outcomes)                                       // durable provenance
+    s.powers.foreach(_ ! Adjudicated(board2, outcomes))                      // broadcast verified state
+    s.checkEnd(board2) match                                                 // 18 SCs solo? draw? eliminations?
+      case Some(result) =&gt; finish(result)
+      case None         =&gt; gameMaster(s.advancePhase(board2))                // retreat / build / next season
+}
+
+// ── A PowerAgent: bounded LLM calls behind the actor ─────────────────────────
+def powerAgent(me: Power, st: AgentState, gm: ActorRef[GMsg]): Behavior[AgentMsg] =
+  Behaviors.receive { (ctx, msg) =&gt; msg match
+    case PhaseStart(board, phase, negBy, ordBy) =&gt;
+      val deals = st.agent.negotiate(board, st.rep, st.inbox)                // LLM seam #1
+      deals.foreach(d =&gt; press ! Route(d))                                   // emit diplomacy
+      ctx.scheduleOnce(until(ordBy)) { gm ! OrdersFrom(me, st.agent.chooseOrders(board, st.rep, st.inbox)) } // LLM seam #2
+      powerAgent(me, st.clearInbox, gm)
+    case Inbound(deal) =&gt; powerAgent(me, st.addInbox(deal), gm)
+    case Adjudicated(board, outcomes) =&gt;
+      val rep2 = st.agent.reflect(st.rep, st.lastPromisesSeen, outcomes)     // deferred verification → reputation
+      powerAgent(me, st.copy(rep = rep2), gm)
+  }
+</code></pre>
+<div class="callout ok">
+  <strong>Where the discipline lives.</strong> <code>legalize</code> is the per-order annihilator (illegal → Hold); <code>ordersOrHold</code> is the NMR fail-closed (a missing power holds); the Adjudicator is the serialization window and verification oracle; <code>chronicle.append</code> is the provenance DAG; and <code>reflect</code> is the deferred verification of every promise turned into a reputation update. The LLM is called in exactly two bounded places — <code>negotiate</code> and <code>chooseOrders</code> — and it can lie in the first but not falsify the board or the rules in the second.</div>
+
+<p class="small">A first milestone needs none of the LLM: build the Adjudicator and pass a DATC subset, then drive it with scripted agents, then swap in LLM <code>negotiate</code>/<code>chooseOrders</code>. The hand-off build spec — milestones, data model, the Adjudicator contract, the LLM-call contracts, fail-closed rules, and acceptance tests — is <code>diplomacy-implementation.md</code>.</p>
+
+<h2 id="refs">7 · References</h2>
+<ol class="refs">
+  <li id="r-calhamer">A. B. Calhamer. <em>The Rules of Diplomacy.</em> Avalon Hill / Hasbro, 1959 (4th ed. 2000). — The game and its deterministic, simultaneous-move, no-luck adjudication.</li>
+  <li id="r-datc">L. B. Kruijswijk. <em>Diplomacy Adjudicator Test Cases (DATC).</em> — The canonical correctness suite an adjudicator must pass (support-cutting, convoy paradoxes, beleaguered garrison, etc.).</li>
+  <li id="r-josang">A. Jøsang. <em>Subjective Logic: A Formalism for Reasoning Under Uncertainty.</em> Springer, 2016. — Opinions \((b,d,u,a)\) and the fusion / discounting operators used for the reputation layer.</li>
+  <li id="r-cicero">Meta FAIR Diplomacy Team (A. Bakhtin et al.). <em>Human-level play in the game of Diplomacy by combining language models with strategic reasoning.</em> Science 378(6624), 2022 (CICERO). — LLM dialogue grounded in and kept consistent with a strategic planner.</li>
+  <li id="r-claimdoc"><em>A claim algebra for agent networks.</em> <code>verifiable-claim-algebra.html</code> (this project), §8. — The parent framework; Diplomacy is its adversarial, trust-semiring instance.</li>
+  <li id="r-actor"><em>The focused-harness actor-model design.</em> <code>focused-harness-actor-model-design.html</code> (this project). — The durable virtual-actor substrate, the serialization window, and supervision specialized here to a refereed game.</li>
+</ol>
+
+<p class="small" style="margin-top:2.4rem;border-top:1px solid var(--line);padding-top:1rem;">
+  Companion to <code>verifiable-claim-algebra.html</code> (the parent framework and its §8 basic treatment) and to <code>diplomacy-implementation.md</code> (the build spec for hand-off). Mathematics via MathJax; diagrams via Mermaid.
+</p>
+
+</div>
+</body>
+</html>
