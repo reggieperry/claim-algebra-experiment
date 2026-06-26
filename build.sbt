@@ -28,6 +28,10 @@ lazy val munitCatsEffect = "org.typelevel" %% "munit-cats-effect" % "2.0.0" % Te
 lazy val root = (project in file("."))
   .settings(
     name := "claim-algebra-lab",
+    // Run test suites sequentially. Determinism is first-class here, and ordered,
+    // single-threaded execution also avoids CPU thrash from many ScalaCheck/law
+    // suites contending at once.
+    Test / parallelExecution := false,
     libraryDependencies ++= Seq(
       catsCore,
       catsEffect,
