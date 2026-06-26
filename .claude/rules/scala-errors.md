@@ -7,7 +7,7 @@ paths:
 
 # Scala errors in the types
 
-Errors live in the return type here, not in thrown exceptions. The algebra core — `Claim[K, A]`, `Axia`, the graded Belnap bilattice, the per-node `Validation` — is pure, so a failure is a value the type system forces the caller to confront, and the instrumented pipeline can route and measure it. Sources: *Scala with Cats* (Welsh and Gurnell), chapters 9 (`MonadError`) and 11 (`Semigroupal`, `Applicative`, and `Validated`); *Functional Programming in Scala*, 2nd ed. (Chiusano and Bjarnason), chapter 4 (why exceptions break referential transparency, `Option`, `Either`, `Validated`); *Practical FP in Scala* (Volpe), chapter 1 (`MonadError`/`ApplicativeError`, typed errors versus `F[A]`); the cats and cats-effect documentation (`Validated`, `ApplicativeError`/`MonadError`); and the WartRemover and Scalafix `DisableSyntax` catalogs for the lints that mechanize these rules. The design principle behind several of these rules — define errors out of existence — comes from `craft-complexity.md`.
+Errors live in the return type here, not in thrown exceptions. The algebra core — `Claim[K, A]`, `Testimony`, the graded Belnap bilattice, the per-node `Validation` — is pure, so a failure is a value the type system forces the caller to confront, and the instrumented pipeline can route and measure it. Sources: *Scala with Cats* (Welsh and Gurnell), chapters 9 (`MonadError`) and 11 (`Semigroupal`, `Applicative`, and `Validated`); *Functional Programming in Scala*, 2nd ed. (Chiusano and Bjarnason), chapter 4 (why exceptions break referential transparency, `Option`, `Either`, `Validated`); *Practical FP in Scala* (Volpe), chapter 1 (`MonadError`/`ApplicativeError`, typed errors versus `F[A]`); the cats and cats-effect documentation (`Validated`, `ApplicativeError`/`MonadError`); and the WartRemover and Scalafix `DisableSyntax` catalogs for the lints that mechanize these rules. The design principle behind several of these rules — define errors out of existence — comes from `craft-complexity.md`.
 
 > See `craft-complexity.md` for defining errors away, `craft-domain-modeling.md` for modeling the failure cases as part of the domain, `scala-types.md` for the error ADTs and the pure-core/`IO`-shell split, and `scala-llm.md` for feeding validation errors back to the model.
 
@@ -15,7 +15,7 @@ Errors live in the return type here, not in thrown exceptions. The algebra core 
 
 - **Do not use exceptions for control flow.** A thrown exception is not referentially transparent — its meaning depends on the enclosing `try`, so the same expression takes on different values in different contexts and can no longer be reasoned about locally (FPiS §4.1). Model the failure in the return type instead.
 - **Return `Either[E, A]` for a recoverable error a caller will branch on, `Validated[E, A]` when independent failures must be accumulated, and `Option[A]` only for a plain present/absent with no reason to report.** These are the three shapes; reach for the narrowest one the call site actually needs.
-- **The pure algebra core never throws and never blocks.** `Claim`/`Axia`/`Validation` and the bilattice operations stay total: a node that cannot produce a value returns a failure in its result type, which is what lets the instrumented pipeline route and count confidently-wrong-at-signature outputs rather than lose them to a stack unwind.
+- **The pure algebra core never throws and never blocks.** `Claim`/`Testimony`/`Validation` and the bilattice operations stay total: a node that cannot produce a value returns a failure in its result type, which is what lets the instrumented pipeline route and count confidently-wrong-at-signature outputs rather than lose them to a stack unwind.
 - **`throw` belongs only at a hard boundary** — an unrecoverable invariant breach the program cannot continue past — and even there prefer to surface it as a value. Reserve genuine exceptions for programmer bugs, not domain outcomes.
 
 ## No null; `Option` for absence
@@ -56,7 +56,7 @@ for
 yield conn
 ```
 
-- **Use `Validated` when failures are independent and the caller wants all of them at once** — validating the fields of an inbound `Claim`/`Axia` against the rubric, where reporting only the first defect would force a slow one-at-a-time round-trip. House default for the error container is `ValidatedNec[E, A]` — `Validated[NonEmptyChain[E], A]` — because `NonEmptyChain` accumulates in constant time and guarantees at least one error in the `Invalid` case; prefer it to `ValidatedNel`/`NonEmptyList`. Combine with `mapN`.
+- **Use `Validated` when failures are independent and the caller wants all of them at once** — validating the fields of an inbound `Claim`/`Testimony` against the rubric, where reporting only the first defect would force a slow one-at-a-time round-trip. House default for the error container is `ValidatedNec[E, A]` — `Validated[NonEmptyChain[E], A]` — because `NonEmptyChain` accumulates in constant time and guarantees at least one error in the `Invalid` case; prefer it to `ValidatedNel`/`NonEmptyList`. Combine with `mapN`.
 
 ```scala
 import cats.data.ValidatedNec

@@ -9,13 +9,13 @@ paths:
 
 How to write Scala tests: munit suite structure, fixtures without shared mutable state, deterministic property-based testing with ScalaCheck, type-class laws checked with `discipline`, and the algebra's laws as the default test shape. Sources: the munit docs (FunSuite, fixtures, the ScalaCheck integration), the ScalaCheck user guide (`forAll`, `Gen`, labeling, shrinking, seeds), the Typelevel `discipline` / `cats-laws` / `algebra-laws` docs (`checkAll` and the `*Tests` law bundles), and *The Science of Functional Programming* (Sergei Winitzki) for the semigroup associativity law, the monoid identity laws, and the structural-analysis stance that a typeclass instance is correct only once its laws are verified. The TDD cadence and design discipline are in `craft-tdd.md`; this rule is the Scala mechanics. The engines are pinned in `build.sbt`: `munit`, `munit-scalacheck`, `scalacheck`, `cats-laws`, `algebra-laws`, `discipline-munit`, and `munit-cats-effect`, all `% Test`.
 
-> See `craft-tdd.md` for red-green-refactor and "listen to the tests", `scala-types.md` for the `enum` ADTs and `opaque` types whose laws these tests pin, `scala-style.md` for the brace and `given`/`using` defaults the examples follow, and `craft-domain-modeling.md` for why `Claim[K, A]` / `Axia` / `Validation` carry behavior worth a law.
+> See `craft-tdd.md` for red-green-refactor and "listen to the tests", `scala-types.md` for the `enum` ADTs and `opaque` types whose laws these tests pin, `scala-style.md` for the brace and `given`/`using` defaults the examples follow, and `craft-domain-modeling.md` for why `Claim[K, A]` / `Testimony` / `Validation` carry behavior worth a law.
 
 ## Structure and naming
 
 - **A test file is one `class` extending `munit.FunSuite`** (or `munit.ScalaCheckSuite` when it carries properties — `ScalaCheckSuite` extends `FunSuite`, so example and property tests live in the same class). Each case is a `test("...") { ... }` call whose name is a sentence about the behavior, not the method: `test("corroborate is commutative on agreeing evidence")`, not `test("corroborate")`.
 - **One behavior per test, arrange-act-assert in order**, the act step a single call to the unit under test. Keep computation out of the test body — no branching or loops that derive the expected value; a `want` you have to compute is a `want` that can be wrong the same way the code is.
-- **Group by the type under test, not by the layer.** The algebra core (`Claim`, `Axia`, `Validation`, the bilattice) gets pure suites with no effect runtime; the pipeline, fault injector, and grader get their own suites. Name suites `XxxSuite` for the type `Xxx`.
+- **Group by the type under test, not by the layer.** The algebra core (`Claim`, `Testimony`, `Validation`, the bilattice) gets pure suites with no effect runtime; the pipeline, fault injector, and grader get their own suites. Name suites `XxxSuite` for the type `Xxx`.
 
 ## Assertions and failure messages
 
@@ -45,7 +45,7 @@ tempStore.test("records a CWS flag for a faulted leaf") { store =>
 
 ## Effects under test
 
-- **The algebra core is pure — test it directly, with no IO runtime.** `Claim`, `Axia`, the corroboration combiner, and the bilattice operations return values; assert on the values. This is most of the suite and must stay the fast, hermetic majority.
+- **The algebra core is pure — test it directly, with no IO runtime.** `Claim`, `Testimony`, the corroboration combiner, and the bilattice operations return values; assert on the values. This is most of the suite and must stay the fast, hermetic majority.
 - **Where a unit returns `cats.effect.IO`, run it through munit-cats-effect, never `unsafeRunSync()` scattered in test bodies.** Return the `IO[Unit]` from the test and let the integration evaluate it. Do not bridge an `IO` to a `Future` or block on it to "make the assertion fit" — that mixing is the fragmentation `scala-concurrency.md` bans. Keep effectful suites few; push logic into the pure core so it can be example- and property-tested without a runtime.
 
 ## Property-based testing — the default for the algebra (ScalaCheck)
@@ -82,10 +82,10 @@ When an algebra operation *is* a standard type class — the corroboration combi
 import munit.DisciplineSuite
 import cats.kernel.laws.discipline.{CommutativeMonoidTests, EqTests}
 
-class AxiaLawsSuite extends DisciplineSuite:
-  // requires given Arbitrary[Axia], given Eq[Axia], given CommutativeMonoid[Axia] in scope
-  checkAll("Axia.commutativeMonoid", CommutativeMonoidTests[Axia].commutativeMonoid)
-  checkAll("Axia.eq",                EqTests[Axia].eqv)
+class TestimonyLawsSuite extends DisciplineSuite:
+  // requires given Arbitrary[Testimony], given Eq[Testimony], given CommutativeMonoid[Testimony] in scope
+  checkAll("Testimony.commutativeMonoid", CommutativeMonoidTests[Testimony].commutativeMonoid)
+  checkAll("Testimony.eq",                EqTests[Testimony].eqv)
 ```
 
 `checkAll` registers one named munit test per law, so a failure points at the exact law — `commutativeMonoid.associative`, `monoid.leftIdentity` — without your writing any of them. The instance is the design; the law check proves it lawful. This is the law-first red-green for an algebra: write the `checkAll` against the type class the operation must satisfy, watch it fail, implement the instance until every law passes.

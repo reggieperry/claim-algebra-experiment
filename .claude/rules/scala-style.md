@@ -26,7 +26,7 @@ Scala 3 makes braces optional and treats indentation as significant. That freedo
 
 ```scala
 // Default in shared code: braces, dot-notation, line-of-sight.
-def corroborate(claims: List[Claim[K, A]]): Validation[Axia, A] = {
+def corroborate(claims: List[Claim[K, A]]): Validation[Testimony, A] = {
   val verdicts = claims.map(scoreOne)
   verdicts.reduceOption(_ combine _).getOrElse(Validation.neutral)
 }
@@ -41,7 +41,7 @@ val scored = claims.map: claim =>
 - **Upper camel case for types and objects, lower camel case for methods, values, variables, and parameters** — `class FaultInjector`, `def scoreOne`, `val proChannel`. The Scala Style Guide is explicit: underscores in identifiers are strongly discouraged, and `SCREAMING_SNAKE_CASE` is not used even for constants — a constant is just an upper-camel-case immutable member (`val MaxFanOut = 9`).
 - **Do not carry Java's `get`/`set` prefix.** Name an accessor for the property it returns (`def grade`, not `def getGrade`); a boolean accessor with no mutator may take an `is` prefix (`def isFaulted`). A setter is the property name with `_=` appended.
 - **Scale name length with usage density and scope, not with type complexity alone** (Li Haoyi's *Conciseness & Names*): a value used many times per line earns a short name; a name read once per few thousand lines earns a descriptive one; a wider-scoped or public name is longer because the reader lacks local context. A one-letter `c` for a fold accumulator is fine; an exported entry point is not.
-- **Single uppercase letters for ordinary type parameters** (`A`, `K`, starting from `A`); a descriptive upper-camel-case name (not all-caps) when the parameter carries meaning, as the domain types here do — `Claim[K, A]`, `Axia`, `Ev`. Keep the domain term identical across speech, docs, and code (`craft-complexity.md`); rename everywhere when the term shifts.
+- **Single uppercase letters for ordinary type parameters** (`A`, `K`, starting from `A`); a descriptive upper-camel-case name (not all-caps) when the parameter carries meaning, as the domain types here do — `Claim[K, A]`, `Testimony`, `Ev`. Keep the domain term identical across speech, docs, and code (`craft-complexity.md`); rename everywhere when the term shifts.
 - **Give a dangerous-but-occasionally-needed operation a longer, deliberately clunkier name rather than a tempting short one or an operator** (`Unsafe.runSyncAndDiscard`, not a terse alias) so a caller chooses it consciously.
 
 ## Control flow

@@ -21,25 +21,25 @@ What this set rests on is a single effect standard. Scala's sharpest practical r
 
 ```scala
 // House default — effects are IO, the boundary is wrapped once.
-def fetchAxia(id: ClaimId): IO[Axia] =
+def fetchTestimony(id: ClaimId): IO[Testimony] =
   IO.fromCompletableFuture(IO(sdkClient.fetchAsync(id)))
 
 // Banned — a second effect system, and an eager Future leaking into the pipeline.
 // import zio.*
-// def fetchAxia(id: ClaimId): ZIO[Any, Throwable, Axia] = ???
-// def fetchAxia(id: ClaimId): Future[Axia] = sdkClient.fetchAsync(id).asScala
+// def fetchTestimony(id: ClaimId): ZIO[Any, Throwable, Testimony] = ???
+// def fetchTestimony(id: ClaimId): Future[Testimony] = sdkClient.fetchAsync(id).asScala
 ```
 
 ## Keep the algebra core pure; let effects live at the edges
 
-- **The claim algebra — `Claim[K, A]`, `Axia`, the `Validation` corroboration combiner — is pure and effect-free.** It computes with total functions over the bilattice; it does no `IO`. Pushing the evidential combine, the for/against twist, and the provenance homomorphism into pure values is what makes them law-testable under ScalaCheck (`scala-testing.md`) and what makes a trial reproducible from `{fault_id, faulted_leaf, final_value}`.
+- **The claim algebra — `Claim[K, A]`, `Testimony`, the `Validation` corroboration combiner — is pure and effect-free.** It computes with total functions over the bilattice; it does no `IO`. Pushing the evidential combine, the for/against twist, and the provenance homomorphism into pure values is what makes them law-testable under ScalaCheck (`scala-testing.md`) and what makes a trial reproducible from `{fault_id, faulted_leaf, final_value}`.
 - **`IO` belongs to the pipeline shell, not the algebra.** Node wiring, the fault injector's draw, the LLM call, and the trial-record store are effectful; the value routed through them is not. Keep the seam visible: an effectful function takes pure values in and returns pure values in `IO`.
 
 ## Concrete `IO` is the default; earn tagless final
 
 Volpe presents tagless final (`def program[F[_]: Monad: Console]`) as a way to constrain a function to declared capabilities, and the technique is sound. But the settled community position — the cats-effect maintainers' own — is that **for application code, where you know which effect you run, abstracting over `F[_]` and writing `[F[_]: Sync]` everywhere is a false abstraction.** This is application code.
 
-- **Default to concrete `cats.effect.IO`.** Write `def run(claim: Claim[K, A]): IO[Axia]`, not `def run[F[_]: Sync](claim: Claim[K, A]): F[Axia]`. Concrete `IO` is easier to write, easier to read, and the one effect every reader already knows is in play.
+- **Default to concrete `cats.effect.IO`.** Write `def run(claim: Claim[K, A]): IO[Testimony]`, not `def run[F[_]: Sync](claim: Claim[K, A]): F[Testimony]`. Concrete `IO` is easier to write, easier to read, and the one effect every reader already knows is in play.
 - **Reach for an `F[_]` typeclass constraint only when an abstraction is genuinely earned** — a reusable library-like component that several call sites must instantiate at different effect types, or a node seam that a future actor transport must re-interpret. Volpe's own escape hatch applies: program against the narrowest capability (`Async`, `Temporal`, `Console`), never against a kitchen-sink constraint list. The principle of least power is the test — if no second instantiation exists, the abstraction is theatre and costs the reader a type parameter for nothing.
 - **A node seam is a function, not a tagless algebra by reflex.** The settled design is `node = (NodeContract, computation)` with concrete `IO`; keep transport-agnostic *shape* (pure value in, value out) so an actor transport can slot in later, without paying for `F[_]` abstraction now.
 
@@ -101,5 +101,5 @@ The build is a single root module now, and stays that way until the structure ac
 
 ## Public API surface
 
-- **Expose a small, stable surface; keep internals package-private.** A module's public types are a contract — the `Claim`/`Axia` values on the wire, the module traits, the smart constructors. Mark helper types and intermediate machinery `private[pkg]` so they can be reshaped without breaking callers (`craft-complexity.md`: deep modules, narrow interfaces).
+- **Expose a small, stable surface; keep internals package-private.** A module's public types are a contract — the `Claim`/`Testimony` values on the wire, the module traits, the smart constructors. Mark helper types and intermediate machinery `private[pkg]` so they can be reshaped without breaking callers (`craft-complexity.md`: deep modules, narrow interfaces).
 - **Name modules and packages after the domain concept they own** — `algebra`, `pipeline`, `grader`, `trialstore` — never `utils`, `common`, `helpers`, or `core` as a grab-bag. A package with no cohesive responsibility becomes a dump; the package name is part of every import that reads it.

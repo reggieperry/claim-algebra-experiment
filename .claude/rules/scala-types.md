@@ -7,7 +7,7 @@ paths:
 
 # Scala domain modeling with the type system
 
-Encode the algebra's invariants in the type system so the compiler rejects an illegal value before it reaches a node — the four-corner Belnap value, `Claim[K, A]`, `Axia` with its two provenance channels, and the corroboration combiner all carry their laws as types, not as runtime checks. Sources: the Scala 3 reference (enums, opaque type aliases, contextual abstractions / type classes), *Functional Programming in Scala* 2nd ed (ADTs, the `Either`-to-`Validated` derivation and error accumulation in chapter 4), *Scala with Cats* (the anatomy of a type class, type classes and variance), and *Programming in Scala* 5th ed (case classes and pattern matching). The substitutability discipline is from Liskov (`craft-abstraction.md`); the value-object and ubiquitous-language discipline is from Evans (`craft-domain-modeling.md`).
+Encode the algebra's invariants in the type system so the compiler rejects an illegal value before it reaches a node — the four-corner Belnap value, `Claim[K, A]`, `Testimony` with its two provenance channels, and the corroboration combiner all carry their laws as types, not as runtime checks. Sources: the Scala 3 reference (enums, opaque type aliases, contextual abstractions / type classes), *Functional Programming in Scala* 2nd ed (ADTs, the `Either`-to-`Validated` derivation and error accumulation in chapter 4), *Scala with Cats* (the anatomy of a type class, type classes and variance), and *Programming in Scala* 5th ed (case classes and pattern matching). The substitutability discipline is from Liskov (`craft-abstraction.md`); the value-object and ubiquitous-language discipline is from Evans (`craft-domain-modeling.md`).
 
 > See `craft-domain-modeling.md` for value objects, entities, and naming in the ubiquitous language; `craft-abstraction.md` for abstract data types and the substitution principle; `scala-style.md` for the brace and given-clarity defaults; and `scala-llm.md` for the structured-output type as the typed model boundary at the LLM call.
 
@@ -85,9 +85,9 @@ object Grades:
 - **Add behavior through `extension` methods on the opaque type**, not by exposing the representation. The representation stays sealed inside the defining scope; callers see only the operations the domain allows.
 - **Use opaque types for the identifiers and channel tags the experiment routes** — `FaultId`, `NodeId`, a provenance `Channel` label — so a fault key can't be passed where a node id is wanted. This is the value-object building block from `craft-domain-modeling.md` expressed in Scala.
 
-## `Axia`, the two provenance channels, and the evidential grade
+## `Testimony`, the two provenance channels, and the evidential grade
 
-`Axia` and `Claim[K, A]` are the experiment's central types; model them so a malformed one cannot be constructed. The grade is the evidential pair `Ev(pro, con)`, and the two provenance channels are distinct fields, not one bag.
+`Testimony` and `Claim[K, A]` are the experiment's central types; model them so a malformed one cannot be constructed. The grade is the evidential pair `Ev(pro, con)`, and the two provenance channels are distinct fields, not one bag.
 
 - **Model the evidential pair as a small immutable value object whose constructor enforces its invariant**, and the two provenance channels as two named, separately typed fields — never a single untyped map. A `case class` with a `private` constructor plus a validating `apply` keeps the for/against and the two channels coherent.
 

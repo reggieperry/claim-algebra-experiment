@@ -80,7 +80,7 @@
     <li><a href="#tower">The tower</a>—a category-theoretic abstraction realized in algebra realized in a type.</li>
     <li><a href="#cat">The categorical layer</a> <span class="tag t-cat">abstraction</span>—monoidal categories, lax monoidal functors, the free-object universal property, and its per-channel survival.</li>
     <li><a href="#alg">The algebraic layer</a> <span class="tag t-alg">realization</span>—the bilattice, the twist over the provenance semiring, the two meets, negation, the properties.</li>
-    <li><a href="#type">The type layer</a> <span class="tag t-type">code</span>—<code>Axia[K, A]</code> / <code>Claim[K, A]</code> as a bilattice-graded validation applicative plus a verification refinement.</li>
+    <li><a href="#type">The type layer</a> <span class="tag t-type">code</span>—<code>Testimony[K, A]</code> / <code>Claim[K, A]</code> as a bilattice-graded validation applicative plus a verification refinement.</li>
     <li><a href="#example">A first worked example: credit deal analysis</a>—the leverage pipeline, a contradiction that becomes a glut, an amendment that retracts, and the signature gate.</li>
     <li><a href="#workbench">The workbench is the N = 1 instance</a>—the single-agent specialization, and the leap to N agents.</li>
     <li><a href="#cost">A second instance: cost routing</a>—the tropical sibling, with a Belnap-valued confidence riding alongside the cost.</li>
@@ -130,8 +130,8 @@ distributive bilattice FOUR (two orderings: truth, knowledge)
 realized by the twist over provenance polynomials N[X] ⊙ N[X]
 graded to [0,1]² ⊇ subjective logic · UNRESOLVED = gap N · GLUT = B"]
 TYP["TYPE / CODE—the buildable
-Axia[K, A] = bilattice-graded Validation applicative (two channels)
-Claim[K, A] = an Axia refined by verification"]
+Testimony[K, A] = bilattice-graded Validation applicative (two channels)
+Claim[K, A] = a Testimony refined by verification"]
 CAT -->|"realized by"| ALG
 ALG -->|"implemented as"| TYP
 classDef c fill:#f3eefb,stroke:#553a85,color:#1a1a2e;
@@ -147,7 +147,7 @@ class CAT c; class ALG a; class TYP t;
   <strong>Where category theory does real work.</strong> Category theory belongs at the top in exactly three ways: <em>(i)</em> the universal property of the free semiring, applied <em>per channel</em>, which keeps "compute provenance once, evaluate many trust models" a one-line theorem; <em>(ii)</em> preservation of the zeros by morphisms, which makes fail-closed hold under every trust model at once; and <em>(iii)</em> the <em>twist</em> (product) representation of distributive bilattices, \(\mathsf{FOUR}\cong\mathsf{TWO}\odot\mathsf{TWO}\), which lets <em>(i)</em> and <em>(ii)</em> survive the move from a semiring to a bilattice. The twist says a bilattice is just a pair of lattice computations bolted together, so the semiring machinery applies twice rather than not at all. Past these three, further categorical generality would be decoration, and the note drops to the algebra. Abstraction is a tool for compression, not a display of generality.
 </div>
 
-<p><strong>Two layers, two names.</strong> The general object at the algebraic and type levels (a value, or <span class="mono">UNRESOLVED</span>, carried with its provenance and a grade in the value space \(K\)) is an <em>Axia</em> (Greek <em>axía</em>, "worth"). It is value-agnostic: the payload may be a fact, a cost, or a trust level, and the entire algebra of §3 and §4 operates at this layer. A <em>Claim</em> is an Axia refined by a verification predicate, an Axia that asserts something and can be checked against its provenance. So a Claim is an Axia that verifies. The framework keeps the name "claim algebra" because verification is its motivating purpose, but the general structure underneath is an Axia. What distinguishes this object from a plain graded value is what \(K\) <em>is</em>: not a commutative semiring but a distributive bilattice, so an Axia carries a Belnap-valued (graded) annotation rather than a single semiring grade. The cost-routing instance (§8) is naturally an Axia, a graded cost; the workbench's cited facts and Diplomacy's promises are Claims, where verification and the for/against bookkeeping do the work.</p>
+<p><strong>Two layers, two names.</strong> The general object at the algebraic and type levels (a value, or <span class="mono">UNRESOLVED</span>, carried with its provenance and a grade in the value space \(K\)) is a <em>Testimony</em>: a value held together with what its sources attest for and against it. It is value-agnostic: the payload may be a fact, a cost, or a trust level, and the entire algebra of §3 and §4 operates at this layer. A <em>Claim</em> is a Testimony refined by a verification predicate, a Testimony that asserts something and can be checked against its provenance. So a Claim is a Testimony that verifies. The framework keeps the name "claim algebra" because verification is its motivating purpose, but the general structure underneath is a Testimony. What distinguishes this object from a plain graded value is what \(K\) <em>is</em>: not a commutative semiring but a distributive bilattice, so a Testimony carries a Belnap-valued (graded) annotation rather than a single semiring grade. The cost-routing instance (§8) is naturally a Testimony, a graded cost; the workbench's cited facts and Diplomacy's promises are Claims, where verification and the for/against bookkeeping do the work.</p>
 
 <h2 id="cat">3 · The categorical layer <span class="tag t-cat">abstraction</span></h2>
 
@@ -412,7 +412,7 @@ Current agent swarms live in the dangerous cell: fluent and confident, unchecked
 
 <h2 id="type">5 · The type layer <span class="tag t-type">code</span></h2>
 
-<p>The categorical statement of §3.2 (applicative = lax monoidal functor) is a programming type, with the grade widened from a single semiring value to a bilattice element, a pair of channels. The two names of §2 appear directly: <code>Axia[K, A]</code> is the graded value the algebra acts on, and <code>Claim[K, A]</code> is an Axia refined by verification. Here it is in Scala, lightly cleaned.</p>
+<p>The categorical statement of §3.2 (applicative = lax monoidal functor) is a programming type, with the grade widened from a single semiring value to a bilattice element, a pair of channels. The two names of §2 appear directly: <code>Testimony[K, A]</code> is the graded value the algebra acts on, and <code>Claim[K, A]</code> is a Testimony refined by verification. Here it is in Scala, lightly cleaned.</p>
 
 <pre><code>// The underlying lattice L of the twist (the per-channel confidence lattice).
 sealed trait Lev
@@ -451,35 +451,35 @@ final case class Prov(atoms: Set[Lineage])
 object Prov:
   given Monoid[Prov] = Monoid.instance(Prov(Set.empty), (a,b) => Prov(a.atoms | b.atoms))
 
-// THE AXIA: a value carried with (pro-prov, con-prov, evidential grade). Value-agnostic.
-final case class Axia[+A](value: Option[A], provPro: Prov, provCon: Prov, ev: Ev)
+// THE TESTIMONY: a value carried with (pro-prov, con-prov, evidential grade). Value-agnostic.
+final case class Testimony[+A](value: Option[A], provPro: Prov, provCon: Prov, ev: Ev)
 
-object Axia:
+object Testimony:
   // CONJUNCTIVE—the Validation applicative: accumulates BOTH lineage channels, never short-circuits.
-  def and2[A, B, C](a: Axia[A], b: Axia[B])(f: (A, B) => C): Axia[C] =
+  def derive[A, B, C](a: Testimony[A], b: Testimony[B])(f: (A, B) => C): Testimony[C] =
     val e = Ev.kmeet(a.ev, b.ev)                      // fail-closed under ⊗ₖ  (§4.3 default)
     val v = if e.pro == Bot then None else (a.value, b.value).mapN(f)  // no support ⇒ no value
-    Axia(v, Prov(a.provPro.atoms | b.provPro.atoms),
-            Prov(a.provCon.atoms | b.provCon.atoms), e)
+    Testimony(v, Prov(a.provPro.atoms | b.provPro.atoms),
+                 Prov(a.provCon.atoms | b.provCon.atoms), e)
 
   // DISJUNCTIVE—corroboration. Agreeing sources reinforce; DISAGREEING sources climb to GLUT.
-  def corroborate[A](a: Axia[A], b: Axia[A]): Axia[A] =
-    Axia(a.value.orElse(b.value),
-         Prov(a.provPro.atoms | b.provPro.atoms),
-         Prov(a.provCon.atoms | b.provCon.atoms), Ev.kjoin(a.ev, b.ev))
+  def corroborate[A](a: Testimony[A], b: Testimony[A]): Testimony[A] =
+    Testimony(a.value.orElse(b.value),
+              Prov(a.provPro.atoms | b.provPro.atoms),
+              Prov(a.provCon.atoms | b.provCon.atoms), Ev.kjoin(a.ev, b.ev))
 
   // NEGATION / RETRACTION—swap the channels (a superseding source refutes prior support).
-  def refute[A](a: Axia[A]): Axia[A] = Axia(a.value, a.provCon, a.provPro, Ev.negate(a.ev))
+  def refute[A](a: Testimony[A]): Testimony[A] = Testimony(a.value, a.provCon, a.provPro, Ev.negate(a.ev))
 
-// A CLAIM is an Axia refined by verification—an Axia that asserts, and can be checked.
-type Claim[A] = Axia[A] Refined VerifiesAgainstProvenance   // verify(c) recomputes value vs provPro
+// A CLAIM is a Testimony refined by verification—a Testimony that asserts, and can be checked.
+type Claim[A] = Testimony[A] Refined VerifiesAgainstProvenance   // verify(c) recomputes value vs provPro
 </code></pre>
 
 <div class="callout">
   <strong>Why an applicative, not a monad.</strong> Monadic <code>&gt;&gt;=</code> lets later structure depend on an earlier <em>value</em> and short-circuits on the first failure, discarding the lineage of the other conjuncts. The <code>Validation</code> applicative is deliberately <em>not</em> a monad, precisely so it <em>accumulates</em> [2]. Here it must accumulate <em>both</em> the pro- and con-lineages of every conjunct, because a downstream agent needs the full two-channel provenance for verification, blame-assignment, and to tell a glut from a gap. The "graded" qualifier means the \((\mathrm{Prov},\mathrm{Prov},\mathrm{Ev})\) annotation is an effect grade produced by composition, never written by the payload [8]. The single legitimately-monadic edge (an agent choosing whom to ask next from a prior answer) remains a justified escape hatch, not the default.
 </div>
 
-<p>The other realizations move in step. In Haskell the object is <code>Axia a = Writer (Prov, Prov, Ev) (Maybe a)</code> exposed as an <code>Applicative</code> only (the monoid is the <em>product</em> of the two provenance monoids and the bilattice grade), with <code>Claim</code> via a Liquid Haskell refinement, and <code>negate</code> a total function swapping the two <code>Prov</code> components. In the harness's Go (no higher-kinded types) the <code>Axia</code> struct carries a second provenance field and the <code>Conf</code> enum becomes the four-corner <code>Ev</code>; <code>And</code> still pattern-matches the gap first (now <code>Ev.N</code>) as an explicit early return, but the <em>glut</em> is representable as a value rather than silently folded into the gap.</p>
+<p>The other realizations move in step. In Haskell the object is <code>Testimony a = Writer (Prov, Prov, Ev) (Maybe a)</code> exposed as an <code>Applicative</code> only (the monoid is the <em>product</em> of the two provenance monoids and the bilattice grade), with <code>Claim</code> via a Liquid Haskell refinement, and <code>negate</code> a total function swapping the two <code>Prov</code> components. In the harness's Go (no higher-kinded types) the <code>Testimony</code> struct carries a second provenance field and the <code>Conf</code> enum becomes the four-corner <code>Ev</code>; <code>And</code> still pattern-matches the gap first (now <code>Ev.N</code>) as an explicit early return, but the <em>glut</em> is representable as a value rather than silently folded into the gap.</p>
 
 <h2 id="example">6 · A first worked example: credit deal analysis</h2>
 
@@ -570,7 +570,7 @@ class A ok; class B,R bad; class M op;
 </figure>
 
 <h3>8.2 · Intelligent agents make the edge weight a claim</h3>
-<p>A scalar lane cost assumes the cost is known. An intelligent center <em>predicts</em> it (transit time, capacity, stockout risk), so the edge weight is not a number but a graded value with provenance and an evidential pair: an <code>Axia[Cost]</code>. This is the §2 distinction in action: a cost is not an assertion, so it is naturally an <em>Axia</em>, not a Claim; the <code>verifier</code> field below, which lets the receiver re-check the lane against evidence, is what lifts it to a <code>Claim[Cost]</code>. The construction needs naming precisely, because it is easy to mis-state:</p>
+<p>A scalar lane cost assumes the cost is known. An intelligent center <em>predicts</em> it (transit time, capacity, stockout risk), so the edge weight is not a number but a graded value with provenance and an evidential pair: a <code>Testimony[Cost]</code>. This is the §2 distinction in action: a cost is not an assertion, so it is naturally a <em>Testimony</em>, not a Claim; the <code>verifier</code> field below, which lets the receiver re-check the lane against evidence, is what lifts it to a <code>Claim[Cost]</code>. The construction needs naming precisely, because it is easy to mis-state:</p>
 <ul>
   <li>Under <strong>\(\otimes\) (compose a route)</strong> it is a genuine product: add the cost (tropical \(\otimes = {+}\)) <em>and</em> meet the evidential pair under the knowledge-meet \(\otimes_k\), componentwise (the weakest-link reading). A leg with no usable support, whether unprobed or refuted, forces the composed pro-channel to \(\bot\), so the route is only as confident as its weakest leg; a confirmed-down lane is carried on the cost channel as \(+\infty\), not as a false evidential pair.</li>
   <li>Under <strong>\(\oplus\) (choose among routes)</strong> it is <em>not</em> the componentwise direct product. It is the <strong>tropical-weight-with-output</strong> construction familiar from weighted finite-state transducers [22]: the tropical cost <em>selects</em> the winning route, and the route, evidential pair, and provenance ride along as an output label, concatenated under \(\otimes\) and projected from the arg-min at each \(\oplus\). It is a well-defined, associative \(\oplus\) only once equal-cost ties resolve deterministically (equivalently, a <strong>lexicographic</strong> semiring with cost primary).</li>
