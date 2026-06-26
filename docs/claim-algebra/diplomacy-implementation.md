@@ -6,7 +6,7 @@ This spec is the *what and how to build*; the HTML is the *why*. Read both befor
 
 ## 0. The spine (do not lose it)
 
-- **Two regimes meet at adjudication.** The **substrate** (board, orders, adjudication) is a clean verification-semiring instance: deterministic, fail-closed, auditable — *no agent can hallucinate the board or make an illegal move*. The **diplomacy** (negotiation) stays inside the algebra: a promise is a claim whose verification is *deferred*, and its trust grade is a graded Belnap value — subjective logic embeds as the algebra's graded form — updated by reputation; only the *selection* of action (whom to deceive, when to defect) is supplied by game theory, not by the algebra.
+- **Two regimes meet at adjudication.** The **substrate** (board, orders, adjudication) is the consistent, glut-free fragment of the algebra: deterministic, fail-closed, auditable — *no agent can hallucinate the board or make an illegal move*. The **diplomacy** (negotiation) stays inside the algebra: a promise is a claim whose verification is *deferred*, and its trust grade is a graded Belnap value — subjective logic embeds as the algebra's graded form — updated by reputation; only the *selection* of action (whom to deceive, when to defect) is supplied by game theory, not by the algebra.
 - **The adjudicator is the verification oracle and the spine.** It is a pure, deterministic function and must be **DATC-correct**. Everything else trusts it. Build it first, with no LLM in sight.
 - **The LLM is called in exactly two bounded places** per power per phase: `negotiate` and `chooseOrders`. It may lie in the first; it cannot falsify the board or the rules in the second.
 - **Fail-closed everywhere.** Illegal order → Hold (the per-order annihilator). Missing/crashed power → all Holds (NMR). Half-resolved board → never observed (the adjudicator is the serialization window).
@@ -54,8 +54,8 @@ final case class Outcome(order: Order, result: Result)
 final case class Outcomes(perOrder: Map[(Power, Order), Outcome], dislodged: Set[UnitAt])
 
 // Claim types (specialize Claim[K, A] from the parent framework)
-type StateClaim = Claim[Verified, UnitAt]                  // K = verification (Boolean); verify() vs the engine
-type OrderClaim = Claim[Verified, Order]                   // legality-checked
+type StateClaim = Claim[Ev, UnitAt]                       // K = Belnap grade (consistent fragment); verify() vs the engine is the separate axis
+type OrderClaim = Claim[Ev, Order]                        // K = Belnap grade; legality-checked, verify() = adjudication
 final case class Deal(from: Power, to: Power, iPledge: Set[Order], iExpect: Set[Order])
 type DealClaim  = Claim[Opinion, Deal]                     // K = trust; UNRESOLVED-as-fact until adjudication
 

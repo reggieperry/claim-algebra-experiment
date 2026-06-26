@@ -94,9 +94,9 @@
 <h3>2.1 · Two regimes, three claim types</h3>
 <p>Everything an agent emits is a <code>Claim[K, A]</code> from the parent document. Diplomacy uses two semirings \(K\) and three claim types:</p>
 <table>
-  <tr><th>Claim type</th><th>Semiring \(K\)</th><th>What it is</th><th>Verification</th></tr>
-  <tr><td><code>StateClaim</code></td><td>Verification (Boolean)</td><td>A board fact — who holds which province, where each unit is.</td><td>Immediate, against the engine. Fail-closed: a board fact that does not verify is rejected; <strong>no power can hallucinate the board.</strong></td></tr>
-  <tr><td><code>Order</code></td><td>Verification (Boolean)</td><td>A Hold / Move / Support / Convoy commitment, submitted privately.</td><td>Legality is checked; an illegal order hits the annihilator and is dropped to a Hold. Adjudication is deterministic.</td></tr>
+  <tr><th>Claim type</th><th>Value space \(K\)</th><th>What it is</th><th>Verification (the third axis)</th></tr>
+  <tr><td><code>StateClaim</code></td><td>Belnap, consistent fragment {T, F, N}</td><td>A board fact — who holds which province, where each unit is.</td><td>Immediate, against the engine. Fail-closed: a board fact that does not verify is rejected; <strong>no power can hallucinate the board.</strong></td></tr>
+  <tr><td><code>Order</code></td><td>Belnap, consistent fragment {T, F, N}</td><td>A Hold / Move / Support / Convoy commitment, submitted privately.</td><td>Legality is checked; an illegal order hits the annihilator and is dropped to a Hold. Adjudication is deterministic.</td></tr>
   <tr><td><code>Deal</code></td><td>Trust (graded bilattice)</td><td>A negotiation message — a conditional promise ("I support you into Galicia if you move there").</td><td><strong>Deferred</strong> — resolved only at adjudication ("did your orders match your pledge?"). Feeds reputation.</td></tr>
 </table>
 
@@ -132,7 +132,7 @@ flowchart LR
   class N,R trust; class O,S ver; class J adj;
 </pre>
   </div>
-  <figcaption>Figure 1 — One phase. The substrate (Order → Adjudicate → Broadcast) is the verification-semiring claim algebra, fail-closed. The diplomacy (Negotiate → Reputation) leaves it: a promise is verified only after the fact, and its confidence is a reputation supplied by game theory.</figcaption>
+  <figcaption>Figure 1 — One phase. The substrate (Order → Adjudicate → Broadcast) is the consistent, glut-free fragment of the claim algebra, fail-closed. The diplomacy half (Negotiate → Reputation) runs inside the same algebra: a promise is a claim whose verification is deferred to adjudication, and reputation is a graded Belnap value moving in the knowledge order — a betrayal drives it toward the glut. Only the choice of which orders to submit stays outside, in game theory.</figcaption>
 </figure>
 <p>Sub-phases (retreat after a movement phase, build after Fall) follow the same submit-then-adjudicate pattern. After each adjudication the GameMaster checks for a solo (18 SCs), eliminations, or an agreed draw.</p>
 
@@ -161,9 +161,9 @@ final case class Outcomes(perOrder: Map[(Power, Order), Outcome])
 // Adjudication is the verification ORACLE: pure, deterministic, DATC-correct.
 def adjudicate(orders: Map[Power, Set[Order]], s: BoardState): (BoardState, Outcomes)
 
-type StateClaim = Claim[Verified, UnitAt]              // verify() checks against the engine
+type StateClaim = Claim[Ev, UnitAt]                   // K = Belnap grade (consistent fragment); verify() checks against the engine
 
-// ── The diplomacy layer (action selection — the strategic layer outside the algebra) ───────
+// ── The trust layer: a graded-bilattice value inside the algebra (fuse = corroborate ⊕ₖ) ───────
 final case class Opinion(b: Double, d: Double, u: Double, base: Double):
   def expected: Double = b + base * u                  // trust value in [0,1]
   def fuse(ev: Opinion): Opinion                       // subjective-logic cumulative fusion (corroborate)
@@ -176,7 +176,7 @@ final case class Reputation(of: Map[Power, Opinion]):
 final case class Deal(from: Power, to: Power, iPledge: Set[Order], iExpect: Set[Order])
 type DealClaim = Claim[Opinion, Deal]                  // K = trust; UNRESOLVED-as-fact until adjudication
 
-// ── The agent: the only LLM seam (bounded, structured calls) ─────────────────
+// ── The agent: action selection — the strategic layer outside the algebra (the only LLM seam) ──
 trait PowerAgent:
   def me: Power
   def negotiate(view: BoardState, rep: Reputation, inbox: Vector[Deal]): Vector[Deal]   // LLM
