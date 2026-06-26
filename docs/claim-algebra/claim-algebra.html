@@ -412,28 +412,31 @@ Current agent swarms live in the dangerous cell: fluent and confident, unchecked
 
 <h2 id="type">5 · The type layer <span class="tag t-type">code</span></h2>
 
-<p>The categorical statement of §3.2 (applicative = lax monoidal functor) is a programming type, with the grade widened from a single semiring value to a bilattice element, a pair of channels. The two names of §2 appear directly: <code>Testimony[K, A]</code> is the graded value the algebra acts on, and <code>Claim[K, A]</code> is a Testimony refined by verification. Here it is in Scala, lightly cleaned.</p>
+<p>The categorical statement of §3.2 (applicative = lax monoidal functor) is a programming type, with the grade widened from a single semiring value to a bilattice element, a pair of channels. The two names of §2 appear directly: <code>Testimony[K, A]</code> is the graded value the algebra acts on, and <code>Claim[K, A]</code> is a Testimony refined by verification. Here it is in Scala, lightly cleaned; the invariant-bearing scalars are opaque types behind fail-closed constructors—illegal states unrepresentable, with the residual invariants carried by law and property tests.</p>
 
-<pre><code>// The underlying lattice L of the twist (the per-channel confidence lattice).
-sealed trait Lev
-case object Bot extends Lev                          // ⊥  (no evidence on this channel)
-final case class Deg(p: Double) extends Lev          // p in (0,1]; Deg(1.0) = ⊤ ("certain")
+<pre><code>// The underlying lattice L of the twist (the per-channel confidence). An opaque Double
+// in [0,1] (0 = ⊥ no evidence; 1 = ⊤ certain) behind a clamping, fail-closed constructor,
+// so an out-of-range or non-finite strength is simply unrepresentable.
+opaque type Lev = Double
 object Lev:
-  def meet(a: Lev, b: Lev): Lev = (a, b) match  // min
-    case (Bot, _) | (_, Bot) => Bot
-    case (Deg(x), Deg(y)) => Deg(x min y)
-  def join(a: Lev, b: Lev): Lev = (a, b) match  // max
-    case (Bot, y) => y
-    case (x, Bot) => x
-    case (Deg(x), Deg(y)) => Deg(x max y)
+  val bottom: Lev = 0.0
+  val top: Lev    = 1.0
+  def deg(p: Double): Lev =                          // the only constructor; fail-closed
+    if !(p > 0.0) then 0.0 else if p >= 1.0 then 1.0 else p   // NaN and p ≤ 0 ⇒ ⊥
+  extension (x: Lev)
+    def strength: Double  = x
+    def isBottom: Boolean = x == 0.0
+  def meet(a: Lev, b: Lev): Lev = if a <= b then a else b     // min (weaker evidence)
+  def join(a: Lev, b: Lev): Lev = if a >= b then a else b     // max (stronger evidence)
+  given Order[Lev] = Order.by(_.strength)            // total order; also supplies Eq[Lev]
 
 // THE BILATTICE ELEMENT: an evidential PAIR (for, against)—the twist L ⊙ L.
 final case class Ev(pro: Lev, con: Lev)              // (a⁺, a⁻)
 object Ev:
-  val N = Ev(Bot, Bot)                               // gap—knowledge-bottom, the UNRESOLVED value
-  val T = Ev(Deg(1.0), Bot)                          // true—supported, unrefuted
-  val F = Ev(Bot, Deg(1.0))                          // false—refuted, unsupported
-  val B = Ev(Deg(1.0), Deg(1.0))                     // glut—knowledge-top, told both
+  val N = Ev(Lev.bottom, Lev.bottom)                 // gap—knowledge-bottom, the UNRESOLVED value
+  val T = Ev(Lev.top,    Lev.bottom)                 // true—supported, unrefuted
+  val F = Ev(Lev.bottom, Lev.top)                    // false—refuted, unsupported
+  val B = Ev(Lev.top,    Lev.top)                    // glut—knowledge-top, told both
 
   // FOUR OPERATIONS, all componentwise (see §4.1 table):
   def kmeet(a: Ev, b: Ev) = Ev(Lev.meet(a.pro, b.pro), Lev.meet(a.con, b.con)) // ⊗ₖ FAIL-CLOSED: N absorbs
@@ -442,12 +445,12 @@ object Ev:
   def tjoin(a: Ev, b: Ev) = Ev(Lev.join(a.pro, b.pro), Lev.meet(a.con, b.con)) // ∨ₜ truth-OR
   def negate(a: Ev): Ev   = Ev(a.con, a.pro)                                   // ¬ swap channels
 
-  enum Belnap { case Gap, True_, False_, Glut }
-  def corner(a: Ev): Belnap = (a.pro, a.con) match    // read the Belnap value off the pair
-    case (Bot, Bot) => Belnap.Gap
-    case (_,   Bot) => Belnap.True_
-    case (Bot, _  ) => Belnap.False_
-    case (_,   _  ) => Belnap.Glut                    // both channels fire—the contradiction value
+  enum Belnap { case Gap, True, False, Glut }
+  def corner(a: Ev): Belnap = (a.pro.isBottom, a.con.isBottom) match  // read off the pair
+    case (true, true)   => Belnap.Gap
+    case (false, true)  => Belnap.True
+    case (true, false)  => Belnap.False
+    case (false, false) => Belnap.Glut               // both channels fire—the contradiction value
 
 // Provenance is now TWO free commutative monoids—a pro-lineage and a con-lineage.
 final case class Prov(atoms: Set[Lineage])
@@ -461,7 +464,7 @@ object Testimony:
   // CONJUNCTIVE—the Validation applicative: accumulates BOTH lineage channels, never short-circuits.
   def derive[A, B, C](a: Testimony[A], b: Testimony[B])(f: (A, B) => C): Testimony[C] =
     val e = Ev.kmeet(a.ev, b.ev)                      // fail-closed under ⊗ₖ  (§4.3 default)
-    val v = if e.pro == Bot then None else (a.value, b.value).mapN(f)  // no support ⇒ no value
+    val v = if e.pro.isBottom then None else (a.value, b.value).mapN(f)  // no support ⇒ no value
     Testimony(v, Prov(a.provPro.atoms | b.provPro.atoms),
                  Prov(a.provCon.atoms | b.provCon.atoms), e)
 
@@ -474,8 +477,13 @@ object Testimony:
   // NEGATION / RETRACTION—swap the channels (a superseding source refutes prior support).
   def refute[A](a: Testimony[A]): Testimony[A] = Testimony(a.value, a.provCon, a.provPro, Ev.negate(a.ev))
 
-// A CLAIM is a Testimony refined by verification—a Testimony that asserts, and can be checked.
-type Claim[A] = Testimony[A] Refined VerifiesAgainstProvenance   // verify(c) recomputes value vs provPro
+// A CLAIM is a Testimony refined by verification—opaque, so the only way to build one is to run the
+// verifier. (Earlier drafts wrote this as `Refined VerifiesAgainstProvenance`; because the predicate
+// needs the corpus, it is a runtime smart constructor returning Option, not a pure refinement.)
+opaque type Claim[+A] = Testimony[A]
+object Claim:
+  def verify[A](t: Testimony[A], v: Testimony[A] => Boolean): Option[Claim[A]] = Option.when(v(t))(t)
+  extension [A](c: Claim[A]) def testimony: Testimony[A] = c
 </code></pre>
 
 <div class="callout">
