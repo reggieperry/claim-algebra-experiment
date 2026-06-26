@@ -7,7 +7,7 @@ paths:
 
 # Scala LLM boundary (structured output)
 
-The typed contract between the experiment and the model — the single place the harness's reliability is bought, and the only place the pure algebra touches the outside world. Sources: the Anthropic Java SDK (`com.anthropic:anthropic-java`), reached over JVM interop; the Anthropic Messages API structured-outputs documentation (`outputConfig`, the JSON-schema limitations); and cats-effect `IO` for the effect boundary. The model is Claude, called through the official Java SDK; the model id is configured per node, defaulting to `claude-opus-4-8`.
+The typed contract between the experiment and the model — the single place the harness's reliability is bought, and the only place the pure algebra touches the outside world. Sources: the Anthropic Java SDK (`com.anthropic:anthropic-java`), reached over JVM interop; the Anthropic Messages API structured-outputs documentation (`outputConfig`, the JSON-schema limitations); and cats-effect `IO` for the effect boundary. The model is Claude, called through the official Java SDK; the model id is configured per node, defaulting to `claude-haiku-4-5` for the experiment. The model is the agent under test, held fixed across the three arms, so a cheaper, weaker tier is the right default: it makes the many trials affordable and tends to surface a *larger* confidently-wrong effect for the algebra to catch (a near-perfect model risks a floor effect). Pin the dated id (`claude-haiku-4-5-20251001`) for reproducibility, and confirm the exact SDK `Model` enum against the resolved artifact at first wiring.
 
 > See `scala-types.md` for the output as a typed contract (the case class the schema is derived from), `scala-concurrency.md` for wrapping the blocking SDK call in `IO` and putting a timeout on it, `scala-errors.md` for surfacing validation failures as typed values rather than thrown exceptions, `scala-modules.md` for keeping the SDK off the algebra's dependency surface, and `craft-abstraction.md` for the schema as a specification the call is written against.
 
@@ -79,7 +79,7 @@ final class LlmCall(client: com.anthropic.client.AnthropicClient):
       timeout: FiniteDuration = 60.seconds
   ): IO[Either[String, A]] =
     val params = MessageCreateParams.builder
-      .model(Model.CLAUDE_OPUS_4_8)
+      .model(Model.CLAUDE_HAIKU_4_5) // the experiment default; confirm the exact enum against the resolved SDK
       .maxTokens(1024L)
       .outputConfig(carrier)      // the schema is derived here — confirm the name against the resolved SDK
       .addUserMessage(prompt)
@@ -93,7 +93,7 @@ final class LlmCall(client: com.anthropic.client.AnthropicClient):
 
 ## Determinism and seeding — the experiment depends on it
 
-- **Pin the model id and every sampling lever the SDK exposes; record them in the trial record.** The headline metric is a query over a fixed trial store; a silently floating model id or token budget makes two runs incomparable. Set the model id explicitly (`claude-opus-4-8` unless a node configures otherwise), hold `maxTokens` and any effort setting fixed per arm, and write the resolved values into each `{fault_id, …}` record so a trial is reproducible from its own row. Note that the API does not promise bit-identical output even at fixed settings — determinism here means *fixed, recorded inputs and a mechanical grader*, not a deterministic model.
+- **Pin the model id and every sampling lever the SDK exposes; record them in the trial record.** The headline metric is a query over a fixed trial store; a silently floating model id or token budget makes two runs incomparable. Set the model id explicitly (the dated `claude-haiku-4-5-20251001` unless a node configures otherwise), hold `maxTokens` and any effort setting fixed per arm — and IDENTICAL across the arms, since the only thing that may vary between arms is the wire format — and write the resolved values into each `{fault_id, …}` record so a trial is reproducible from its own row. Note that the API does not promise bit-identical output even at fixed settings — determinism here means *fixed, recorded inputs and a mechanical grader*, not a deterministic model.
 - **Never put an LLM judge on the headline number.** Grading of the confidently-wrong-at-signature flag is mechanical, over the structured record — the model is the system under test, not the scorer. An `LlmCall` belongs in a node, never in the grader.
 
 ## Auth and prompt safety
