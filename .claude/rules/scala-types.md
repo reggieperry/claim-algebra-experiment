@@ -95,6 +95,7 @@ object Grades:
 
 - **Add behavior through `extension` methods on the opaque type**, not by exposing the representation. The representation stays sealed inside the defining scope; callers see only the operations the domain allows.
 - **Use opaque types for the identifiers and channel tags the experiment routes** — `FaultId`, `NodeId`, a provenance `Channel` label — so a fault key can't be passed where a node id is wanted. This is the value-object building block from `craft-domain-modeling.md` expressed in Scala.
+- **Beware the self-referential-instance trap when an opaque type aliases the type you derive an instance from.** Inside the opaque type's own scope the alias and its underlying are the same type, so an instance built `by` the underlying — `Order.by(_.strength)` on `opaque type Lev = Double`, `Order.by(_.id)` on `opaque type Lineage = String` — resolves the required `Order[Double]`/`Order[String]` back to *its own given* and recurses forever (the compiler warns "Infinite loop in function body"; `-Werror` makes that fatal). Two escapes: build the instance so it never summons the underlying's (`Order.fromLessThan`, `Eq.from`), or — especially when the type will carry several derived instances — make it a *distinct* `enum`/sealed type rather than an opaque alias, where the underlying is genuinely a different type and `.by` is safe. The grade `Lev` and `Lineage` take the distinct-type route for exactly this reason.
 
 ## `Testimony`, the two provenance channels, and the evidential grade
 

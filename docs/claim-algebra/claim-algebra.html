@@ -412,23 +412,26 @@ Current agent swarms live in the dangerous cell: fluent and confident, unchecked
 
 <h2 id="type">5 · The type layer <span class="tag t-type">code</span></h2>
 
-<p>The categorical statement of §3.2 (applicative = lax monoidal functor) is a programming type, with the grade widened from a single semiring value to a bilattice element, a pair of channels. The two names of §2 appear directly: <code>Testimony[K, A]</code> is the graded value the algebra acts on, and <code>Claim[K, A]</code> is a Testimony refined by verification. Here it is in Scala, lightly cleaned; the invariant-bearing scalars are opaque types behind fail-closed constructors—illegal states unrepresentable, with the residual invariants carried by law and property tests.</p>
+<p>The categorical statement of §3.2 (applicative = lax monoidal functor) is a programming type, with the grade widened from a single semiring value to a bilattice element, a pair of channels. The two names of §2 appear directly: <code>Testimony[K, A]</code> is the graded value the algebra acts on, and <code>Claim[K, A]</code> is a Testimony refined by verification. Here it is in Scala, lightly cleaned; the invariant-bearing scalars are distinct (or opaque) types behind fail-closed constructors—illegal states unrepresentable, with the residual invariants carried by law and property tests.</p>
 
-<pre><code>// The underlying lattice L of the twist (the per-channel confidence). An opaque Double
-// in [0,1] (0 = ⊥ no evidence; 1 = ⊤ certain) behind a clamping, fail-closed constructor,
-// so an out-of-range or non-finite strength is simply unrepresentable.
-opaque type Lev = Double
+<pre><code>// The underlying lattice L of the twist (the per-channel confidence). A DISTINCT
+// sealed type, not an opaque alias of Double — the only constructors are bottom, top,
+// and the clamping fail-closed deg, so the (0,1] invariant holds AND a derived instance
+// can't self-loop (an opaque `= Double` would resolve Order[Double] back to its own given).
+sealed trait Lev
 object Lev:
-  val bottom: Lev = 0.0
-  val top: Lev    = 1.0
-  def deg(p: Double): Lev =                          // the only constructor; fail-closed
-    if !(p > 0.0) then 0.0 else if p >= 1.0 then 1.0 else p   // NaN and p ≤ 0 ⇒ ⊥
+  case object Bot extends Lev                          // ⊥  no evidence on this channel
+  private final case class Deg(p: Double) extends Lev // p ∈ (0,1]; private — only `deg` builds it
+  val bottom: Lev = Bot
+  val top: Lev    = Deg(1.0)
+  def deg(p: Double): Lev =                            // the only constructor; fail-closed
+    if !(p > 0.0) then Bot else if p >= 1.0 then top else Deg(p)   // NaN and p ≤ 0 ⇒ ⊥
   extension (x: Lev)
-    def strength: Double  = x
-    def isBottom: Boolean = x == 0.0
-  def meet(a: Lev, b: Lev): Lev = if a <= b then a else b     // min (weaker evidence)
-  def join(a: Lev, b: Lev): Lev = if a >= b then a else b     // max (stronger evidence)
-  given Order[Lev] = Order.fromLessThan((a, b) => a.strength &lt; b.strength) // not Order.by: would self-loop
+    def strength: Double  = x match { case Bot => 0.0; case Deg(p) => p }
+    def isBottom: Boolean = x match { case Bot => true; case Deg(_) => false }
+  def meet(a: Lev, b: Lev): Lev = if a.strength <= b.strength then a else b  // min (weaker)
+  def join(a: Lev, b: Lev): Lev = if a.strength >= b.strength then a else b  // max (stronger)
+  given Order[Lev] = Order.fromLessThan((a, b) => a.strength &lt; b.strength)
 
 // THE BILATTICE ELEMENT: an evidential PAIR (for, against)—the twist L ⊙ L.
 final case class Ev(pro: Lev, con: Lev)              // (a⁺, a⁻)
