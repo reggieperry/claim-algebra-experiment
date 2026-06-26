@@ -1,8 +1,13 @@
-// Build plugins are added with verified versions during the gate build (the
-// scala-*.md rule set + the Scala differential gate). Intended set:
+// Build plugins. Versions verified against Maven Central at add time; bump deliberately.
 //
-//   sbt-scalafmt    formatting (the standalone `scalafmt` CLI is available meanwhile)
-//   sbt-scalafix    refactoring and lint rules
-//   sbt-wartremover lint — a finding source for the differential gate
+// Active:
+//   sbt-scalafmt  formatting — `scalafmtCheckAll` / `scalafmtSbtCheck`
+//   sbt-scalafix  lint + refactoring — the Scalazzi safe subset (DisableSyntax) and
+//                 Scala 3 import hygiene (OrganizeImports); config in `.scalafix.conf`
+//
+// Still to add with the differential gate:
+//   sbt-wartremover lint — a second finding source for the gate
 //   sbt-scoverage   coverage — the gate's coverage check
 //   sbt-assembly    fat-jar binaries, named by function
+addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.6.1")
+addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.14.7")
