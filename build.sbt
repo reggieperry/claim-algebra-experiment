@@ -48,7 +48,8 @@ lazy val root = (project in file("."))
       "-feature",
       "-explain",
       "-Wunused:all",
-      "-Wvalue-discard"
+      "-Wvalue-discard",
+      "-Werror" // warnings fail the build — e.g. the "Infinite loop in function body" that a self-referential given triggers
     )
   )
 

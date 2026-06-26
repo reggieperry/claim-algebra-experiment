@@ -428,7 +428,7 @@ object Lev:
     def isBottom: Boolean = x == 0.0
   def meet(a: Lev, b: Lev): Lev = if a <= b then a else b     // min (weaker evidence)
   def join(a: Lev, b: Lev): Lev = if a >= b then a else b     // max (stronger evidence)
-  given Order[Lev] = Order.by(_.strength)            // total order; also supplies Eq[Lev]
+  given Order[Lev] = Order.fromLessThan((a, b) => a.strength &lt; b.strength) // not Order.by: would self-loop
 
 // THE BILATTICE ELEMENT: an evidential PAIR (for, against)—the twist L ⊙ L.
 final case class Ev(pro: Lev, con: Lev)              // (a⁺, a⁻)
