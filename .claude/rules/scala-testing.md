@@ -11,6 +11,10 @@ How to write Scala tests: munit suite structure, fixtures without shared mutable
 
 > See `craft-tdd.md` for red-green-refactor and "listen to the tests", `scala-types.md` for the `enum` ADTs and `opaque` types whose laws these tests pin, `scala-style.md` for the brace and `given`/`using` defaults the examples follow, and `craft-domain-modeling.md` for why `Claim[K, A]` / `Testimony` / `Validation` carry behavior worth a law.
 
+## The residue this rule carries
+
+The governing principle is stated in `scala-types.md` ("encode what's cheap, test the residue"): the type encodes the invariants it cheaply can, and these tests carry the rest. The obligation that lands here is **two-sided** — for every invariant a type cannot state, write the law or property over valid input *and* the test that the type's validating smart constructor refuses or normalizes illegal input. The negative space is half the contract: a smart constructor with no test for what it does to a bad value is an unproven invariant, so the worked example in `scala-types.md` (`Lev` / `deg`) pins the laws with `checkAll` and pins `deg`'s rejection of `NaN` and out-of-range input in `LevSuite`. Test the rules a value obeys, and test what the constructor does when something tries to build an illegal one.
+
 ## Structure and naming
 
 - **A test file is one `class` extending `munit.FunSuite`** (or `munit.ScalaCheckSuite` when it carries properties — `ScalaCheckSuite` extends `FunSuite`, so example and property tests live in the same class). Each case is a `test("...") { ... }` call whose name is a sentence about the behavior, not the method: `test("corroborate is commutative on agreeing evidence")`, not `test("corroborate")`.
