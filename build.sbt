@@ -16,6 +16,10 @@ ThisBuild / semanticdbEnabled := true
 
 lazy val catsCore = "org.typelevel" %% "cats-core" % "2.12.0"
 lazy val catsEffect = "org.typelevel" %% "cats-effect" % "3.5.4"
+// The ring hierarchy (Semiring / Rig / CommutativeRig) lives in `org.typelevel:algebra`,
+// not cats-kernel — the provenance polynomial ℕ[X] is a CommutativeRig (claim-algebra.html §4).
+// Pinned to the same 2.12.0 as `algebra-laws` so the instance and its law bundle agree.
+lazy val algebra = "org.typelevel" %% "algebra" % "2.12.0"
 lazy val munit = "org.scalameta" %% "munit" % "1.0.0" % Test
 lazy val munitScalacheck = "org.scalameta" %% "munit-scalacheck" % "1.0.0" % Test
 lazy val scalacheck = "org.scalacheck" %% "scalacheck" % "1.18.0" % Test
@@ -35,6 +39,7 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       catsCore,
       catsEffect,
+      algebra,
       munit,
       munitScalacheck,
       scalacheck,
