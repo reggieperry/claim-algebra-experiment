@@ -419,10 +419,13 @@ sealed trait Lev
 case object Bot extends Lev                          // ⊥  (no evidence on this channel)
 final case class Deg(p: Double) extends Lev          // p in (0,1]; Deg(1.0) = ⊤ ("certain")
 object Lev:
-  def meet(a: Lev, b: Lev): Lev = (a, b) match { case (Bot,_)|(_,Bot)=>Bot
-    case (Deg(x),Deg(y))=>Deg(x min y) }             // min
-  def join(a: Lev, b: Lev): Lev = (a, b) match { case (Bot,y)=>y; case (x,Bot)=>x
-    case (Deg(x),Deg(y))=>Deg(x max y) }             // max
+  def meet(a: Lev, b: Lev): Lev = (a, b) match  // min
+    case (Bot, _) | (_, Bot) => Bot
+    case (Deg(x), Deg(y)) => Deg(x min y)
+  def join(a: Lev, b: Lev): Lev = (a, b) match  // max
+    case (Bot, y) => y
+    case (x, Bot) => x
+    case (Deg(x), Deg(y)) => Deg(x max y)
 
 // THE BILATTICE ELEMENT: an evidential PAIR (for, against)—the twist L ⊙ L.
 final case class Ev(pro: Lev, con: Lev)              // (a⁺, a⁻)
@@ -433,11 +436,11 @@ object Ev:
   val B = Ev(Deg(1.0), Deg(1.0))                     // glut—knowledge-top, told both
 
   // FOUR OPERATIONS, all componentwise (see §4.1 table):
-  def kmeet(a: Ev, b: Ev) = Ev(Lev.meet(a.pro,b.pro), Lev.meet(a.con,b.con)) // ⊗ₖ FAIL-CLOSED: N absorbs
-  def kjoin(a: Ev, b: Ev) = Ev(Lev.join(a.pro,b.pro), Lev.join(a.con,b.con)) // ⊕ₖ corroborate; conflict → B
-  def tmeet(a: Ev, b: Ev) = Ev(Lev.meet(a.pro,b.pro), Lev.join(a.con,b.con)) // ∧ₜ truth-AND; F absorbs
-  def tjoin(a: Ev, b: Ev) = Ev(Lev.join(a.pro,b.pro), Lev.meet(a.con,b.con)) // ∨ₜ truth-OR
-  def negate(a: Ev): Ev   = Ev(a.con, a.pro)                                 // ¬ swap channels
+  def kmeet(a: Ev, b: Ev) = Ev(Lev.meet(a.pro, b.pro), Lev.meet(a.con, b.con)) // ⊗ₖ FAIL-CLOSED: N absorbs
+  def kjoin(a: Ev, b: Ev) = Ev(Lev.join(a.pro, b.pro), Lev.join(a.con, b.con)) // ⊕ₖ corroborate; conflict → B
+  def tmeet(a: Ev, b: Ev) = Ev(Lev.meet(a.pro, b.pro), Lev.join(a.con, b.con)) // ∧ₜ truth-AND; F absorbs
+  def tjoin(a: Ev, b: Ev) = Ev(Lev.join(a.pro, b.pro), Lev.meet(a.con, b.con)) // ∨ₜ truth-OR
+  def negate(a: Ev): Ev   = Ev(a.con, a.pro)                                   // ¬ swap channels
 
   enum Belnap { case Gap, True_, False_, Glut }
   def corner(a: Ev): Belnap = (a.pro, a.con) match    // read the Belnap value off the pair
@@ -449,7 +452,7 @@ object Ev:
 // Provenance is now TWO free commutative monoids—a pro-lineage and a con-lineage.
 final case class Prov(atoms: Set[Lineage])
 object Prov:
-  given Monoid[Prov] = Monoid.instance(Prov(Set.empty), (a,b) => Prov(a.atoms | b.atoms))
+  given Monoid[Prov] = Monoid.instance(Prov(Set.empty), (a, b) => Prov(a.atoms | b.atoms))
 
 // THE TESTIMONY: a value carried with (pro-prov, con-prov, evidential grade). Value-agnostic.
 final case class Testimony[+A](value: Option[A], provPro: Prov, provCon: Prov, ev: Ev)
