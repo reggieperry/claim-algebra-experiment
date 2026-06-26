@@ -20,6 +20,10 @@ lazy val catsEffect = "org.typelevel" %% "cats-effect" % "3.5.4"
 // not cats-kernel — the provenance polynomial ℕ[X] is a CommutativeRig (claim-algebra.html §4).
 // Pinned to the same 2.12.0 as `algebra-laws` so the instance and its law bundle agree.
 lazy val algebra = "org.typelevel" %% "algebra" % "2.12.0"
+// The official Anthropic Java SDK (the model boundary), reached over JVM interop and kept behind the
+// `LlmCall` facade — a Java artifact, so `%` not `%%`. Version resolved and the API confirmed against
+// the artifact at first wiring (scala-llm.md). API-key auth only.
+lazy val anthropic = "com.anthropic" % "anthropic-java" % "2.44.0"
 lazy val munit = "org.scalameta" %% "munit" % "1.0.0" % Test
 lazy val munitScalacheck = "org.scalameta" %% "munit-scalacheck" % "1.0.0" % Test
 lazy val scalacheck = "org.scalacheck" %% "scalacheck" % "1.18.0" % Test
@@ -40,6 +44,7 @@ lazy val root = (project in file("."))
       catsCore,
       catsEffect,
       algebra,
+      anthropic,
       munit,
       munitScalacheck,
       scalacheck,
