@@ -107,7 +107,7 @@ trait ClaimAlgebraLaws[A] extends Laws:
   )
 ```
 
-Verify the absorbing elements and the homomorphism direction against `claim-algebra-belnap.html` before pinning them — state the algebra's actual laws, never assume them from memory.
+Verify the absorbing elements and the homomorphism direction against `claim-algebra.html` before pinning them — state the algebra's actual laws, never assume them from memory.
 
 ### The laws the algebra must carry
 
@@ -116,7 +116,7 @@ The corroboration combiner is a commutative monoid over evidence (a `BoundedSemi
 - **Associativity** — `corroborate(corroborate(a, b), c) == corroborate(a, corroborate(b, c))`. Order of folding evidence must not change the verdict.
 - **Commutativity** — `corroborate(a, b) == corroborate(b, a)`. Which node spoke first must not change the verdict.
 - **Identity** — `corroborate(a, neutral) == a` and `corroborate(neutral, a) == a`, where `neutral` is the no-evidence unit (Belnap's *unknown* / bottom on the knowledge axis).
-- **The two annihilators** — the top and contradiction corners absorb: `corroborate(a, top) == top` and `corroborate(a, contradiction) == contradiction` (state the absorbing element your bilattice actually pins; verify it against `claim-algebra-belnap.html`, do not assume one from memory).
+- **The two annihilators** — the top and contradiction corners absorb: `corroborate(a, top) == top` and `corroborate(a, contradiction) == contradiction` (state the absorbing element your bilattice actually pins; verify it against `claim-algebra.html`, do not assume one from memory).
 - **Idempotence** — `corroborate(a, a) == a` where the same evidence is presented twice and double-counting would be a fault. Confirm the algebra actually claims idempotence before pinning it — it is a real, falsifiable property of this combiner, not a given.
 
 Pin each law as its own named property so a failure names the law that broke. Where several conditions form one law, label them and conjoin with `&&` so the report points at the failing conjunct:

@@ -8,7 +8,7 @@ It is a synchronous, instrumented pipeline, not a product and not an actor syste
 
 - `CLAUDE.md` — the charter, the settled decisions, the coding discipline, and build commands.
 - `docs/claim-algebra/falsifying-the-claim-algebra.html` — the experiment design.
-- `docs/claim-algebra/claim-algebra-belnap.html` — the algebra the code implements.
+- `docs/claim-algebra/claim-algebra.html` — the algebra the code implements (the canonical, unified note).
 - `docs/claim-algebra/falsification-experiment.md` — the build shape.
 
 ## Build
