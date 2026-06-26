@@ -1,12 +1,12 @@
 # Diplomacy agent game — implementation spec
 
-A build spec for a Claude Code instance to start implementing a game of **Diplomacy played by seven LLM agents**, on the claim-algebra substrate, with the **actor model** as the communication layer. Design and rationale: `diplomacy-agent-game.html`; the parent framework: `verifiable-claim-algebra.html` (§8).
+A build spec for a Claude Code instance to start implementing a game of **Diplomacy played by seven LLM agents**, on the claim-algebra substrate, with the **actor model** as the communication layer. Design and rationale: `diplomacy-agent-game.html`; the parent framework: `claim-algebra.html` (§9).
 
 This spec is the *what and how to build*; the HTML is the *why*. Read both before starting.
 
 ## 0. The spine (do not lose it)
 
-- **Two regimes meet at adjudication.** The **substrate** (board, orders, adjudication) is a clean verification-semiring instance: deterministic, fail-closed, auditable — *no agent can hallucinate the board or make an illegal move*. The **diplomacy** (negotiation) leaves the clean semiring: a promise is a claim whose verification is *deferred*, and its confidence is a subjective-logic *reputation* supplied by game theory, not by the algebra.
+- **Two regimes meet at adjudication.** The **substrate** (board, orders, adjudication) is a clean verification-semiring instance: deterministic, fail-closed, auditable — *no agent can hallucinate the board or make an illegal move*. The **diplomacy** (negotiation) stays inside the algebra: a promise is a claim whose verification is *deferred*, and its trust grade is a graded Belnap value — subjective logic embeds as the algebra's graded form — updated by reputation; only the *selection* of action (whom to deceive, when to defect) is supplied by game theory, not by the algebra.
 - **The adjudicator is the verification oracle and the spine.** It is a pure, deterministic function and must be **DATC-correct**. Everything else trusts it. Build it first, with no LLM in sight.
 - **The LLM is called in exactly two bounded places** per power per phase: `negotiate` and `chooseOrders`. It may lie in the first; it cannot falsify the board or the rules in the second.
 - **Fail-closed everywhere.** Illegal order → Hold (the per-order annihilator). Missing/crashed power → all Holds (NMR). Half-resolved board → never observed (the adjudicator is the serialization window).

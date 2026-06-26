@@ -50,7 +50,7 @@
 <header class="title">
   <h1>Diplomacy as a claim-algebra agent game</h1>
   <div class="sub">Design and actor-model implementation — seven LLM powers negotiating and moving over a verifiable substrate, with the inter-agent message as a typed claim.</div>
-  <div class="meta">Companion to <code>verifiable-claim-algebra.html</code> (§8, the adversarial instance) · the implementation spec for hand-off is <code>diplomacy-implementation.md</code> · math via MathJax, diagrams via Mermaid</div>
+  <div class="meta">Companion to <code>claim-algebra.html</code> (§9, the adversarial instance) · the implementation spec for hand-off is <code>diplomacy-implementation.md</code> · math via MathJax, diagrams via Mermaid</div>
 </header>
 
 <p class="lead">The claim algebra has two cooperative instances — the credit workbench (a confidence semiring) and an agent fulfillment network (a tropical cost semiring). This document develops the third, adversarial instance in full: a game of Diplomacy played by seven LLM agents, where the board and its adjudication are the claim algebra working at its cleanest, and the negotiation is the claim algebra meeting its honest boundary. It then lands the design on the <strong>actor model</strong> as the communication layer and describes the game loop concretely enough to build from.</p>
@@ -97,7 +97,7 @@
   <tr><th>Claim type</th><th>Semiring \(K\)</th><th>What it is</th><th>Verification</th></tr>
   <tr><td><code>StateClaim</code></td><td>Verification (Boolean)</td><td>A board fact — who holds which province, where each unit is.</td><td>Immediate, against the engine. Fail-closed: a board fact that does not verify is rejected; <strong>no power can hallucinate the board.</strong></td></tr>
   <tr><td><code>Order</code></td><td>Verification (Boolean)</td><td>A Hold / Move / Support / Convoy commitment, submitted privately.</td><td>Legality is checked; an illegal order hits the annihilator and is dropped to a Hold. Adjudication is deterministic.</td></tr>
-  <tr><td><code>Deal</code></td><td>Trust (subjective logic)</td><td>A negotiation message — a conditional promise ("I support you into Galicia if you move there").</td><td><strong>Deferred</strong> — resolved only at adjudication ("did your orders match your pledge?"). Feeds reputation.</td></tr>
+  <tr><td><code>Deal</code></td><td>Trust (graded bilattice)</td><td>A negotiation message — a conditional promise ("I support you into Galicia if you move there").</td><td><strong>Deferred</strong> — resolved only at adjudication ("did your orders match your pledge?"). Feeds reputation.</td></tr>
 </table>
 
 <h3>2.2 · The substrate is the claim algebra proper</h3>
@@ -105,13 +105,13 @@
 $$ \mathrm{adjudicate} : \mathrm{Orders} \times \mathrm{Board} \longrightarrow (\mathrm{Board}', \mathrm{Outcomes}), $$
 <p>and the engine is the verification oracle. Every resulting board fact is a verified derivation from the submitted orders — so the whole substrate is fail-closed and auditable. The annihilator does real work here: an illegal or unverifiable order contributes nothing (it becomes a Hold), and a power that cannot confirm a fact cannot assert it.</p>
 
-<h3>2.3 · Negotiation leaves the clean semiring</h3>
-<p>A <code>Deal</code> is a <strong>promise — a claim whose verification is deferred</strong>. At assertion time it is <span class="mono">UNRESOLVED</span>-as-fact; the algebra refuses to let cheap talk pose as a board fact. What a receiving power attaches is a <em>trust</em> confidence, and — exactly as the parent document's limits warn ("calibration is exogenous", "no theory of adversarial sources") — that number does <strong>not</strong> come from provenance. It is a <strong>subjective-logic opinion</strong> [<a href="#r-josang">3</a>]:</p>
+<h3>2.3 · Negotiation — the trust model is a graded bilattice value</h3>
+<p>A <code>Deal</code> is a <strong>promise — a claim whose verification is deferred</strong>. At assertion time it is <span class="mono">UNRESOLVED</span>-as-fact; the algebra refuses to let cheap talk pose as a board fact. What a receiving power attaches is a <em>trust</em> grade, and that grade is not a number bolted on from outside the algebra: subjective logic embeds in the graded bilattice as its \([0,1]^2\) instance — belief the for-channel, disbelief the against-channel, uncertainty measuring gap-ness — so trust is the algebra's own graded form. (Calibration stays exogenous: the algebra propagates the leaf numbers, it does not produce them.) The opinion is the familiar subjective-logic triple [<a href="#r-josang">3</a>]:</p>
 $$ \omega = (b,\, d,\, u,\, a), \qquad b + d + u = 1, \qquad \mathbb{E}[\omega] = b + a\,u, $$
-<p>belief / disbelief / uncertainty over "will this power keep its word", with base rate \(a\) and expected trust \(b + au\). The opinion is updated by <strong>reputation</strong> — the verification <em>outcomes</em> of past promises — via subjective logic's fusion (combine evidence) and discounting (trust through a third party) operators. Those operators approximate, but are not, a clean commutative semiring: this is precisely the boundary, made concrete.</p>
+<p>belief / disbelief / uncertainty over "will this power keep its word", with base rate \(a\) and expected trust \(b + au\); the opinion occupies the consistent simplex, and a betrayal — a pledge corroborated with its contradicting adjudication — climbs to the glut \(\mathbf{B}\) that a single opinion cannot carry. The opinion is updated by <strong>reputation</strong>: each adjudicated round pours evidence into the for- or against-channel, moving a power's standing in the <em>knowledge</em> order — toward reliably-keeps (\(\mathbf{T}\)), reliably-defects (\(\mathbf{F}\)), or says-one-thing-does-another (\(\mathbf{B}\)). Reputation is a value <em>in</em> the algebra, not an annotation beside it.</p>
 
 <div class="callout">
-  <strong>The clean separation.</strong> The <em>structure</em> of a promise is claim-algebra (a <code>Claim</code> with a deferred verifier); the <em>number</em> on it is game theory (a reputation-updated opinion). A power therefore cannot lie about the board or move illegally — those are verified, fail-closed — but it can lie in negotiation, which is cheap talk and is the game. The algebra <strong>shrinks the attack surface to exactly the strategic layer where deception belongs</strong>, and the full transcript is a replayable provenance DAG.
+  <strong>Where the boundary sits.</strong> The <em>representation</em> of trust is inside the algebra — a power's reliability, the distinction between "no read yet" (gap) and "caught them lying" (glut), and the evidence accumulated across rounds all live as graded Belnap values. What stays <em>outside</em> is the <em>selection</em> of action — whether to keep your own promise, whom to deceive, when to defect — which is game theory and opponent modelling. A power cannot lie about the board or move illegally (those are verified, fail-closed), but it can lie in negotiation, which is cheap talk and is the game. The algebra <strong>shrinks the attack surface to exactly the strategic layer where deception belongs</strong>, holds and propagates the trust state, and leaves a replayable provenance DAG; it cannot tell you whether to be trustworthy.
 </div>
 
 <h2 id="turn">3 · How a turn proceeds</h2>
@@ -163,7 +163,7 @@ def adjudicate(orders: Map[Power, Set[Order]], s: BoardState): (BoardState, Outc
 
 type StateClaim = Claim[Verified, UnitAt]              // verify() checks against the engine
 
-// ── The diplomacy layer (leaves the clean semiring → subjective logic) ───────
+// ── The diplomacy layer (action selection — the strategic layer outside the algebra) ───────
 final case class Opinion(b: Double, d: Double, u: Double, base: Double):
   def expected: Double = b + base * u                  // trust value in [0,1]
   def fuse(ev: Opinion): Opinion                       // subjective-logic cumulative fusion (corroborate)
@@ -301,12 +301,12 @@ def powerAgent(me: Power, st: AgentState, gm: ActorRef[GMsg]): Behavior[AgentMsg
   <li id="r-datc">L. B. Kruijswijk. <em>Diplomacy Adjudicator Test Cases (DATC).</em> — The canonical correctness suite an adjudicator must pass (support-cutting, convoy paradoxes, beleaguered garrison, etc.).</li>
   <li id="r-josang">A. Jøsang. <em>Subjective Logic: A Formalism for Reasoning Under Uncertainty.</em> Springer, 2016. — Opinions \((b,d,u,a)\) and the fusion / discounting operators used for the reputation layer.</li>
   <li id="r-cicero">Meta FAIR Diplomacy Team (A. Bakhtin et al.). <em>Human-level play in the game of Diplomacy by combining language models with strategic reasoning.</em> Science 378(6624), 2022 (CICERO). — LLM dialogue grounded in and kept consistent with a strategic planner.</li>
-  <li id="r-claimdoc"><em>A claim algebra for agent networks.</em> <code>verifiable-claim-algebra.html</code> (this project), §8. — The parent framework; Diplomacy is its adversarial, trust-semiring instance.</li>
+  <li id="r-claimdoc"><em>A claim algebra for agent networks.</em> <code>claim-algebra.html</code> (this project), §9. — The parent framework; Diplomacy is its adversarial, trust-semiring instance.</li>
   <li id="r-actor"><em>The focused-harness actor-model design.</em> <code>focused-harness-actor-model-design.html</code> (this project). — The durable virtual-actor substrate, the serialization window, and supervision specialized here to a refereed game.</li>
 </ol>
 
 <p class="small" style="margin-top:2.4rem;border-top:1px solid var(--line);padding-top:1rem;">
-  Companion to <code>verifiable-claim-algebra.html</code> (the parent framework and its §8 basic treatment) and to <code>diplomacy-implementation.md</code> (the build spec for hand-off). Mathematics via MathJax; diagrams via Mermaid.
+  Companion to <code>claim-algebra.html</code> (the parent framework and its §9 basic treatment) and to <code>diplomacy-implementation.md</code> (the build spec for hand-off). Mathematics via MathJax; diagrams via Mermaid.
 </p>
 
 </div>
