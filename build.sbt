@@ -24,6 +24,9 @@ lazy val algebra = "org.typelevel" %% "algebra" % "2.12.0"
 // `LlmCall` facade — a Java artifact, so `%` not `%%`. Version resolved and the API confirmed against
 // the artifact at first wiring (scala-llm.md). API-key auth only.
 lazy val anthropic = "com.anthropic" % "anthropic-java" % "2.44.0"
+// Jackson annotations for the boundary carrier (the structured-output DTO) — pinned to the version
+// the SDK resolves so the schema reflection agrees. Direct because the carrier imports it directly.
+lazy val jacksonAnnotations = "com.fasterxml.jackson.core" % "jackson-annotations" % "2.19.4"
 lazy val munit = "org.scalameta" %% "munit" % "1.0.0" % Test
 lazy val munitScalacheck = "org.scalameta" %% "munit-scalacheck" % "1.0.0" % Test
 lazy val scalacheck = "org.scalacheck" %% "scalacheck" % "1.18.0" % Test
@@ -45,6 +48,7 @@ lazy val root = (project in file("."))
       catsEffect,
       algebra,
       anthropic,
+      jacksonAnnotations,
       munit,
       munitScalacheck,
       scalacheck,
