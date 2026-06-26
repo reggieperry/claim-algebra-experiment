@@ -406,13 +406,13 @@ Current agent swarms live in the dangerous cell: fluent and confident, unchecked
     <tr><td>Interlacing / distributivity</td><td>Each operation is monotone w.r.t. the other order; the lattices distribute.</td><td>Makes the twist valid, hence the per-channel homomorphism theorem; lets you re-bracket and parallelize fan-in.</td></tr>
     <tr><td>Homomorphic evaluation (per channel)</td><td>Any \(\nu:X\to L\) extends uniquely to \(\hat\nu:\mathbb{N}[X]\to L\), applied to each of the two lineages.</td><td>Compute two lineages once; render any trust measure; swap the trust model without recomputing the network.</td></tr>
     <tr><td>Knowledge-monotonicity</td><td>More evidence on either channel moves a value up \(\le_k\); it never spuriously descends.</td><td>No "evidence makes it more ignorant" pathologies; corroboration and refutation both register.</td></tr>
-    <tr><td>Idempotency (per channel)</td><td>\(a\oplus_k a=a\) when \(L\) is idempotent.</td><td>Re-receiving the same source does not inflate confidence; the choice of \(L\) encodes the independence assumption (idempotent \(\min/\max\) is conservative; product/noisy-OR rewards corroboration but is fooled by correlated sources).</td></tr>
+    <tr><td>Idempotency (per channel)</td><td>\(a\oplus_k a=a\) when \(L\) is idempotent.</td><td>Re-receiving the same source does not inflate confidence; the choice of \(L\) encodes the independence assumption (idempotent \(\min/\max\) is conservative; a non-idempotent product or a counting semiring rewards corroboration but is fooled by correlated sources). A saturating noisy-OR \(a\oplus b=a+b-ab\) is <em>not</em> distributive, so it is not a valid \(\hat\nu\) target—the faithful non-idempotent model is the counting/probability semiring.</td></tr>
   </tbody>
 </table>
 
 <h2 id="type">5 · The type layer <span class="tag t-type">code</span></h2>
 
-<p>The categorical statement of §3.2 (applicative = lax monoidal functor) is a programming type, with the grade widened from a single semiring value to a bilattice element, a pair of channels. The two names of §2 appear directly: <code>Testimony[K, A]</code> is the graded value the algebra acts on, and <code>Claim[K, A]</code> is a Testimony refined by verification. Here it is in Scala, lightly cleaned; the invariant-bearing scalars are distinct (or opaque) types behind fail-closed constructors—illegal states unrepresentable, with the residual invariants carried by law and property tests.</p>
+<p>The categorical statement of §3.2 (applicative = lax monoidal functor) is a programming type. The grade is not a stored channel but a bilattice element <em>rendered</em> from the two provenance polynomials by the homomorphism ν̂ (§3.3), so there is no second source of truth to drift. The two names of §2 appear directly: <code>Testimony[A]</code> is the graded value the algebra acts on—its grade rendered on demand, not carried—and <code>Claim[A]</code> is a Testimony refined by verification. Here it is in Scala, lightly cleaned; the invariant-bearing scalars are distinct (or opaque) types behind fail-closed constructors—illegal states unrepresentable, with the residual invariants carried by law and property tests.</p>
 
 <pre><code>// The underlying lattice L of the twist (the per-channel confidence). A DISTINCT
 // sealed type, not an opaque alias of Double — the only constructors are bottom, top,
@@ -433,7 +433,9 @@ object Lev:
   def join(a: Lev, b: Lev): Lev = if a.strength >= b.strength then a else b  // max (stronger)
   given Order[Lev] = Order.fromLessThan((a, b) => a.strength &lt; b.strength)
 
-// THE BILATTICE ELEMENT: an evidential PAIR (for, against)—the twist L ⊙ L.
+// THE RENDERED bilattice element: an evidential PAIR (for, against)—the twist L ⊙ L. NOT stored on a
+// Testimony; it is the homomorphic image ν̂(pro), ν̂(con) of the two provenance polynomials under a
+// chosen trust model L (see Testimony.renderEv). The four operations are the bilattice it lives in.
 final case class Ev(pro: Lev, con: Lev)              // (a⁺, a⁻)
 object Ev:
   val N = Ev(Lev.bottom, Lev.bottom)                 // gap—knowledge-bottom, the UNRESOLVED value
@@ -455,30 +457,63 @@ object Ev:
     case (true, false)  => Belnap.False
     case (false, false) => Belnap.Glut               // both channels fire—the contradiction value
 
-// Provenance is now TWO free commutative monoids—a pro-lineage and a con-lineage.
-final case class Prov(atoms: Set[Lineage])
+// Provenance is the free commutative semiring ℕ[X] (§4): a polynomial over lineage tokens, carried
+// TWICE (a pro-lineage and a con-lineage). + is ALTERNATIVE derivation (corroboration), · is JOINT
+// use (conjunction). 0, the empty polynomial, is the gap and · annihilates it — fail-closed; 1, the
+// unit monomial, is supported-but-citing-nothing. NOT Set[Lineage]: a set collapses · and + to union
+// and drops the ℕ multiplicity a non-idempotent trust model reads.
+final case class Monomial(exps: Map[Lineage, Int])     // multiset of tokens — joint use ·; empty = 1
+final case class Prov(terms: Map[Monomial, Int])       // polynomial — alternatives +; empty = 0 = gap
 object Prov:
-  given Monoid[Prov] = Monoid.instance(Prov(Set.empty), (a, b) => Prov(a.atoms | b.atoms))
+  val zero: Prov = Prov(Map.empty)                     // 0 — no support (the gap);  0 · x = 0
+  val one:  Prov = Prov(Map(Monomial(Map.empty) -> 1)) // 1 — supported, cites nothing
+  given CommutativeRig[Prov] with
+    def zero = Prov.zero;  def one = Prov.one
+    def plus(x: Prov, y: Prov): Prov  = ???            // merge terms, ADD coefficients   (alternative)
+    def times(x: Prov, y: Prov): Prov = ???            // distribute monomials, MUL coeffs (joint use)
+  extension (p: Prov)
+    def isZero: Boolean = p.terms.isEmpty              // the structural gap test — model-free
+    // ν̂ : the unique GKT homomorphism ℕ[X] → M induced by a token valuation. THE grade, rendered:
+    def evaluate[M](nu: Lineage => M)(using CommutativeRig[M]): M =
+      ???                                              // Σ over terms: coeff · (Π over tokens nu^exp)
 
-// THE TESTIMONY: a value carried with (pro-prov, con-prov, evidential grade). Value-agnostic.
-final case class Testimony[+A](value: Option[A], provPro: Prov, provCon: Prov, ev: Ev)
+// THE TESTIMONY: a value with its two provenance polynomials. The grade is NOT a field — it is
+// rendered from the polynomials (renderEv), and the Belnap corner is read STRUCTURALLY from whether
+// each channel is empty, so no stored grade can drift from its provenance.
+final case class Testimony[+A](value: Option[A], provPro: Prov, provCon: Prov)
 
 object Testimony:
-  // CONJUNCTIVE—the Validation applicative: accumulates BOTH lineage channels, never short-circuits.
-  def derive[A, B, C](a: Testimony[A], b: Testimony[B])(f: (A, B) => C): Testimony[C] =
-    val e = Ev.kmeet(a.ev, b.ev)                      // fail-closed under ⊗ₖ  (§4.3 default)
-    val v = if e.pro.isBottom then None else (a.value, b.value).mapN(f)  // no support ⇒ no value
-    Testimony(v, Prov(a.provPro.atoms | b.provPro.atoms),
-                 Prov(a.provCon.atoms | b.provCon.atoms), e)
+  def corner(t: Testimony[?]): Belnap =                       // model-free, off the two polynomials
+    Belnap.from(t.provPro.isZero, t.provCon.isZero)
 
-  // DISJUNCTIVE—corroboration. Agreeing sources reinforce; DISAGREEING sources climb to GLUT.
+  // ⊗ₖ derive — fail-closed by the ANNIHILATOR: BOTH channels combine by JOINT use ·, so a gap (0)
+  // sinks the pro-product to 0 ⇒ no value, under every trust model. (§4.3 default for "missing".)
+  def derive[A, B, C](a: Testimony[A], b: Testimony[B])(f: (A, B) => C): Testimony[C] =
+    val pro = Prov.times(a.provPro, b.provPro)
+    val v   = if pro.isZero then None else (a.value, b.value).mapN(f)
+    Testimony(v, pro, Prov.times(a.provCon, b.provCon))
+
+  // ∧ₜ truth-meet — the F7 fork: pro by ·, con by +, so an actively-REFUTED conjunct goes to F, not
+  // the gap N that ⊗ₖ gives a merely-missing one. Same skeleton as derive; the con-channel uses +.
+  def truthMeet[A, B, C](a: Testimony[A], b: Testimony[B])(f: (A, B) => C): Testimony[C] =
+    val pro = Prov.times(a.provPro, b.provPro)
+    val v   = if pro.isZero then None else (a.value, b.value).mapN(f)
+    Testimony(v, pro, Prov.plus(a.provCon, b.provCon))
+
+  // ⊕ₖ corroborate — both channels by ALTERNATIVE +: agreement pools; a support meeting a refutation
+  // makes both channels non-empty ⇒ the glut B.
   def corroborate[A](a: Testimony[A], b: Testimony[A]): Testimony[A] =
     Testimony(a.value.orElse(b.value),
-              Prov(a.provPro.atoms | b.provPro.atoms),
-              Prov(a.provCon.atoms | b.provCon.atoms), Ev.kjoin(a.ev, b.ev))
+              Prov.plus(a.provPro, b.provPro), Prov.plus(a.provCon, b.provCon))
 
-  // NEGATION / RETRACTION—swap the channels (a superseding source refutes prior support).
-  def refute[A](a: Testimony[A]): Testimony[A] = Testimony(a.value, a.provCon, a.provPro, Ev.negate(a.ev))
+  // ¬ refute — swap the channels. F5 supersession is refute(old) [struck → F, kept on the record]
+  // paired with a fresh T [the operative amendment]: two claims, never one (a clobber reads as a glut).
+  def refute[A](a: Testimony[A]): Testimony[A] = Testimony(a.value, a.provCon, a.provPro)
+
+  // THE grade, rendered: ν̂ on each channel into the bilattice, under a chosen trust model L (here Lev,
+  // the fuzzy carrier). Swap L (Viterbi, counting, Boolean) without rerunning the network (§3.3).
+  def renderEv[A](t: Testimony[A])(nu: Lineage => Lev): Ev =
+    Ev(t.provPro.evaluate(nu), t.provCon.evaluate(nu))
 
 // A CLAIM is a Testimony refined by verification—opaque, so the only way to build one is to run the
 // verifier. (Earlier drafts wrote this as `Refined VerifiesAgainstProvenance`; because the predicate
@@ -493,7 +528,7 @@ object Claim:
   <strong>Why an applicative, not a monad.</strong> Monadic <code>&gt;&gt;=</code> lets later structure depend on an earlier <em>value</em> and short-circuits on the first failure, discarding the lineage of the other conjuncts. The <code>Validation</code> applicative is deliberately <em>not</em> a monad, precisely so it <em>accumulates</em> [2]. Here it must accumulate <em>both</em> the pro- and con-lineages of every conjunct, because a downstream agent needs the full two-channel provenance for verification, blame-assignment, and to tell a glut from a gap. The "graded" qualifier means the \((\mathrm{Prov},\mathrm{Prov},\mathrm{Ev})\) annotation is an effect grade produced by composition, never written by the payload [8]. The single legitimately-monadic edge (an agent choosing whom to ask next from a prior answer) remains a justified escape hatch, not the default.
 </div>
 
-<p>The other realizations move in step. In Haskell the object is <code>Testimony a = Writer (Prov, Prov, Ev) (Maybe a)</code> exposed as an <code>Applicative</code> only (the monoid is the <em>product</em> of the two provenance monoids and the bilattice grade), with <code>Claim</code> via a Liquid Haskell refinement, and <code>negate</code> a total function swapping the two <code>Prov</code> components. In the harness's Go (no higher-kinded types) the <code>Testimony</code> struct carries a second provenance field and the <code>Conf</code> enum becomes the four-corner <code>Ev</code>; <code>And</code> still pattern-matches the gap first (now <code>Ev.N</code>) as an explicit early return, but the <em>glut</em> is representable as a value rather than silently folded into the gap.</p>
+<p>The other realizations move in step. In Haskell the object is <code>Testimony a = Writer (Prov, Prov) (Maybe a)</code> exposed as an <code>Applicative</code> only (the monoid is the <em>product</em> of the two provenance semirings; the grade is rendered from them by ν̂, not carried), with <code>Claim</code> via a Liquid Haskell refinement, and <code>negate</code> a total function swapping the two <code>Prov</code> components. In the harness's Go (no higher-kinded types) the <code>Testimony</code> struct carries a second provenance field and the <code>Conf</code> enum becomes the four-corner <code>Ev</code>; <code>And</code> still pattern-matches the gap first (now <code>Ev.N</code>) as an explicit early return, but the <em>glut</em> is representable as a value rather than silently folded into the gap.</p>
 
 <h2 id="example">6 · A first worked example: credit deal analysis</h2>
 
@@ -688,7 +723,7 @@ class N,O,J alg; class Rglut glut; class Rkeep ok;
 </table>
 
 <p><strong>The limitations that still stand.</strong></p>
-<p><strong>Correlation blindness, now sharper.</strong> The homomorphic story assumes the leaves are independent; the moment two sources draw on the same upstream document, multiplying their confidences double-counts. Tracking token identity is the fix (probabilistic databases, where exact confidence is \(\#\mathrm{P}\)-hard in general [17]), or moving to Dempster–Shafer belief functions or Jøsang's subjective logic [12, 13], which carry an explicit conflict/uncertainty mass. The bilattice makes this <em>worse</em> to ignore, not better: a glut computed from a for-source and an against-source that secretly share a cause is a <em>spurious</em> contradiction, and an apparent corroboration may be one document echoing itself. Faithful handling needs the provenance to carry the correlation structure and the valuation to live in a domain that respects it, which is exactly the \(\#\mathrm{P}\)-hard regime above. Idempotent \(L\) dodges double-counting an <em>identical</em> leaf but not a latent common cause.</p>
+<p><strong>Correlation blindness, now sharper.</strong> The homomorphic story assumes the leaves are independent; the moment two sources draw on the same upstream document, multiplying their confidences double-counts. Tracking token identity is the fix (probabilistic databases, where exact confidence is \(\#\mathrm{P}\)-hard in general [17]), or moving to Dempster–Shafer belief functions or Jøsang's subjective logic [12, 13], which carry an explicit conflict/uncertainty mass. The bilattice makes this <em>worse</em> to ignore, not better: a glut computed from a for-source and an against-source that secretly share a cause is a <em>spurious</em> contradiction, and an apparent corroboration may be one document echoing itself. Faithful handling needs the provenance to carry the correlation structure and the valuation to live in a domain that respects it, which is exactly the \(\#\mathrm{P}\)-hard regime above. Idempotent \(L\) dodges double-counting an <em>identical</em> leaf but not a latent common cause. The credit topology has an in-network instance: EBITDA fans out to both ratios, so the covenant's pro-lineage is \(\textit{debt}\cdot\textit{ebitda}^{2}\cdot\textit{interest}\), and a non-idempotent render (Viterbi) <em>squares</em> EBITDA's confidence—faithful \(\mathbb{N}[X]\) behavior the idempotent fuzzy render hides. The experiment's headline rides the structural corner and an idempotent declared model, so the squaring is a measured artifact of the non-idempotent renders, not a defect.</p>
 <p><strong>Calibration is exogenous.</strong> The algebra propagates confidence soundly given the leaf numbers; it does not produce them. Whether "High" on an extraction corresponds to anything in the world is an empirical calibration problem, upstream of the algebra and unchanged by it [16].</p>
 <p><strong>Semantic correctness is not verification, and verification is not Belnap's axis.</strong> <code>verify()</code> checks that a value faithfully reproduces its cited provenance, not that the value is true: a faithful citation of a wrong source passes. And, as §4.4 insists, verification is a <em>third</em> axis (does-it-reproduce-the-source), distinct from Belnap's <em>evidential</em> axis of told-true/told-false content. Conflating the two is the error this object most wants not to repeat one level up.</p>
 <p><strong>Time, retraction, and aggregates.</strong> The structure is most natural for a single timeless resolution over an acyclic provenance. Retraction is now <em>partly</em> handled (negation expresses supersession at a point in time), but genuinely temporal belief revision (incremental recomputation as evidence arrives and is withdrawn) and feedback cycles still need iterative fixed-point machinery [14], and quantitative aggregates ("the average across these claims") still call for a semimodule structure over the bilattice [15] rather than the lattice operations alone.</p>
