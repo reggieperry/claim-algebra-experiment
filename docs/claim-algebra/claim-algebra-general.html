@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The claim algebra — the general, updated form</title>
+<style>
+  :root{
+    --ink:#1f2933; --muted:#6b7280; --line:#d7dde3; --bg:#ffffff; --fig:#f7f9fb;
+    --pro:#2a7f62; --con:#b5532a; --struct:#3b5bdb; --gap:#9aa5b1; --glut:#7c5cbf;
+    --code:#0f172a; --codebg:#f3f5f7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;color:var(--ink);background:var(--bg);
+    font-family:Georgia,"Iowan Old Style",Cambria,"Times New Roman",serif;
+    line-height:1.62;font-size:18px}
+  .wrap{max-width:840px;margin:0 auto;padding:56px 24px 96px}
+  h1,h2,h3{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.25;letter-spacing:-0.01em}
+  h1{font-size:33px;margin:0 0 6px}
+  .sub{color:var(--muted);font-size:18px;margin:0 0 8px}
+  .meta{color:var(--muted);font-size:14px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    border-bottom:1px solid var(--line);padding-bottom:22px;margin-bottom:34px}
+  h2{font-size:24px;margin:46px 0 10px;padding-top:8px}
+  h3{font-size:19px;margin:30px 0 6px}
+  p{margin:13px 0}
+  code,.mono{font-family:"SF Mono", "JetBrains Mono",Menlo,Consolas,monospace;font-size:0.86em;
+    background:var(--codebg);color:var(--code);padding:1px 5px;border-radius:4px}
+  pre{background:var(--codebg);color:var(--code);padding:14px 16px;border-radius:8px;overflow:auto;
+    font-family:"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;font-size:14px;line-height:1.5}
+  figure{margin:28px 0;background:var(--fig);border:1px solid var(--line);border-radius:12px;padding:20px 16px 8px}
+  figure svg{display:block;margin:0 auto;max-width:100%;height:auto}
+  figcaption{color:var(--muted);font-size:14px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    text-align:center;margin:12px 18px 10px;line-height:1.45}
+  .lead{font-size:19.5px}
+  table{border-collapse:collapse;width:100%;margin:20px 0;font-size:15px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+  th{background:#eef2f6;font-weight:600}
+  td.pro{color:var(--pro);font-weight:600}
+  td.con{color:var(--con);font-weight:600}
+  .tag{display:inline-block;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    font-size:11px;font-weight:700;letter-spacing:.04em;padding:2px 7px;border-radius:20px;vertical-align:middle}
+  .tag.g{background:#e7f3ee;color:#1f6b4f;border:1px solid #bfe0d2}
+  .tag.lb{background:#fdece4;color:#9c3d18;border:1px solid #f3c7b1}
+  .note{background:#f4f7ff;border:1px solid #cdd9f6;border-radius:10px;padding:12px 16px;margin:20px 0;font-size:16px}
+  .legend{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:13px;color:var(--muted);text-align:center;margin-top:4px}
+  .swatch{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:middle;margin:0 3px 0 12px}
+  text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>The claim algebra — the general, updated form</h1>
+<p class="sub">A verifiable inter-agent claim as a bilattice-graded object over a provenance semiring</p>
+<p class="meta">Visual companion to <span class="mono">claim-algebra.html</span>. Reflects the generalized design: the candidate carrier (G1), the render-multiplicity rule (G2), kinded citations (G3), and the parametric form lifted off the credit application. Diagrams are hand-drawn; the formal statements and proofs live in the foundations document.</p>
+
+<p class="lead">The algebra carries a value through a network of agents — each typically an LLM — so that the value never loses what its sources say <em>for</em> and <em>against</em> it. A claim records its evidence on two channels, distinguishes <em>missing</em> from <em>conflicting</em> from <em>refuted</em>, composes lawfully, attributes blame, renders its confidence under any trust model, and refuses to sign unless it is verified, unambiguous, and over threshold. This note shows the updated structure in pictures.</p>
+
+<h2>1 &middot; The four corners</h2>
+<p>Every claim sits at one of four corners, read from whether each evidence channel is empty — never from a stored number, so the corner cannot drift from its lineage. The corners live in a <em>bilattice</em>: two orders at once. The <strong>knowledge</strong> order asks how much is known (gap at the bottom, glut at the top); the <strong>truth</strong> order asks which way the evidence leans (false at the left, true at the right).</p>
+
+<figure>
+<svg viewBox="0 0 400 340" role="img" aria-label="Belnap FOUR bilattice diamond">
+  <!-- edges -->
+  <g stroke="#c2cbd4" stroke-width="2">
+    <line x1="200" y1="280" x2="78" y2="170"/>
+    <line x1="200" y1="280" x2="322" y2="170"/>
+    <line x1="200" y1="60" x2="78" y2="170"/>
+    <line x1="200" y1="60" x2="322" y2="170"/>
+  </g>
+  <!-- axes -->
+  <g stroke="#9aa5b1" stroke-width="1.5" marker-end="url(#ah)">
+    <line x1="34" y1="280" x2="34" y2="64"/>
+    <line x1="78" y1="312" x2="320" y2="312"/>
+  </g>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#9aa5b1"/>
+    </marker>
+  </defs>
+  <text x="26" y="58" font-size="12" fill="#6b7280">more known</text>
+  <text x="20" y="300" font-size="12" fill="#6b7280" transform="rotate(-90 20 300)">knowledge ≤ₖ</text>
+  <text x="330" y="316" font-size="12" fill="#6b7280">truth ≤ₜ</text>
+  <!-- corners -->
+  <g font-size="22" font-weight="700" text-anchor="middle">
+    <circle cx="200" cy="60" r="30" fill="#efeaf8" stroke="#7c5cbf" stroke-width="2.5"/>
+    <text x="200" y="67" fill="#5b3fa0">B</text>
+    <circle cx="200" cy="280" r="30" fill="#eef1f4" stroke="#9aa5b1" stroke-width="2.5"/>
+    <text x="200" y="287" fill="#586672">N</text>
+    <circle cx="78" cy="170" r="30" fill="#fbeae1" stroke="#b5532a" stroke-width="2.5"/>
+    <text x="78" y="177" fill="#9c3d18">F</text>
+    <circle cx="322" cy="170" r="30" fill="#e6f3ee" stroke="#2a7f62" stroke-width="2.5"/>
+    <text x="322" y="177" fill="#1f6b4f">T</text>
+  </g>
+  <!-- annotations -->
+  <g font-size="13" fill="#6b7280" text-anchor="middle">
+    <text x="200" y="106">glut &middot; (for, against)</text>
+    <text x="200" y="240">gap &middot; (&empty;, &empty;)</text>
+    <text x="78" y="216">false &middot; (&empty;, against)</text>
+    <text x="322" y="216">true &middot; (for, &empty;)</text>
+  </g>
+</svg>
+<figcaption><strong>The bilattice FOUR.</strong> A claim's corner is the pair (is the <span style="color:var(--pro)">for</span>-channel empty?, is the <span style="color:var(--con)">against</span>-channel empty?). <strong>N</strong> told nothing, <strong>T</strong> told only for, <strong>F</strong> told only against, <strong>B</strong> told both. The gap N and the glut B are <em>distinct</em> — the reason four values are used instead of three.</figcaption>
+</figure>
+
+<p>The bilattice is the <em>twist</em> of an ordinary lattice with itself: a value is a pair <code>(a&#8314;, a&#8315;)</code> of a degree-for and a degree-against, and negation simply swaps the two coordinates. That twist is what lets one universal construction — the provenance semiring below — supply both channels at once.</p>
+
+<h2>2 &middot; The carrier <span class="tag g">updated &middot; G1</span></h2>
+<p>A claim is a <strong>Testimony</strong>: a payload together with the provenance behind it, for and against. Previously the payload was a single <code>Option[A]</code> — one value. That quietly failed exactly where it mattered most: at a glut, two rival figures collide, and keeping one threw the other away. The updated carrier makes the payload a <strong>candidate map</strong> — each rival value kept as a key, carrying its own provenance polynomial on each channel.</p>
+
+<figure>
+<svg viewBox="0 0 760 300" role="img" aria-label="The candidate carrier before and after">
+  <!-- BEFORE -->
+  <text x="30" y="34" font-size="14" font-weight="700" fill="#6b7280">BEFORE — Option[A]</text>
+  <rect x="30" y="48" width="300" height="200" rx="10" fill="#ffffff" stroke="#d7dde3"/>
+  <text x="48" y="86" font-size="15" fill="#1f2933">value =</text>
+  <rect x="120" y="68" width="160" height="30" rx="6" fill="#e6f3ee" stroke="#2a7f62"/>
+  <text x="200" y="88" font-size="14" text-anchor="middle" fill="#1f6b4f">Some($1.2bn)</text>
+  <text x="48" y="146" font-size="15" fill="#1f2933">rival:</text>
+  <rect x="120" y="128" width="160" height="30" rx="6" fill="#f3f5f7" stroke="#cbd3da"/>
+  <text x="200" y="148" font-size="14" text-anchor="middle" fill="#9aa5b1" text-decoration="line-through">$1.5bn</text>
+  <text x="48" y="200" font-size="13.5" fill="#b5532a">✗ rival dropped by orElse;</text>
+  <text x="48" y="220" font-size="13.5" fill="#b5532a">corroborate not commutative.</text>
+
+  <!-- arrow -->
+  <line x1="350" y1="148" x2="408" y2="148" stroke="#3b5bdb" stroke-width="2.5" marker-end="url(#ah2)"/>
+  <defs><marker id="ah2" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#3b5bdb"/></marker></defs>
+
+  <!-- AFTER -->
+  <text x="430" y="34" font-size="14" font-weight="700" fill="#1f6b4f">AFTER — candidate map  A →&#8320; (for, against)</text>
+  <rect x="430" y="48" width="300" height="200" rx="10" fill="#ffffff" stroke="#2a7f62"/>
+  <!-- header -->
+  <text x="452" y="84" font-size="13" font-weight="700" fill="#6b7280">value</text>
+  <text x="600" y="84" font-size="13" font-weight="700" fill="#2a7f62">for</text>
+  <text x="668" y="84" font-size="13" font-weight="700" fill="#b5532a">against</text>
+  <line x1="446" y1="92" x2="714" y2="92" stroke="#e0e6ea"/>
+  <!-- row 1 -->
+  <text x="452" y="120" font-size="14" fill="#1f2933">$1.2bn</text>
+  <text x="600" y="120" font-size="13" fill="#2a7f62" font-family="monospace">p₁</text>
+  <text x="676" y="120" font-size="13" fill="#9aa5b1" font-family="monospace">0</text>
+  <!-- row 2 -->
+  <text x="452" y="150" font-size="14" fill="#1f2933">$1.5bn</text>
+  <text x="600" y="150" font-size="13" fill="#2a7f62" font-family="monospace">p₂</text>
+  <text x="676" y="150" font-size="13" fill="#9aa5b1" font-family="monospace">0</text>
+  <line x1="446" y1="166" x2="714" y2="166" stroke="#e0e6ea"/>
+  <text x="452" y="196" font-size="13.5" fill="#1f6b4f">✓ both rivals kept, each with</text>
+  <text x="452" y="215" font-size="13.5" fill="#1f6b4f">provenance; corroborate is a</text>
+  <text x="452" y="234" font-size="13.5" fill="#1f6b4f">commutative monoid again.</text>
+</svg>
+<figcaption><strong>The candidate carrier (G1).</strong> <code>Testimony[A] = A &rarr;&#8320; (Prov, Prov)</code> — a finite map from each candidate value to its for/against provenance. At a glut the rivals coexist as keys, so <em>corroboration</em> becomes order-independent (a true commutative monoid) and the reconciler is handed both figures instead of one arbitrary survivor. The old single value is now a derived read: present only when there is exactly one for-candidate and nothing against.</figcaption>
+</figure>
+
+<div class="note"><strong>Why this is more than tidiness.</strong> The old single value let the network <em>sign</em> one of two disagreeing corroborated figures — a confidently-wrong output. The candidate carrier blocks that structurally: two rivals read as <em>ambiguous</em>, and an ambiguous claim cannot clear the gate. The fix to the payload is also a fix to correctness.</div>
+
+<h2>3 &middot; Provenance and the rendered grade <span class="tag g">updated &middot; G2</span></h2>
+<p>Provenance is not a set of sources — it is a <strong>polynomial</strong>. Alternative derivations add (<code>+</code>); jointly-used supports multiply (<code>&middot;</code>). These polynomials form ℕ[X], the free commutative semiring on the citation tokens X. The grade is never stored: it is the polynomial <em>evaluated</em> by the unique homomorphism ν&#770; into whatever trust carrier you choose. Compute the lineage once; read it under any model.</p>
+
+<figure>
+<svg viewBox="0 0 720 250" role="img" aria-label="The render homomorphism into three carriers">
+  <rect x="40" y="92" width="220" height="66" rx="10" fill="#eef1ff" stroke="#3b5bdb"/>
+  <text x="150" y="120" font-size="15" text-anchor="middle" fill="#27349c" font-weight="700">provenance polynomial</text>
+  <text x="150" y="142" font-size="13" text-anchor="middle" fill="#3b5bdb" font-family="monospace">debt &middot; ebitda² + notes</text>
+
+  <g stroke="#3b5bdb" stroke-width="2" marker-end="url(#ah3)">
+    <line x1="262" y1="110" x2="452" y2="58"/>
+    <line x1="262" y1="125" x2="452" y2="125"/>
+    <line x1="262" y1="140" x2="452" y2="192"/>
+  </g>
+  <defs><marker id="ah3" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#3b5bdb"/></marker></defs>
+  <text x="350" y="86" font-size="13" fill="#6b7280" font-style="italic">ν&#770;</text>
+
+  <rect x="456" y="34" width="234" height="48" rx="9" fill="#e6f3ee" stroke="#2a7f62"/>
+  <text x="468" y="55" font-size="13.5" fill="#1f6b4f" font-weight="700">Lev (fuzzy)</text>
+  <text x="468" y="73" font-size="12.5" fill="#1f6b4f">idempotent &mdash; min/max</text>
+
+  <rect x="456" y="101" width="234" height="48" rx="9" fill="#fff6e9" stroke="#c98a1e"/>
+  <text x="468" y="122" font-size="13.5" fill="#8a5a08" font-weight="700">Viterbi (probability)</text>
+  <text x="468" y="140" font-size="12.5" fill="#8a5a08">counting &mdash; products</text>
+
+  <rect x="456" y="168" width="234" height="48" rx="9" fill="#fbeae1" stroke="#b5532a"/>
+  <text x="468" y="189" font-size="13.5" fill="#9c3d18" font-weight="700">Count (integer)</text>
+  <text x="468" y="207" font-size="12.5" fill="#9c3d18">counting &mdash; sums</text>
+</svg>
+<figcaption><strong>One polynomial, any carrier.</strong> ν&#770; is the unique semiring homomorphism into a chosen trust model. Because a reused leaf appears with multiplicity (here EBITDA squared, feeding both leverage and coverage), the carrier choice is a real decision: an <em>idempotent</em> render deduplicates the reuse, a <em>counting</em> render multiplies it. The default is idempotent — a figure reused twice should not double its own confidence — and the multiplicity is surfaced as a flag (&ldquo;decisive for N derivations&rdquo;) rather than allowed to move the number.</figcaption>
+</figure>
+
+<h2>4 &middot; The four combiners</h2>
+<p>Nodes combine claims with four operations. Each acts on the two provenance channels by a semiring operation; the choice of operation per channel is what gives each combiner its distinct meaning. The asymmetry is the point — sharing one operation across both channels would collapse the distinctions.</p>
+
+<table>
+  <tr><th>combiner</th><th>for-channel</th><th>against-channel</th><th>meaning &amp; corner effect</th></tr>
+  <tr>
+    <td><strong>derive</strong> &nbsp;<span class="mono">&otimes;&#8342;</span></td>
+    <td class="pro">&middot; (joint)</td><td class="con">&middot; (joint)</td>
+    <td>conjunction. A missing input annihilates the result &mdash; <em>fail-closed</em>: a gap sinks to a gap. <span class="tag lb">essential</span></td>
+  </tr>
+  <tr>
+    <td><strong>corroborate</strong> &nbsp;<span class="mono">&oplus;&#8342;</span></td>
+    <td class="pro">+ (alternative)</td><td class="con">+ (alternative)</td>
+    <td>pooling sources. Agreement reinforces; a present disagreement climbs to a glut / ambiguity. Now a commutative monoid on the full carrier.</td>
+  </tr>
+  <tr>
+    <td><strong>truthMeet</strong> &nbsp;<span class="mono">&and;&#8348;</span></td>
+    <td class="pro">&middot; (joint)</td><td class="con">cross-term</td>
+    <td>the refutation fork. An actively-refuted conjunct is driven to <strong>F</strong>, distinct from a missing one's <strong>N</strong>. <span class="tag lb">fork is essential</span></td>
+  </tr>
+  <tr>
+    <td><strong>refute</strong> &nbsp;<span class="mono">&not;</span></td>
+    <td class="pro" colspan="2" style="text-align:center">swap the two channels</td>
+    <td>negation / retraction. Involutive; turns T into F and back, fixes N and B.</td>
+  </tr>
+</table>
+
+<div class="note"><strong>An update worth naming.</strong> Under the candidate carrier, <code>truthMeet</code>'s against-channel is no longer a plain <code>+</code>; it is a three-term cross-product. The <em>outcome</em> that matters — a refuted conjunct lands on F, not N — is preserved exactly. So the relaxation table records the refutation <em>fork</em> as essential, while the specific against-channel operation that realizes it is not: it must carry the refutation, and more than one operation can.</div>
+
+<p>Supersession (an amendment striking a prior clause) is built from these: it yields <em>two</em> claims, the struck clause refuted to F with its support kept for audit, and the operative amendment as a fresh T — never one mutated claim, which would read as a false glut.</p>
+
+<h2>5 &middot; The gate and the verification axis</h2>
+<p>A value becomes a <em>signature</em> at exactly one place. The gate signs only a claim that is true, unambiguous, sufficiently supported, and verified. Every other outcome is a block with a reason — and crucially, none of those blocks is a confident error. Abstaining on a gap, refusing a glut, reporting a refutation: all are passes, not misses. That asymmetry is what the headline reliability metric rests on.</p>
+
+<figure>
+<svg viewBox="0 0 720 250" role="img" aria-label="The acceptance gate decision flow">
+  <rect x="20" y="100" width="120" height="48" rx="9" fill="#ffffff" stroke="#334155"/>
+  <text x="80" y="129" font-size="14" text-anchor="middle" fill="#1f2933">Testimony</text>
+
+  <g font-size="13.5" text-anchor="middle">
+    <!-- gates -->
+    <g>
+      <polygon points="170,124 215,100 260,124 215,148" fill="#eef1ff" stroke="#3b5bdb"/>
+      <text x="215" y="120" fill="#27349c">corner</text><text x="215" y="134" fill="#27349c">= T?</text>
+    </g>
+    <g>
+      <polygon points="288,124 335,100 382,124 335,148" fill="#eef1ff" stroke="#3b5bdb"/>
+      <text x="335" y="120" fill="#27349c">one</text><text x="335" y="134" fill="#27349c">candidate?</text>
+    </g>
+    <g>
+      <polygon points="410,124 457,100 504,124 457,148" fill="#eef1ff" stroke="#3b5bdb"/>
+      <text x="457" y="120" fill="#27349c">grade</text><text x="457" y="134" fill="#27349c">&ge; θ?</text>
+    </g>
+    <g>
+      <polygon points="532,124 579,100 626,124 579,148" fill="#eef1ff" stroke="#3b5bdb"/>
+      <text x="579" y="120" fill="#27349c">verify?</text>
+    </g>
+  </g>
+
+  <g stroke="#3b5bdb" stroke-width="2" marker-end="url(#ah4)" fill="none">
+    <line x1="140" y1="124" x2="168" y2="124"/>
+    <line x1="260" y1="124" x2="286" y2="124"/>
+    <line x1="382" y1="124" x2="408" y2="124"/>
+    <line x1="504" y1="124" x2="530" y2="124"/>
+    <line x1="626" y1="124" x2="660" y2="124"/>
+  </g>
+  <defs><marker id="ah4" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#3b5bdb"/></marker></defs>
+
+  <rect x="660" y="100" width="48" height="48" rx="9" fill="#e6f3ee" stroke="#2a7f62"/>
+  <text x="684" y="122" font-size="13" text-anchor="middle" fill="#1f6b4f" font-weight="700">SIGN</text>
+  <text x="684" y="138" font-size="11" text-anchor="middle" fill="#1f6b4f">✓</text>
+
+  <!-- block lane -->
+  <g stroke="#b5532a" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#ah5)" fill="none">
+    <line x1="215" y1="148" x2="215" y2="196"/>
+    <line x1="335" y1="148" x2="335" y2="196"/>
+    <line x1="457" y1="148" x2="457" y2="196"/>
+    <line x1="579" y1="148" x2="579" y2="196"/>
+  </g>
+  <defs><marker id="ah5" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#b5532a"/></marker></defs>
+  <rect x="150" y="198" width="500" height="40" rx="9" fill="#fbeae1" stroke="#b5532a"/>
+  <text x="400" y="223" font-size="13.5" text-anchor="middle" fill="#9c3d18">BLOCK — gap &middot; ambiguous &middot; below-threshold &middot; unverified &nbsp;(an abstention, never a confident error)</text>
+</svg>
+<figcaption><strong>The acceptance gate.</strong> <code>sign &hArr; corner = T &and; exactly one candidate &and; grade &ge; θ &and; verify</code>. The <em>one-candidate</em> conjunct is new with the candidate carrier: it is what refuses to sign an ambiguous claim. Verification is a third axis, orthogonal to the two bilattice orders — it asks whether the value faithfully reproduces against its cited source, not whether it is true.</figcaption>
+</figure>
+
+<h2>6 &middot; Kinded citations <span class="tag g">updated &middot; G3</span></h2>
+<p>Not every conflict is the same kind of conflict. Two sources that disagree because one was misread is an <em>extraction</em> error — a data check. Two defensible readings of a defined term that legitimately differ is a <em>definitional</em> disagreement — it escalates to a different person. A withdrawn restatement is a <em>temporal</em> retraction. The updated citation token carries a <strong>kind</strong> label, so the glut a downstream agent receives says not just &ldquo;these sources conflict&rdquo; but &ldquo;they conflict <em>this way</em>.&rdquo;</p>
+<p>Formally the kind lifts ℕ[X] to a sorted free semiring, graded by a small join-semilattice of kinds; the grading rides along the against-channel and is provably orthogonal to the structural corner — adding it changes no existing law, it only routes.</p>
+
+<h2>7 &middot; The general form</h2>
+<p>None of the above is about credit. The credit application is one instantiation; everything domain-specific is a parameter the core is written against.</p>
+
+<figure>
+<svg viewBox="0 0 720 270" role="img" aria-label="The parametric general form">
+  <!-- parameters -->
+  <rect x="20" y="30" width="190" height="210" rx="12" fill="#f7f9fb" stroke="#cbd3da"/>
+  <text x="115" y="54" font-size="14" font-weight="700" text-anchor="middle" fill="#6b7280">PARAMETERS</text>
+  <g font-size="13" fill="#1f2933" font-family="monospace">
+    <text x="38" y="82">A &mdash; value type</text>
+    <text x="38" y="104">rep &mdash; merge policy</text>
+    <text x="38" y="126">Kind &mdash; citation sorts</text>
+    <text x="38" y="148">M &mdash; trust carrier</text>
+    <text x="38" y="170">ν &mdash; valuation(s)</text>
+    <text x="38" y="192">θ &mdash; threshold</text>
+    <text x="38" y="214">verify &mdash; checker</text>
+    <text x="38" y="236">topology &mdash; the DAG</text>
+  </g>
+
+  <line x1="210" y1="135" x2="252" y2="135" stroke="#3b5bdb" stroke-width="2.5" marker-end="url(#ah6)"/>
+  <defs><marker id="ah6" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#3b5bdb"/></marker></defs>
+
+  <!-- core -->
+  <rect x="256" y="44" width="240" height="182" rx="12" fill="#eef1ff" stroke="#3b5bdb" stroke-width="2"/>
+  <text x="376" y="70" font-size="14" font-weight="700" text-anchor="middle" fill="#27349c">THE CORE (fixed)</text>
+  <g font-size="13" fill="#27349c" text-anchor="middle">
+    <text x="376" y="98">candidate carrier</text>
+    <text x="376" y="122">four combiners</text>
+    <text x="376" y="146">structural corner</text>
+    <text x="376" y="170">render ν&#770; (grade)</text>
+    <text x="376" y="194">the gate</text>
+  </g>
+
+  <line x1="496" y1="135" x2="538" y2="135" stroke="#3b5bdb" stroke-width="2.5" marker-end="url(#ah6)"/>
+
+  <!-- decision -->
+  <rect x="542" y="92" width="156" height="86" rx="12" fill="#e6f3ee" stroke="#2a7f62" stroke-width="2"/>
+  <text x="620" y="120" font-size="14" font-weight="700" text-anchor="middle" fill="#1f6b4f">a signed,</text>
+  <text x="620" y="140" font-size="14" font-weight="700" text-anchor="middle" fill="#1f6b4f">verified claim</text>
+  <text x="620" y="162" font-size="12" text-anchor="middle" fill="#1f6b4f">&mdash; or an honest block</text>
+</svg>
+<figcaption><strong>One core, many applications.</strong> Credit fills the parameters one way; clinical decisions, contract analysis, evidence synthesis, intelligence assessment, or any LLM agent network fill them another. The core — carrier, combiners, corner, render, gate — does not change.</figcaption>
+</figure>
+
+<h2>8 &middot; What changed, and what cannot</h2>
+<p>The feedback loop between this document and the code rests on knowing which properties are essential — relax one and the algebra stops being consistent — and which are free to vary.</p>
+
+<table>
+  <tr><th>update</th><th>what it changes</th><th>what stays essential</th></tr>
+  <tr>
+    <td><strong>G1</strong> candidate carrier</td>
+    <td>payload becomes a value&rarr;provenance map; <code>corroborate</code> regains its monoid laws; the gate gains a one-candidate conjunct</td>
+    <td>the structural corner, gap&ne;glut, fail-closed <code>N&otimes;&#8342;x=N</code>, the never-stored grade</td>
+  </tr>
+  <tr>
+    <td><strong>G2</strong> render multiplicity</td>
+    <td>the carrier choice (idempotent vs counting) is made explicit; multiplicity is surfaced as a flag</td>
+    <td>ν&#770; a semiring homomorphism with ν&#770;(0)=0; provenance kept un-collapsed as ℕ[X]</td>
+  </tr>
+  <tr>
+    <td><strong>G3</strong> kinded citations</td>
+    <td>tokens carry a kind; gluts route by kind</td>
+    <td>the kind is orthogonal to the corner — it adds routing, alters no law</td>
+  </tr>
+  <tr>
+    <td><strong>truthMeet</strong> against-channel</td>
+    <td>plain <code>+</code> becomes a cross-term under the candidate carrier</td>
+    <td>the refutation <em>fork</em> — refuted lands on F, distinct from a gap's N</td>
+  </tr>
+</table>
+
+<p class="meta" style="border:0;border-top:1px solid var(--line);padding-top:18px;margin-top:40px">
+The mathematics here is classical — Belnap's four values, Ginsberg and Fitting's bilattices, the Green&ndash;Karvounarakis&ndash;Tannen provenance semiring. The contribution is the assembly: a verifiable-claim wire format for networks of language models, with the candidate carrier, the fail-closed gate, and the kinded, two-channel provenance that keep a confidently-wrong output from ever being signed. The accompanying foundations document states each property as a theorem with its proof and its place in the relaxation table.
+</p>
+
+</div>
+</body>
+</html>
