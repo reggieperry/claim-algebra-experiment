@@ -81,7 +81,16 @@ lazy val gate = (project in file("gate"))
   .settings(
     name := "differential-gate",
     Test / parallelExecution := false,
-    libraryDependencies ++= Seq(munit, munitScalacheck, scalacheck)
+    // cats-effect is the one effect system (scala-modules.md): the scanner and runner do filesystem
+    // and subprocess IO, wrapped in `IO.blocking`. The pure diff engine needs none of it.
+    libraryDependencies ++= Seq(
+      catsCore,
+      catsEffect,
+      munit,
+      munitScalacheck,
+      scalacheck,
+      munitCatsEffect
+    )
   )
 
 // One gate the build must pass: formatting (sources + sbt files), the Scalazzi /
