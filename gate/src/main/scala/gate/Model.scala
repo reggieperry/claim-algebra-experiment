@@ -117,6 +117,7 @@ enum Kind:
   case NewSuppression
   case TestFileDeletion, NewSkipMarkers, CoverageDrop, TestCountDrop
   case OmitWithoutIntegration, IntegrationCoverageDrop, OmitBelowBootstrapFloor
+  case CompileError // the build precondition: the tree does not compile (fail-closed)
 
 /** A hard verdict item: a weakening the branch introduced that FAILS the gate. Carries `line` and
   * `message` for causal-first feedback (the requirement the Go gate's `(file, code)` summary
