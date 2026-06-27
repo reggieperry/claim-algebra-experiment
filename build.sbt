@@ -14,6 +14,17 @@ ThisBuild / version := "0.1.0-SNAPSHOT"
 // `.scalafix.conf` do not need it, but the gate's later semantic rules will.
 ThisBuild / semanticdbEnabled := true
 
+// Compiler discipline is build-wide (ThisBuild), so the `gate` subproject is held to
+// the same bar — fatal warnings, unused-checking, value-discard — that it enforces.
+ThisBuild / scalacOptions ++= Seq(
+  "-deprecation",
+  "-feature",
+  "-explain",
+  "-Wunused:all",
+  "-Wvalue-discard",
+  "-Werror" // warnings fail the build — e.g. the "Infinite loop in function body" that a self-referential given triggers
+)
+
 lazy val catsCore = "org.typelevel" %% "cats-core" % "2.12.0"
 lazy val catsEffect = "org.typelevel" %% "cats-effect" % "3.5.4"
 // The ring hierarchy (Semiring / Rig / CommutativeRig) lives in `org.typelevel:algebra`,
@@ -37,6 +48,7 @@ lazy val disciplineMunit = "org.typelevel" %% "discipline-munit" % "2.0.0" % Tes
 lazy val munitCatsEffect = "org.typelevel" %% "munit-cats-effect" % "2.0.0" % Test
 
 lazy val root = (project in file("."))
+  .aggregate(gate)
   .settings(
     name := "claim-algebra-lab",
     // Run test suites sequentially. Determinism is first-class here, and ordered,
@@ -56,15 +68,20 @@ lazy val root = (project in file("."))
       algebraLaws,
       disciplineMunit,
       munitCatsEffect
-    ),
-    scalacOptions ++= Seq(
-      "-deprecation",
-      "-feature",
-      "-explain",
-      "-Wunused:all",
-      "-Wvalue-discard",
-      "-Werror" // warnings fail the build — e.g. the "Infinite loop in function body" that a self-referential given triggers
     )
+  )
+
+// The Scala differential gate (anti-weakening) — a self-contained binary that blocks
+// regressions versus the merge-base. It is independent of the experiment (it scans
+// files and runs the toolchain), so it depends on nothing in `root`. The pure diff/
+// verdict engine is dependency-free; the runner/CLI's effect and process libraries are
+// added when those slices land. Ported from the vendored Go gate under
+// `docs/reference/a-go-original/` (reuse the design, replace scanner + runner).
+lazy val gate = (project in file("gate"))
+  .settings(
+    name := "differential-gate",
+    Test / parallelExecution := false,
+    libraryDependencies ++= Seq(munit, munitScalacheck, scalacheck)
   )
 
 // One gate the build must pass: formatting (sources + sbt files), the Scalazzi /
