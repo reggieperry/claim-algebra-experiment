@@ -54,18 +54,30 @@ object CoverageScan:
         Option.when(total > 0)(dir -> (hit.toDouble / total.toDouble * 100.0))
       }
 
-  /** Run scoverage over the tree at `repo` and read its report into the coverage map; an absent
-    * report (the instrumented run produced none) yields an empty map. The `clean` is required — the
+  /** Run scoverage over the tree at `repo` and read its report into the coverage map. FAIL-CLOSED:
+    * if the instrumented run exits non-zero AND produces no report, raise (an operational failure,
+    * exit 2) rather than returning an empty map — a failed scan must not be read as "no coverage to
+    * check", which would silently disable Check D's coverage-drop block on that tree (most acutely
+    * a merge-base predating sbt-scoverage, but also any baseline flake). A clean exit with no
+    * report is the only legitimate empty (nothing instrumented). The `clean` is required — the
     * `coverage` switch changes scalacOptions to instrument, and a stale non-instrumented compile
     * would otherwise be reused and report the wrong numbers.
     */
   def findings(repo: Path): IO[Map[String, Double]] =
     Proc
       .run(Seq("sbt", "-batch", "clean", "coverage", "test", "coverageReport"), repo, 20.minutes)
-      .flatMap(_ => reportXml(repo))
-      .flatMap {
-        case Some(path) => IO.blocking(Files.readString(path)).map(xml => parse(xml))
-        case None => IO.pure(Map.empty)
+      .flatMap { result =>
+        reportXml(repo).flatMap {
+          case Some(path) => IO.blocking(Files.readString(path)).map(xml => parse(xml))
+          case None if result.exitCode != 0 =>
+            IO.raiseError(
+              new RuntimeException(
+                s"coverage scan did not complete (sbt exit ${result.exitCode}) and produced no report" +
+                  " — refusing to read coverage as empty (fail-closed)"
+              )
+            )
+          case None => IO.pure(Map.empty)
+        }
       }
 
   /** The root project's scoverage.xml under the target scala-version scoverage-report directory,

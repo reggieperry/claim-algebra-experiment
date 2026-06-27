@@ -45,7 +45,10 @@ object Git:
       for
         parent <- IO.blocking(Files.createTempDirectory("gate-baseline"))
         tree = parent.resolve("tree")
-        _ <- Proc.run(Seq("git", "worktree", "add", "--detach", tree.toString, sha), repo)
+        added <- Proc.run(Seq("git", "worktree", "add", "--detach", tree.toString, sha), repo)
+        _ <- IO.raiseUnless(added.exitCode == 0)(
+          new RuntimeException(s"git worktree add failed (exit ${added.exitCode}): ${added.stderr}")
+        )
       yield tree
     )(tree =>
       Proc.run(Seq("git", "worktree", "remove", "--force", tree.toString), repo).void *>

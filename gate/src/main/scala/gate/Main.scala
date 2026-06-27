@@ -32,9 +32,13 @@ object Main extends IOApp:
       .flatMap(report => IO.println(ReportJson.encode(report)).as(exitCode(report.verdict)))
       .handleErrorWith(operational)
 
-  /** The fail-closed build precondition: a green `sbt compile` over the tree. */
+  /** The fail-closed build precondition: a green `sbt Test/compile` over the tree. Test/compile
+    * depends on Compile/compile, so it covers BOTH main and test sources — a non-compiling test
+    * source must not pass the precondition and then silently truncate the findings scans (which
+    * would undercount and fail open in Check A).
+    */
   private def liveCompile(tree: Path): IO[Boolean] =
-    Proc.run(Seq("sbt", "-batch", "compile"), tree).map(_.exitCode == 0)
+    Proc.run(Seq("sbt", "-batch", "Test/compile"), tree).map(_.exitCode == 0)
 
   /** The source scan (suppressions, skips, the test-file set, counts) with the scalafix and
     * wartremover findings layered on (Check A).

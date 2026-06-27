@@ -144,7 +144,10 @@ object Diff:
         if cfg.omits(pkg) then None
         else
           val baseCov = baseline.coverage(pkg)
-          branch.coverage.get(translatePkg(pkg, renames)) match
+          // Identity first: a package still present in the branch is compared IN PLACE; only one that
+          // genuinely vanished (a whole-package move) is followed through the rename map — otherwise a
+          // single file moving out would redirect a surviving package's comparison and hide a drop.
+          branch.coverage.get(pkg).orElse(branch.coverage.get(translatePkg(pkg, renames))) match
             case None =>
               Some(
                 Block(

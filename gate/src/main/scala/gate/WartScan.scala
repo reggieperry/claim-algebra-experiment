@@ -41,11 +41,22 @@ object WartScan:
   /** Run the wart scan over the tree at `repo` and return its findings, repo-relative. The
     * dedicated `-Dgate.wartScan=true` invocation turns warts on as warnings and drops -Werror
     * (build.sbt), and `clean` is required so a stale Zinc no-op compile does not suppress the
-    * diagnostics.
+    * diagnostics. FAIL-CLOSED: warts are warnings here, so a non-zero exit is a real COMPILE error,
+    * not findings — raise (operational, exit 2) rather than read truncated warts that would
+    * undercount Check A and fail open. (Unlike scalafix `--check`, whose non-zero exit just means
+    * findings exist.)
     */
   def findings(repo: Path): IO[List[Finding]] =
-    Proc.run(Seq("sbt", "-batch", "-Dgate.wartScan=true", "clean", "Test/compile"), repo).map { r =>
-      parse(s"${r.stdout}\n${r.stderr}").map(f => f.copy(file = relativize(repo, f.file)))
+    Proc.run(Seq("sbt", "-batch", "-Dgate.wartScan=true", "clean", "Test/compile"), repo).flatMap {
+      r =>
+        if r.exitCode != 0 then
+          IO.raiseError(
+            new RuntimeException(s"wart scan compile failed (sbt exit ${r.exitCode}) — fail-closed")
+          )
+        else
+          IO.pure(
+            parse(s"${r.stdout}\n${r.stderr}").map(f => f.copy(file = relativize(repo, f.file)))
+          )
     }
 
   private def relativize(repo: Path, file: String): String =

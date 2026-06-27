@@ -69,6 +69,22 @@ class TestDisciplineSuite extends FunSuite:
     assertEquals(diff(baseline, branch, renames).verdict, Verdict.Pass)
   }
 
+  test(
+    "a coverage drop in a package that SURVIVES a file move out is still caught (identity-first)"
+  ) {
+    // One file moves a/pkg -> b/pkg, but a/pkg still exists and its coverage cratered. The rename
+    // map must not redirect a/pkg's comparison to b/pkg and hide the real drop — identity first.
+    val baseline = withCoverage("src/main/scala/a/pkg" -> 90.0)
+    val branch = withCoverage("src/main/scala/a/pkg" -> 40.0, "src/main/scala/b/pkg" -> 90.0)
+    val renames = Map("src/main/scala/a/pkg/X.scala" -> "src/main/scala/b/pkg/X.scala")
+    val r = diff(baseline, branch, renames)
+    assertEquals(r.verdict, Verdict.Fail)
+    assertEquals(
+      r.blocks.map(b => (b.kind, b.file)),
+      List((Kind.CoverageDrop, "src/main/scala/a/pkg"))
+    )
+  }
+
   test("a package whose coverage vanished blocks as a drop to none") {
     val r = diff(withCoverage("claimalgebra" -> 90.0), TestSnapshot.empty)
     assertEquals(r.blocks.map(b => (b.kind, b.file)), List((Kind.CoverageDrop, "claimalgebra")))
