@@ -15,17 +15,20 @@ import java.nio.file.{Path, Paths}
   * such conflict.
   *
   * The live scan layers the scalafix findings (Check A) onto the source scan (Checks B and D's file
-  * signals). Coverage (scoverage) and wartremover are not yet wired — their snapshot fields stay
-  * empty, so Check D's coverage block and Check E are inert until those scanners land; the config
-  * omit-list defaults to empty.
+  * signals). Coverage (scoverage) is opt-in — `--coverage` or `GATE_COVERAGE=1` — because it runs
+  * an instrumented build and full test pass on BOTH trees; with it off, the snapshot's coverage
+  * stays empty and Check D's coverage block is inert. wartremover (a second Check A source) and
+  * Check E's integration coverage are not yet wired; the config omit-list defaults to empty.
   */
 object Main extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] =
     val repo = Paths.get("").toAbsolutePath.normalize
-    val target = args.headOption.getOrElse("origin/main")
+    val target = args.filterNot(_.startsWith("--")).headOption.getOrElse("origin/main")
+    val coverageOn = args.contains("--coverage") || sys.env.get("GATE_COVERAGE").contains("1")
+    val scan = if coverageOn then liveScanWithCoverage else liveScan
     Runner
-      .run(repo, target, Config.empty, liveCompile, liveScan, GitOps.live)
+      .run(repo, target, Config.empty, liveCompile, scan, GitOps.live)
       .flatMap(report => IO.println(ReportJson.encode(report)).as(exitCode(report.verdict)))
       .handleErrorWith(operational)
 
@@ -40,6 +43,15 @@ object Main extends IOApp:
     (Scanner.scan(tree), ScalafixScan.findings(tree)).mapN((snap, findings) =>
       snap.copy(findings = findings)
     )
+
+  /** The live scan plus scoverage statement coverage folded into the test snapshot — the opt-in,
+    * heavier scan that activates Check D's coverage-drop block.
+    */
+  private def liveScanWithCoverage(tree: Path): IO[Snapshot] =
+    (Scanner.scan(tree), ScalafixScan.findings(tree), CoverageScan.findings(tree)).mapN {
+      (snap, findings, coverage) =>
+        snap.copy(findings = findings, tests = snap.tests.copy(coverage = coverage))
+    }
 
   private def exitCode(v: Verdict): ExitCode = v match
     case Verdict.Fail => ExitCode.Error

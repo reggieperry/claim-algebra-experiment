@@ -60,6 +60,15 @@ class TestDisciplineSuite extends FunSuite:
     assertEquals(r.verdict, Verdict.Pass)
   }
 
+  test("a renamed package reconciles its coverage key — not a false coverage drop") {
+    // The coverage key is repo-relative (src/main/scala/...) so it shares the file renames'
+    // path-space; translatePkg maps the baseline dir to the branch dir and the coverage matches.
+    val baseline = withCoverage("src/main/scala/a/pkg" -> 90.0)
+    val branch = withCoverage("src/main/scala/b/pkg" -> 90.0)
+    val renames = Map("src/main/scala/a/pkg/X.scala" -> "src/main/scala/b/pkg/X.scala")
+    assertEquals(diff(baseline, branch, renames).verdict, Verdict.Pass)
+  }
+
   test("a package whose coverage vanished blocks as a drop to none") {
     val r = diff(withCoverage("claimalgebra" -> 90.0), TestSnapshot.empty)
     assertEquals(r.blocks.map(b => (b.kind, b.file)), List((Kind.CoverageDrop, "claimalgebra")))

@@ -72,8 +72,9 @@ object Config:
     */
   val empty: Config = Config(List.empty, 0.0)
 
-  /** Match an omit entry against a package path as an exact path or a trailing path segment, so
-    * `pipeline` matches `claimalgebra/pipeline`.
+  /** Match an omit entry against a package path as an exact path or a trailing path segment.
+    * Coverage keys are repo-relative (`src/main/scala/claimalgebra/pipeline`), so a short omit
+    * entry like `pipeline` or `claimalgebra/pipeline` still matches via the trailing-segment test.
     */
   def matchPkg(pkg: String, omit: String): Boolean = pkg == omit || pkg.endsWith("/" + omit)
 
