@@ -16,14 +16,24 @@ ThisBuild / semanticdbEnabled := true
 
 // Compiler discipline is build-wide (ThisBuild), so the `gate` subproject is held to
 // the same bar — fatal warnings, unused-checking, value-discard — that it enforces.
+//
+// The gate's wart scan (its second Check A finding source) runs in a DEDICATED sbt invocation with
+// -Dgate.wartScan=true: it turns wartremover's warts on as WARNINGS and drops -Werror, so findings
+// ENUMERATE rather than failing the build — which would collapse the differential count and collide
+// with the gate's own fail-closed compile precondition. The normal build (and `sbt check`) keeps
+// -Werror and no warts, so wartremover is inert there.
+val wartScanMode = sys.props.get("gate.wartScan").contains("true")
+
 ThisBuild / scalacOptions ++= Seq(
   "-deprecation",
   "-feature",
   "-explain",
   "-Wunused:all",
-  "-Wvalue-discard",
-  "-Werror" // warnings fail the build — e.g. the "Infinite loop in function body" that a self-referential given triggers
-)
+  "-Wvalue-discard"
+) ++ (if (wartScanMode) Nil else Seq("-Werror")) // -Werror off only under the wart scan
+
+ThisBuild / wartremoverWarnings := (if (wartScanMode) Warts.unsafe else Nil)
+ThisBuild / wartremoverErrors := Nil // never fatal — the gate diffs warts, it never gates absolutely
 
 lazy val catsCore = "org.typelevel" %% "cats-core" % "2.12.0"
 lazy val catsEffect = "org.typelevel" %% "cats-effect" % "3.5.4"

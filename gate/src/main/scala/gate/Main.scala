@@ -14,11 +14,11 @@ import java.nio.file.{Path, Paths}
   * gate/run` would nest sbt inside sbt and contend on the build lock. Built as a binary it has no
   * such conflict.
   *
-  * The live scan layers the scalafix findings (Check A) onto the source scan (Checks B and D's file
-  * signals). Coverage (scoverage) is opt-in — `--coverage` or `GATE_COVERAGE=1` — because it runs
-  * an instrumented build and full test pass on BOTH trees; with it off, the snapshot's coverage
-  * stays empty and Check D's coverage block is inert. wartremover (a second Check A source) and
-  * Check E's integration coverage are not yet wired; the config omit-list defaults to empty.
+  * The live scan layers the scalafix AND wartremover findings (Check A) onto the source scan
+  * (Checks B and D's file signals). Coverage (scoverage) is opt-in — `--coverage` or
+  * `GATE_COVERAGE=1` — because it runs an instrumented build and full test pass on BOTH trees; with
+  * it off, the snapshot's coverage stays empty and Check D's coverage block is inert. Check E's
+  * integration coverage is not yet wired; the config omit-list defaults to empty.
   */
 object Main extends IOApp:
 
@@ -36,21 +36,25 @@ object Main extends IOApp:
   private def liveCompile(tree: Path): IO[Boolean] =
     Proc.run(Seq("sbt", "-batch", "compile"), tree).map(_.exitCode == 0)
 
-  /** The source scan (suppressions, skips, the test-file set, counts) with scalafix findings
-    * layered on.
+  /** The source scan (suppressions, skips, the test-file set, counts) with the scalafix and
+    * wartremover findings layered on (Check A).
     */
   private def liveScan(tree: Path): IO[Snapshot] =
-    (Scanner.scan(tree), ScalafixScan.findings(tree)).mapN((snap, findings) =>
-      snap.copy(findings = findings)
-    )
+    (Scanner.scan(tree), ScalafixScan.findings(tree), WartScan.findings(tree)).mapN {
+      (snap, fix, warts) => snap.copy(findings = fix ++ warts)
+    }
 
   /** The live scan plus scoverage statement coverage folded into the test snapshot — the opt-in,
     * heavier scan that activates Check D's coverage-drop block.
     */
   private def liveScanWithCoverage(tree: Path): IO[Snapshot] =
-    (Scanner.scan(tree), ScalafixScan.findings(tree), CoverageScan.findings(tree)).mapN {
-      (snap, findings, coverage) =>
-        snap.copy(findings = findings, tests = snap.tests.copy(coverage = coverage))
+    (
+      Scanner.scan(tree),
+      ScalafixScan.findings(tree),
+      WartScan.findings(tree),
+      CoverageScan.findings(tree)
+    ).mapN { (snap, fix, warts, coverage) =>
+      snap.copy(findings = fix ++ warts, tests = snap.tests.copy(coverage = coverage))
     }
 
   private def exitCode(v: Verdict): ExitCode = v match
