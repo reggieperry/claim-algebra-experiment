@@ -290,7 +290,7 @@ class P,Q a; class V,B t;
   <tbody>
     <tr><td>Value with two-channel support</td><td>A pair \((a^{+},a^{-})\) in \(L\odot L\); the four corners are \(\mathbf{T},\mathbf{F},\mathbf{N},\mathbf{B}\).</td></tr>
     <tr><td>Conjunctive composition (AND)</td><td>Defaults to \(\otimes_k\) (fail-closed, annihilator \(\mathbf{N}\)); the truth-AND \(\wedge_t\) (annihilator \(\mathbf{F}\)) is available when "refuted, so false" is the intended reading.</td></tr>
-    <tr><td>Disjunctive corroboration (OR)</td><td>\(\oplus_k\): pool both channels; two sources that disagree climb to the glut \(\mathbf{B}\) rather than silently canceling.</td></tr>
+    <tr><td>Disjunctive corroboration (OR)</td><td>\(\oplus_k\): pool both channels; a support meeting a refutation of the same value climbs to the glut \(\mathbf{B}\), and two sources asserting different values are kept as rival candidates (an ambiguity) rather than silently canceling.</td></tr>
     <tr><td>Verified ground truth</td><td>The truth-top \(\mathbf{T}=(\top,\bot)\): full support, no refutation; the \(\wedge_t\)-identity, so composing with it adds no doubt.</td></tr>
     <tr><td>Fail-closed</td><td>The knowledge-meet annihilator \(\mathbf{N}\otimes_k x=\mathbf{N}\).</td></tr>
     <tr><td>Gap ≠ glut</td><td>\(\mathbf{N}\) and \(\mathbf{B}\) are the two poles of \(\le_k\): distinct values that a single bottom cannot tell apart.</td></tr>
@@ -391,9 +391,9 @@ class A,A2 ok; class B,R gap; class B2,R2 bad; class M,M2 op;
   <figcaption>Figure 6—The Belnap value, refined by verification. The Belnap value (left) is a 2-D structure on its own, carrying both truth and knowledge orders. Verification (right) is a separate Boolean that <em>refines</em> any Belnap value. "True · unverified" is the dangerous cell (confident, fluent, unchecked), but it is a verification fact about a <span class="mono">True</span>, not the glut; the glut and the gap are distinct values that demand distinct actions (reconcile versus search).</figcaption>
 </figure>
 
-<p>The acceptance policy that gates a signature is then the conjunction of all three: the value must be <span class="mono">True</span> (not gap, not glut, not false), its derivation grade must clear a threshold, <em>and</em> it must verify:
-$$ \mathrm{accept}(c)\iff \mathrm{value}(c)=\mathbf{T}\ \wedge\ \mathrm{grade}(c)\ge\theta\ \wedge\ \mathrm{verify}(c). $$
-Current agent swarms live in the dangerous cell: fluent and confident, unchecked. The algebra propagates the evidential pair faithfully; the verification axis is what <code>verify()</code> establishes; and only "True · cleared · verified" should reach a signature.</p>
+<p>The acceptance policy that gates a signature is then the conjunction: the value must be <span class="mono">True</span> and unambiguous — a single candidate, not gap, not glut, not false, not a field of rivals — its derivation grade must clear a threshold, <em>and</em> it must verify:
+$$ \mathrm{accept}(c)\iff \mathrm{corner}(c)=\mathbf{T}\ \wedge\ \mathrm{cardinality}(c)=1\ \wedge\ \mathrm{grade}(c)\ge\theta\ \wedge\ \mathrm{verify}(c). $$
+Current agent swarms live in the dangerous cell: fluent and confident, unchecked. The algebra propagates the evidential pair faithfully; the verification axis is what <code>verify()</code> establishes; and only "True · unambiguous · cleared · verified" should reach a signature.</p>
 
 <h3>4.5 · The properties, and what each one buys</h3>
 <table>
@@ -481,6 +481,11 @@ object Prov:
 // rendered from the polynomials (renderEv), and the Belnap corner is read STRUCTURALLY from whether
 // each channel is empty, so no stored grade can drift from its provenance.
 final case class Testimony[+A](value: Option[A], provPro: Prov, provCon: Prov)
+// SHIPPED CARRIER: this single-value form is the readable shape. The implementation generalizes
+// `value: Option[A]` to a candidate map `A →₀ (Prov, Prov)`, so corroboration is a commutative
+// monoid that keeps disagreeing rivals as DISTINCT candidates (an ambiguity, cardinality ≥ 2) —
+// not the left-biased `orElse` below — and truthMeet's con-channel is the three-term cross-term
+// ca·pb + pa·cb + ca·cb (recovering F ∧ₜ F = F). See claim-algebra-general.html and the foundations.
 
 object Testimony:
   def corner(t: Testimony[?]): Belnap =                       // model-free, off the two polynomials
@@ -540,24 +545,24 @@ object Claim:
 flowchart LR
 D["debt extractor"] -->|"Claim[$] · cited · True/High"| R{{"ratio agent (⊗ₖ)"}}
 E["EBITDA extractor"] -->|"Claim[$] · cited · True/Med"| R
-R -->|"Claim[x] leverage · conf = High ⊗ Med = Med"| G["signature gate · T ∧ grade≥θ ∧ verify"]
+R -->|"Claim[x] leverage · conf = High ⊗ Med = Med"| G["signature gate · T ∧ card=1 ∧ grade≥θ ∧ verify"]
 classDef b fill:#eef3fb,stroke:#3a5a9e,color:#1a1a2e;
 classDef op fill:#fff8e8,stroke:#caa53a,color:#6b5410;
 classDef gate fill:#eafaf0,stroke:#2a8c5a,color:#14502f;
 class D,E b; class R op; class G gate;
 </pre>
   </div>
-  <figcaption>Figure 7—The credit-deal analysis as a claim network: two cited extractions compose at the ratio agent under the fail-closed knowledge-tensor \(\otimes_k\), and the leverage claim passes the signature gate only if it is True, clears the grade threshold, and verifies. The prose then layers three scenarios onto this base: a missing debt input (a gap), a second debt source that disagrees (a glut), and an amendment that retracts the first.</figcaption>
+  <figcaption>Figure 7—The credit-deal analysis as a claim network: two cited extractions compose at the ratio agent under the fail-closed knowledge-tensor \(\otimes_k\), and the leverage claim passes the signature gate only if it is True, clears the grade threshold, and verifies. The prose then layers three scenarios onto this base: a missing debt input (a gap), a second debt source that disagrees (an ambiguity — two rival figures kept distinct), and an amendment that retracts the first.</figcaption>
 </figure>
 
 <p><strong>Fail-closed on a missing input.</strong> Suppose the debt extractor finds no usable figure: its claim is the gap \(\mathbf{N}\). Leverage is debt divided by EBITDA, a knowledge-meet, and \(\mathbf{N}\otimes_k x=\mathbf{N}\), so the leverage claim is itself \(\mathbf{N}\) (<span class="mono">UNRESOLVED</span>), no matter how confident the EBITDA extractor was. The missing input cannot be laundered into a plausible 3.0x, and the agent that owns the ratio is allowed to return "unresolved, escalate" without penalty (§4.3).</p>
 
-<p><strong>A contradiction becomes a glut, not a gap.</strong> Now add a fourth agent: a second debt extractor that reads $1.5bn from a different exhibit, contradicting the first agent's $1.2bn. Both figures are cited. Corroborating the support from the first with the refutation carried by the second under \(\oplus_k\) climbs to \((\top,\top)=\mathbf{B}\), the glut. This is the case a single-bottom scheme cannot express: it would collapse "$1.2bn cited and $1.5bn cited" to the same <span class="mono">UNRESOLVED</span> as "no debt figure was ever found." The two states call for opposite actions (the gap a search, the glut reconciliation or escalation), and the downstream agent can branch on which it received.</p>
+<p><strong>Disagreement becomes an ambiguity, not a gap.</strong> Now add a fourth agent: a second debt extractor that reads $1.5bn from a different exhibit, disagreeing with the first agent's $1.2bn. Both figures are cited, and neither denies the other. Corroborating them under \(\oplus_k\) keeps both as rival candidates — the corner stays <span class="mono">True</span> but the cardinality is 2, an <em>ambiguity</em>, which the gate blocks because no single value is signable. (A <em>glut</em> \(\mathbf{B}\) is the distinct case where the <em>same</em> value is asserted and refuted — a source that contradicts the $1.2bn, or a withdrawn restatement.) This is the case a single-bottom scheme cannot express: it would collapse "$1.2bn cited and $1.5bn cited" to the same <span class="mono">UNRESOLVED</span> as "no debt figure was ever found." The two states call for opposite actions (the gap a search, the ambiguity reconciliation or escalation), and the downstream agent can branch on which it received.</p>
 
 <p><strong>An amendment is a retraction, not a clobber.</strong> Say a later filing amends the debt figure, superseding the first extraction. Rather than silently overwriting it, the superseding source refutes the prior support: negation swaps the old for-evidence into the con-channel (§4.1), so the record shows that the first figure was retracted, by what, and when, instead of the earlier value simply vanishing.</p>
 
-<p><strong>The signature gate.</strong> The memo may be signed only when the leverage claim is <span class="mono">True</span> (not gap, not glut, not false), its grade clears the threshold, and it verifies against its cited spans:
-$$ \mathrm{accept}(c)\iff \mathrm{value}(c)=\mathbf{T}\ \wedge\ \mathrm{grade}(c)\ge\theta\ \wedge\ \mathrm{verify}(c). $$
+<p><strong>The signature gate.</strong> The memo may be signed only when the leverage claim is <span class="mono">True</span> and unambiguous (a single candidate — not gap, not glut, not false, not a field of rivals), its grade clears the threshold, and it verifies against its cited spans:
+$$ \mathrm{accept}(c)\iff \mathrm{corner}(c)=\mathbf{T}\ \wedge\ \mathrm{cardinality}(c)=1\ \wedge\ \mathrm{grade}(c)\ge\theta\ \wedge\ \mathrm{verify}(c). $$
 A high-grade leverage figure whose citation does not reproduce sits in the danger cell of Figure 6 and is held back; a glut is routed to reconciliation; a gap is routed to a search. The three axes (evidential value, derivation grade, verification) gate the signature independently, and all three must hold (§4.4).</p>
 
 <p><strong>Routing a glut by kind (G3).</strong> Each <span class="mono">Lineage</span> token carries the <em>kind</em> of evidence it is — an extraction, a definitional reading, a temporal retraction, an independent verification — so a glut does more than say "reconcile": the map \(\hat\kappa\) reads the kind-set off the con-channel and names <em>which desk</em> owns it (a misread figure to data-quality, a withdrawn restatement to the deal lead, an independent refutation to audit). Because the kind rides the provenance, \(\hat\kappa\) is an additive-monoid homomorphism that unions kinds across the whole composition for free; the routing falls out of one read with no per-kind plumbing. It is a pure decoration — never an input to the gate or the grade, so the accept decision is unchanged (a conservative extension). This is a parsimony and blame-attribution capability, not a further reduction in confidently-wrong signatures: against a fair structured control that hand-extracts the same per-kind signals, it ties (see <span class="mono">experiment-findings.md</span>, finding 7).</p>
