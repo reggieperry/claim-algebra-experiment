@@ -90,7 +90,12 @@ lazy val gate = (project in file("gate"))
       munitScalacheck,
       scalacheck,
       munitCatsEffect
-    )
+    ),
+    // The gate ships as a standalone fat jar (named by function) so it runs as CI without nesting
+    // sbt inside sbt (Main shells out to sbt for the compile precondition and the findings scan).
+    // Build with `sbt gate/assembly`; run `java -jar gate/target/scala-*/differential-gate.jar`.
+    assembly / mainClass := Some("gate.Main"),
+    assembly / assemblyJarName := "differential-gate.jar"
   )
 
 // One gate the build must pass: formatting (sources + sbt files), the Scalazzi /
