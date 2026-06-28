@@ -45,6 +45,10 @@ lazy val algebra = "org.typelevel" %% "algebra" % "2.12.0"
 // `LlmCall` facade — a Java artifact, so `%` not `%%`. Version resolved and the API confirmed against
 // the artifact at first wiring (scala-llm.md). API-key auth only.
 lazy val anthropic = "com.anthropic" % "anthropic-java" % "2.44.0"
+// The official OpenAI Java SDK — same boundary, behind the same `LlmCall` facade, so the workbench
+// can run GPT as well as Claude. A Java artifact (`%`); version + API confirmed against the resolved
+// jar (scala-llm.md). API-key auth only (OPENAI_API_KEY via OpenAIOkHttpClient.fromEnv()).
+lazy val openai = "com.openai" % "openai-java" % "4.41.0"
 // Jackson annotations for the boundary carrier (the structured-output DTO) — pinned to the version
 // the SDK resolves so the schema reflection agrees. Direct because the carrier imports it directly.
 lazy val jacksonAnnotations = "com.fasterxml.jackson.core" % "jackson-annotations" % "2.19.4"
@@ -70,6 +74,7 @@ lazy val root = (project in file("."))
       catsEffect,
       algebra,
       anthropic,
+      openai,
       jacksonAnnotations,
       munit,
       munitScalacheck,
