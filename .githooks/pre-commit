@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Pre-commit secret-scan backstop (gitleaks). Blocks the commit if a secret is detected in the staged
+# changes. Fails CLOSED if gitleaks is not installed — a backstop that silently does nothing is no
+# backstop. Output is redacted, so a detected secret value is never printed.
+#
+# One-time setup per clone: see .githooks/README.md (install gitleaks; set core.hooksPath).
+set -uo pipefail
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "✖ gitleaks is not installed — the secret-scan backstop cannot run, so this commit is blocked." >&2
+  echo "  Install it, then commit again:" >&2
+  echo "    sudo apt install gitleaks      # or: brew install gitleaks" >&2
+  exit 1
+fi
+
+# Pick the staged-scan command for the installed gitleaks (v8.19+ uses 'git', older uses 'protect').
+if gitleaks git --help >/dev/null 2>&1; then
+  scan=(gitleaks git --staged --redact --no-banner)
+else
+  scan=(gitleaks protect --staged --redact --no-banner)
+fi
+
+if ! "${scan[@]}"; then
+  echo "✖ gitleaks flagged a potential secret in the staged changes — commit blocked (value redacted above)." >&2
+  echo "  If it is a genuine false positive, add a gitleaks allowlist entry; do not weaken the hook." >&2
+  exit 1
+fi

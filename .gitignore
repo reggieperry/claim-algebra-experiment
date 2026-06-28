@@ -12,3 +12,8 @@ project/project/
 
 # local sample deals (public EDGAR pulls) — not committed
 /samples/
+
+# local env / secrets — never committed (keys live in ~/.config/llm/keys.env)
+.envrc
+.direnv/
+*.env
