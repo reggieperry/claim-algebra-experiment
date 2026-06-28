@@ -9,3 +9,6 @@ project/project/
 *.tasty
 .idea/
 .DS_Store
+
+# local sample deals (public EDGAR pulls) — not committed
+/samples/
