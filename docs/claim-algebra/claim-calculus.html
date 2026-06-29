@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A claim calculus — the operational meta-theory of the claim algebra</title>
+<style>
+  :root{--ink:#1b1b1b;--muted:#595959;--rule:#d8d4c8;--bg:#fbfaf6;--accent:#5a3a1a;--code:#f1efe7;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:17px/1.62 Charter,"Bitstream Charter","Georgia",Cambria,serif;}
+  .page{max-width:720px;margin:0 auto;padding:3.4rem 1.5rem 7rem;}
+  header.doc{text-align:center;border-bottom:1px solid var(--ink);padding-bottom:1.4rem;margin-bottom:1.8rem;}
+  h1{font-size:1.62rem;line-height:1.25;margin:0 0 .5rem;font-weight:650;letter-spacing:-.005em;}
+  .byline{color:var(--muted);font-size:.95rem;}
+  .byline .mono,.mono{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;}
+  .abstract{font-size:.96rem;margin:1.6rem auto 0;max-width:38rem;color:#2a2a2a;}
+  .abstract .h{font-variant:small-caps;letter-spacing:.06em;font-weight:650;font-size:.86rem;margin-right:.5em;}
+  h2{font-size:1.16rem;margin:2.6rem 0 .7rem;font-weight:650;}
+  h2 .n{color:var(--accent);margin-right:.5em;}
+  h3{font-size:1.02rem;margin:1.7rem 0 .4rem;font-weight:650;font-style:italic;}
+  p{margin:.65rem 0;}
+  a{color:var(--accent);}
+  .mono,code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.84em;}
+  code{background:var(--code);border-radius:3px;padding:.04em .3em;}
+  pre{background:#f4f2ea;border:1px solid var(--rule);border-radius:7px;padding:.85rem 1rem;overflow-x:auto;
+      font:.8rem/1.5 "SF Mono",ui-monospace,Menlo,Consolas,monospace;color:#26241d;}
+  .box{margin:1.1rem 0;padding:.2rem 0 .2rem 1rem;border-left:3px solid var(--rule);}
+  .box.thm{border-left-color:#7a5a2a;} .box.def{border-left-color:#9a958a;}
+  .lab{font-variant:small-caps;letter-spacing:.04em;font-weight:650;}
+  .thm .stmt{font-style:italic;}
+  .proof{margin:.55rem 0 1.1rem;}
+  .proof .pl{font-style:italic;}
+  .qed{float:right;}
+  .remark{margin:1rem 0;font-size:.95rem;color:#2c2c2c;}
+  .remark .lab{font-style:normal;}
+  table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.9rem;}
+  th,td{border:1px solid var(--rule);padding:.42rem .6rem;text-align:left;vertical-align:top;}
+  th{background:#efece2;font-variant:small-caps;letter-spacing:.03em;font-weight:650;}
+  td.sym{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;white-space:nowrap;font-size:.86em;}
+  ol.refs{font-size:.9rem;padding-left:1.4rem;} ol.refs li{margin:.4rem 0;}
+  .toc{font-size:.92rem;color:var(--muted);margin:1.4rem 0;}
+  .toc a{color:var(--accent);text-decoration:none;} .toc a:hover{text-decoration:underline;}
+  hr{border:none;border-top:1px solid var(--rule);margin:2.2rem 0;}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="doc">
+  <h1>A Claim Calculus:<br>the operational meta-theory of the claim algebra</h1>
+  <div class="byline">A working note · claim-algebra-lab · <span class="mono">docs/claim-algebra/</span></div>
+  <div class="abstract">
+    <p><span class="h">Abstract.</span> The claim algebra equips evidential claims with combining operations and equational laws. This note develops the companion <em>calculus</em>: a small reduction system whose terms are sequences of evidence events on one claim slot, whose normal forms are resolved beliefs, and whose acceptance judgment is the signing gate. We define the system from primitives, then prove eight results — determinacy, strong normalization, confluence on the commutative fragment, idempotent absorption of withdrawal, non-fabrication, exclusivity, fail-closed propagation across a derivation network, and <em>relative</em> soundness — and we state precisely the two propositions that are <em>not</em> theorems: confluence of the full reduction (false by design) and absolute soundness (false, and its violation rate is the experiment's headline metric). Every symbol is defined before use; a glossary of notation closes the note.</p>
+  </div>
+</header>
+
+<div class="toc">
+  <strong>Contents.</strong>
+  <a href="#intro">1 Introduction</a> ·
+  <a href="#prelim">2 Preliminaries: the claim algebra</a> ·
+  <a href="#calculus">3 The claim calculus</a> ·
+  <a href="#op">4 Operational meta-theory</a> ·
+  <a href="#conf">5 Confluence</a> ·
+  <a href="#safety">6 Safety</a> ·
+  <a href="#sound">7 Soundness</a> ·
+  <a href="#adeq">8 Adequacy</a> ·
+  <a href="#disc">9 Discussion</a> ·
+  <a href="#notation">Notation</a> ·
+  <a href="#refs">References</a>
+</div>
+
+<!-- ───────────────────────────────────────── -->
+<h2 id="intro"><span class="n">1.</span>Introduction</h2>
+<p>An <em>algebra</em> is a set of values closed under operations that satisfy equational laws; reasoning in an algebra is reasoning by equality between terms. A <em>calculus</em>, in the sense used here, is a deductive or operational system: a syntax of terms, a relation of <em>reduction</em> (a directed, step-by-step rewriting), and a <em>judgment</em> that classifies terms. Reasoning in a calculus is reasoning by <em>derivation</em>. The two are complementary: a calculus is studied for its meta-theory (does reduction terminate? is it order-independent? does it preserve the judgment?), and it is related to an algebra by an <em>adequacy</em> result stating that the operational and equational views agree.</p>
+<p>The claim algebra of this project (<a href="#r-ca">[6]</a>, <a href="#r-found">[7]</a>) gives evidential claims a combining structure: a carrier of <em>testimonies</em> over a free provenance semiring, four-valued (Belnap <a href="#r-belnap">[1]</a>) corners read structurally from the provenance, and a signing <em>gate</em>. Much of a calculus is already latent in it — the event fold of the workbench is a reduction; the provenance polynomial is a derivation witness in the sense of provenance semirings (<a href="#r-gkt">[3]</a>); the gate is an acceptance judgment. This note makes that calculus explicit and proves what can be proved.</p>
+<p><strong>Contributions.</strong> (i) A reduction system over evidence events with the resolved belief as its normal form (§3). (ii) Eight proved meta-theorems (§§4–7), including fail-closed propagation across the derivation network (Theorem 6.7). (iii) An honest delimitation of the two non-theorems and an account of why they fail (§§5, 7, 9). (iv) An adequacy proposition relating the calculus to the algebra (§8). The load-bearing lemmas — that corroboration is a commutative monoid, and that striking is idempotent — are mechanically checked in the project's test suite, so the results that reduce to them inherit that backing; the remainder are paper proofs over the operations' definitions.</p>
+
+<!-- ───────────────────────────────────────── -->
+<h2 id="prelim"><span class="n">2.</span>Preliminaries: the claim algebra</h2>
+<p>We recall the algebra, defining each notion before it is used. The reader familiar with <a href="#r-found">[7]</a> may skim; the calculus of §3 depends only on the definitions collected here.</p>
+
+<div class="box def">
+  <span class="lab">Definition 2.1 (lineage).</span> A <em>lineage</em> is an atomic citation token, drawn from a fixed countable set <span class="mono">X</span>. Each lineage names one piece of grounded evidence — a cited source span.
+</div>
+
+<div class="box def">
+  <span class="lab">Definition 2.2 (semiring; provenance).</span> A <em>commutative semiring</em> is a set with two associative, commutative operations — addition <span class="mono">+</span> with identity <span class="mono">0</span>, and multiplication <span class="mono">·</span> with identity <span class="mono">1</span> — in which <span class="mono">·</span> distributes over <span class="mono">+</span> and <span class="mono">0</span> annihilates (<span class="mono">0 · x = 0</span>). A <em>provenance</em> is an element of the free commutative semiring <span class="mono">ℕ[X]</span>: a polynomial with non-negative integer coefficients over monomials in the lineages <span class="mono">X</span>. Intuitively <span class="mono">+</span> is <em>alternative</em> derivation (corroboration), <span class="mono">·</span> is <em>joint</em> use (conjunction), <span class="mono">0</span> is the absence of support, and <span class="mono">1</span> is a derivation that cites nothing specific. We write <span class="mono">isZero(p)</span> for the predicate <span class="mono">p = 0</span>. A key property used below: <span class="mono">ℕ</span> has no additive inverses, so <span class="mono">p + q = 0</span> implies <span class="mono">p = q = 0</span> (addition is <em>zero-sum-free</em>; support, once present, is never subtracted away).
+</div>
+
+<div class="box def">
+  <span class="lab">Definition 2.3 (graded pair; channels).</span> A claim carries two provenance <em>channels</em> — the paired representation of the bilattice's two orders <a href="#r-fitting">[2]</a>: <em>pro</em> (support <em>for</em> a value) and <em>con</em> (support <em>against</em> it). A <em>graded pair</em> is an element <span class="mono">(p, c) ∈ ℕ[X] × ℕ[X]</span>.
+</div>
+
+<div class="box def">
+  <span class="lab">Definition 2.4 (testimony; candidate carrier).</span> Fix a set <span class="mono">A</span> of <em>values</em>. A <em>testimony</em> over <span class="mono">A</span> is a finite partial map <span class="mono">t : A ⇀ ℕ[X] × ℕ[X]</span> assigning each <em>candidate</em> value its graded pair, normalized so that no entry is <span class="mono">(0, 0)</span>. We write <span class="mono">cand(t)</span> for the set of values on which <span class="mono">t</span> is defined, and <span class="mono">pro(t, a)</span>, <span class="mono">con(t, a)</span> for the two components of <span class="mono">t(a)</span> (both <span class="mono">0</span> when <span class="mono">a ∉ cand(t)</span>).
+</div>
+
+<div class="box def">
+  <span class="lab">Definition 2.5 (channel totals; the gap).</span> The <em>channel totals</em> of a testimony are <span class="mono">provPro(t) = Σ<sub>a∈cand(t)</sub> pro(t, a)</span> and <span class="mono">provCon(t) = Σ<sub>a∈cand(t)</sub> con(t, a)</span>, summed in <span class="mono">ℕ[X]</span>. The <em>gap</em>, written <span class="mono">ε</span>, is the empty testimony (<span class="mono">cand(ε) = ∅</span>, so both totals are <span class="mono">0</span>).
+</div>
+
+<div class="box def">
+  <span class="lab">Definition 2.6 (Belnap value; corner).</span> The four <em>Belnap values</em> are <span class="mono">N</span> (gap, "told nothing"), <span class="mono">T</span> (true, "told for"), <span class="mono">F</span> (false, "told against"), and <span class="mono">B</span> (glut, "told both"). The <em>corner</em> of a testimony is the structural read
+  <pre>corner(t) = β( isZero(provPro(t)), isZero(provCon(t)) ),
+where  β(true,  true ) = N    β(false, true ) = T
+       β(true,  false) = F    β(false, false) = B.</pre>
+  The corner depends only on <em>whether</em> each channel carries support, never on a numeric grade — it is model-free.
+</div>
+
+<div class="box def">
+  <span class="lab">Definition 2.7 (cardinality).</span> The <em>cardinality</em> of a testimony is the number of pro-supported candidates, <span class="mono">card(t) = #{ a ∈ cand(t) : pro(t, a) ≠ 0 }</span>, where <span class="mono">#(·)</span> is the size of a finite set.
+</div>
+
+<div class="box def">
+  <span class="lab">Definition 2.8 (signable value).</span> The <em>signable value</em> <span class="mono">value(t)</span> is the unique <span class="mono">a</span> with <span class="mono">pro(t, a) ≠ 0</span> when <span class="mono">card(t) = 1</span> and <span class="mono">provCon(t) = 0</span> (a clean, unambiguous <span class="mono">T</span>); otherwise it is undefined.
+</div>
+
+<div class="box def">
+  <span class="lab">Definition 2.9 (corroborate, <span class="mono">⊕</span>).</span> The <em>corroboration</em> of testimonies <span class="mono">a</span>, <span class="mono">b</span> is the testimony <span class="mono">a ⊕ b</span> with, for every <span class="mono">v ∈ cand(a) ∪ cand(b)</span>,
+  <span class="mono">(a ⊕ b)(v) = ( pro(a,v) + pro(b,v),  con(a,v) + con(b,v) )</span>, normalized. It pools channels pointwise per candidate and keeps disagreeing values as distinct candidates.
+</div>
+
+<div class="box thm">
+  <span class="lab">Proposition 2.10 (corroboration is a commutative monoid).</span> <span class="stmt"><span class="mono">(⊕, ε)</span> is associative and commutative with two-sided identity <span class="mono">ε</span>.</span>
+  <div class="proof"><span class="pl">Proof.</span> Immediate from Definition 2.9: each property reduces, channel- and candidate-wise, to the corresponding property of <span class="mono">+</span> in <span class="mono">ℕ[X]</span> (a commutative monoid with identity <span class="mono">0</span>), and the normalization in Definition 2.4 removes only <span class="mono">(0,0)</span> entries, which <span class="mono">+</span> never reintroduces. The commutative-monoid laws of <span class="mono">+</span> in <span class="mono">ℕ[X]</span> are themselves machine-checked (<span class="mono">RingLaws[Prov].commutativeRig</span>), and <span class="mono">⊕</span> inherits them by this pointwise reduction, which is property-tested on <span class="mono">Testimony</span>. <span class="qed">∎</span></div>
+</div>
+
+<div class="box def">
+  <span class="lab">Definition 2.11 (refute, <span class="mono">¬</span>).</span> The <em>refutation</em> <span class="mono">¬t</span> swaps the two channels of every candidate: <span class="mono">(¬t)(v) = ( con(t,v), pro(t,v) )</span>. It is involutive: <span class="mono">¬¬t = t</span>.
+</div>
+
+<div class="box def">
+  <span class="lab">Definition 2.12 (strike).</span> The <em>strike</em> of a testimony clears the pro-channel and folds all support onto con: <span class="mono">(strike t)(v) = ( 0,  pro(t,v) + con(t,v) )</span>. It models a deletion that retains the struck value on record for audit.
+</div>
+
+<div class="box thm">
+  <span class="lab">Proposition 2.13 (strike is idempotent).</span> <span class="stmt"><span class="mono">strike(strike t) = strike t</span>.</span>
+  <div class="proof"><span class="pl">Proof.</span> For each <span class="mono">v</span>, the first strike yields <span class="mono">(0, p + c)</span> where <span class="mono">p = pro(t,v)</span>, <span class="mono">c = con(t,v)</span>; the second yields <span class="mono">(0, 0 + (p + c)) = (0, p + c)</span>. The two agree. (Idempotence needs only that <span class="mono">0</span> is the additive identity; the con total <span class="mono">p + c</span> is unchanged by the second strike.) This proposition is property-tested in the suite. <span class="qed">∎</span></div>
+</div>
+
+<div class="box def">
+  <span class="lab">Definition 2.14 (supersession).</span> A <em>supersession</em> is a pair <span class="mono">s = (struck(s), operative(s))</span> of testimonies. The constructor <span class="mono">supersede(t, g) = (¬t, g)</span> strikes the prior <span class="mono">t</span> to the con-channel (via <span class="mono">¬</span>) and installs the amendment <span class="mono">g</span> as the operative claim. Keeping the two as a pair — rather than corroborating them — is what prevents a struck prior plus a fresh operative from reading as a glut (cf. Theorem 6.3).
+</div>
+
+<div class="box def">
+  <span class="lab">Definition 2.15 (trust model; the gate; acceptance).</span> A <em>trust model</em> is a semiring homomorphism <span class="mono">ν̂ : ℕ[X] → M</span> into a totally ordered commutative semiring <span class="mono">M</span> (the <em>render carrier</em>); the <em>grade</em> of a testimony is <span class="mono">ν̂(provPro(t))</span>. Given a threshold <span class="mono">θ ∈ M</span> and a <em>verifier</em> predicate <span class="mono">verify</span> on testimonies, the <em>gate</em> <em>accepts</em> <span class="mono">t</span>, written <span class="mono">Accept(t) = value(t)</span>, exactly when
+  <pre>corner(t) = T   ∧   card(t) = 1   ∧   ν̂(provPro(t)) ≥ θ   ∧   verify(t);</pre>
+  otherwise the gate <em>blocks</em>. A blocked gate carries no value. We say the gate <em>signs</em> <span class="mono">v</span> when <span class="mono">Accept(t) = v</span>.
+</div>
+
+<!-- ───────────────────────────────────────── -->
+<h2 id="calculus"><span class="n">3.</span>The claim calculus</h2>
+<p>We now define the calculus proper: its terms, its reduction relation, and its judgment. A <em>slot</em> is one (deal, concept) position whose evidence accumulates over time; the calculus describes one slot.</p>
+
+<div class="box def">
+  <span class="lab">Definition 3.1 (event).</span> An <em>event</em> is one of three forms: <span class="mono">Assert(g)</span> and <span class="mono">Supersede(g)</span>, each carrying a testimony <span class="mono">g</span> (the grounded contribution), or <span class="mono">Withdraw</span> (a parameterless deletion).
+</div>
+
+<div class="box def">
+  <span class="lab">Definition 3.2 (term; event sequence).</span> A <em>term</em> is a finite sequence <span class="mono">E = [e<sub>1</sub>, …, e<sub>n</sub>]</span> of events, ordered by arrival. We write <span class="mono">|E| = n</span> for its length, <span class="mono">[]</span> for the empty term, and <span class="mono">E ⧺ [e]</span> for <span class="mono">E</span> extended by one event.
+</div>
+
+<div class="box def">
+  <span class="lab">Definition 3.3 (belief).</span> A <em>belief</em> is one of two forms: <span class="mono">Open(t)</span>, a plain testimony, or <span class="mono">Repl(s)</span>, a supersession pair (Definition 2.14). The <em>initial belief</em> is <span class="mono">b<sub>0</sub> = Open(ε)</span>.
+</div>
+
+<div class="box def">
+  <span class="lab">Definition 3.4 (one-step reduction, <span class="mono">⟨b, e⟩ ⤳ b′</span>).</span> The reduction of a belief by an event is given by exhaustive case analysis:
+  <pre>⟨Open(t), Assert(g)⟩     ⤳ Open(t ⊕ g)
+⟨Open(t), Supersede(g)⟩  ⤳ Open(t)                    if corner(g) = N      (inert: empty amendment)
+                          ⤳ Open(g)                    else if corner(t)=N  (fresh: nothing to supersede)
+                          ⤳ Repl( supersede(t, g) )    otherwise
+⟨Open(t), Withdraw⟩      ⤳ Open( strike t )
+⟨Repl(s), Assert(g)⟩     ⤳ Repl( struck(s), operative(s) ⊕ g )
+⟨Repl(s), Supersede(g)⟩  ⤳ Repl(s)                     if corner(g) = N
+                          ⤳ Repl( supersede(operative(s), g) )   otherwise
+⟨Repl(s), Withdraw⟩      ⤳ Repl( struck(s), strike(operative(s)) )</pre>
+</div>
+
+<div class="box def">
+  <span class="lab">Definition 3.5 (evaluation, <span class="mono">belief(E)</span>).</span> Evaluation runs the reduction left to right from the initial belief:
+  <span class="mono">belief([]) = b<sub>0</sub></span>, and <span class="mono">belief(E ⧺ [e]) = b′</span> where <span class="mono">⟨belief(E), e⟩ ⤳ b′</span>. The result is the term's <em>normal form</em>.
+</div>
+
+<div class="box def">
+  <span class="lab">Definition 3.6 (resolution; signing).</span> The <em>status</em> of a belief reads the gate: <span class="mono">Status(Open(t)) = Accept(t)</span> (Definition 2.15), and <span class="mono">Status(Repl(s)) = Accept(operative(s))</span>, retaining <span class="mono">struck(s)</span> only for the audit trace. A term <span class="mono">E</span> <em>signs</em> a value <span class="mono">v</span> when <span class="mono">Status(belief(E)) = v</span> (an acceptance); otherwise <span class="mono">E</span> is <em>blocked</em>. For brevity, "<span class="mono">v</span> originates in <span class="mono">E</span>" means some event of <span class="mono">E</span> is <span class="mono">Assert(g)</span> or <span class="mono">Supersede(g)</span> with <span class="mono">pro(g, v) ≠ 0</span>. Such an event <em>contributes</em> <span class="mono">v</span> to <span class="mono">belief(E)</span> when that pro-support survives, uncancelled, in the testimony the gate reads — the <span class="mono">t</span> of <span class="mono">Open(t)</span>, or the <span class="mono">operative(s)</span> of <span class="mono">Repl(s)</span> — equivalently, when <span class="mono">v</span> is a pro-candidate there. A value later struck by a supersession (its support moved to the con-channel, Definition 2.14) does <em>not</em> contribute.
+</div>
+
+<!-- ───────────────────────────────────────── -->
+<h2 id="op"><span class="n">4.</span>Operational meta-theory</h2>
+
+<div class="box thm">
+  <span class="lab">Theorem 4.1 (determinacy).</span> <span class="stmt">The one-step reduction <span class="mono">⤳</span> is a total function: for every belief <span class="mono">b</span> and event <span class="mono">e</span> there is exactly one <span class="mono">b′</span> with <span class="mono">⟨b, e⟩ ⤳ b′</span>.</span>
+  <div class="proof"><span class="pl">Proof.</span> The defining clauses of Definition 3.4 partition the cases by the form of <span class="mono">b</span> (two forms) and the form of <span class="mono">e</span> (three forms); within the <span class="mono">Supersede</span> clauses the side conditions <span class="mono">corner(g) = N</span> and <span class="mono">corner(t) = N</span> are decidable and ordered, so the alternatives are mutually exclusive and jointly exhaustive. Each right-hand side is a composition of total functions (<span class="mono">⊕</span>, <span class="mono">supersede</span>, <span class="mono">strike</span>) on finite maps. Hence <span class="mono">⤳</span> is single-valued and total. <span class="qed">∎</span></div>
+</div>
+
+<div class="box thm">
+  <span class="lab">Theorem 4.2 (strong normalization).</span> <span class="stmt">For every term <span class="mono">E</span>, evaluation halts, reaching <span class="mono">belief(E)</span> in exactly <span class="mono">|E|</span> reduction steps.</span>
+  <div class="proof"><span class="pl">Proof.</span> By induction on <span class="mono">|E|</span> using Definition 3.5. The base case <span class="mono">|E| = 0</span> returns <span class="mono">b<sub>0</sub></span> in zero steps. For the inductive step, <span class="mono">belief(E ⧺ [e])</span> performs the <span class="mono">|E|</span> steps of <span class="mono">belief(E)</span> (induction hypothesis) followed by one reduction (total, by Theorem 4.1), and each operation it invokes terminates on finite candidate maps. Thus <span class="mono">|E| + 1</span> steps suffice and the result is well-defined. <span class="qed">∎</span></div>
+</div>
+
+<!-- ───────────────────────────────────────── -->
+<h2 id="conf"><span class="n">5.</span>Confluence on the commutative fragment</h2>
+<p>Determinacy (Theorem 4.1) makes evaluation a function of the <em>ordered</em> term. The deeper question is when the result is independent of order — confluence, in the rewriting sense <a href="#r-trat">[4]</a>. It is, exactly on the sub-language of assertions.</p>
+
+<div class="box def">
+  <span class="lab">Definition 5.1 (assertion term).</span> A term is an <em>assertion term</em> if every event in it has the form <span class="mono">Assert(g)</span>.
+</div>
+
+<div class="box thm">
+  <span class="lab">Lemma 5.2 (permutation invariance of a commutative-monoid fold).</span> <span class="stmt">Let <span class="mono">(S, ⊕, ε)</span> be a commutative monoid (carrier <span class="mono">S</span> distinct from the render carrier <span class="mono">M</span> of Definition 2.15) and <span class="mono">x<sub>1</sub>, …, x<sub>n</sub> ∈ S</span>. For every permutation <span class="mono">π</span> of <span class="mono">{1, …, n}</span>, <span class="mono">((ε ⊕ x<sub>1</sub>) ⊕ ⋯) ⊕ x<sub>n</sub> = ((ε ⊕ x<sub>π(1)</sub>) ⊕ ⋯) ⊕ x<sub>π(n)</sub></span>.</span>
+  <div class="proof"><span class="pl">Proof.</span> By the identity law the leading <span class="mono">ε</span> may be dropped, leaving the product <span class="mono">x<sub>1</sub> ⊕ ⋯ ⊕ x<sub>n</sub></span>. Every permutation is a composition of adjacent transpositions, so it suffices to show invariance under one such transposition. Associativity rewrites a window of the product to isolate <span class="mono">⋯ ⊕ (x<sub>i</sub> ⊕ x<sub>i+1</sub>) ⊕ ⋯</span>, and commutativity replaces <span class="mono">x<sub>i</sub> ⊕ x<sub>i+1</sub></span> by <span class="mono">x<sub>i+1</sub> ⊕ x<sub>i</sub></span>; associativity restores the original grouping. Induction on the number of transpositions in a factorization of <span class="mono">π</span> completes the argument. <span class="qed">∎</span></div>
+</div>
+
+<div class="box thm">
+  <span class="lab">Theorem 5.3 (confluence on assertions).</span> <span class="stmt">If <span class="mono">E</span> is an assertion term, then <span class="mono">belief(E)</span> depends only on the multiset of testimonies it asserts, not on their order. Equivalently, <span class="mono">belief(E) = belief(E′)</span> whenever <span class="mono">E′</span> is a permutation of <span class="mono">E</span>.</span>
+  <div class="proof"><span class="pl">Proof.</span> Starting from <span class="mono">b<sub>0</sub> = Open(ε)</span>, the only applicable clause for an <span class="mono">Assert</span> event on an <span class="mono">Open</span> belief is <span class="mono">⟨Open(t), Assert(g)⟩ ⤳ Open(t ⊕ g)</span>, and its result is again <span class="mono">Open</span>, so the belief stays <span class="mono">Open</span> throughout. Hence for <span class="mono">E = [Assert(g<sub>1</sub>), …, Assert(g<sub>n</sub>)]</span>,
+  <span class="mono">belief(E) = Open( ((ε ⊕ g<sub>1</sub>) ⊕ ⋯) ⊕ g<sub>n</sub> )</span>. By Proposition 2.10 the operation <span class="mono">(⊕, ε)</span> is a commutative monoid, so Lemma 5.2 gives permutation invariance of the inner fold; <span class="mono">Open(·)</span> is injective. The claim follows. <span class="qed">∎</span></div>
+</div>
+
+<p>Theorem 5.3 is the order-independence guarantee an inter-agent system needs: the verdict on a slot cannot depend on the order in which independent agents corroborate it. We state the boundary of this guarantee explicitly.</p>
+
+<div class="remark">
+  <span class="lab">Remark 5.4 (the full reduction is not confluent — by design).</span> Outside the assertion fragment, evaluation is order-sensitive, and intentionally so. For grounded testimonies <span class="mono">a ≠ b</span> with disjoint single candidates, <span class="mono">belief([Assert(a), Supersede(b)])</span> governs with <span class="mono">b</span> (the amendment supersedes), whereas <span class="mono">belief([Supersede(b), Assert(a)])</span>, with nothing yet to supersede, takes <span class="mono">b</span> as a fresh assertion and corroborates <span class="mono">a</span> into it, giving the single open belief <span class="mono">Open(b ⊕ a)</span> in which <span class="mono">a</span> and <span class="mono">b</span> are rival candidates. The two orders reach different verdicts — the first signs <span class="mono">b</span>, the second blocks as ambiguous. This is the correct semantics — a later amendment ought to override an earlier figure — and it is precisely why evaluation is a left fold rather than a multiset reduction. Confluence is therefore a theorem on the commutative sub-language and a (deliberate) non-theorem on the whole. The supersession and withdrawal fragment must instead be <em>serialized</em> per slot, a single-writer discipline; that requirement is the operational counterpart of Remark 5.4.
+</div>
+
+<!-- ───────────────────────────────────────── -->
+<h2 id="safety"><span class="n">6.</span>Safety: subject reduction</h2>
+<p>The safety meta-theorems state that reduction never manufactures an unsound acceptance: it cannot resurrect a struck value, cannot sign a value no event supplied, and cannot sign a contested one. Together they are the analogue of subject reduction (preservation) for this calculus.</p>
+
+<div class="box thm">
+  <span class="lab">Theorem 6.1 (idempotent absorption of withdrawal).</span> <span class="stmt">Withdrawal is absorbing: for any belief <span class="mono">b</span>, reducing by <span class="mono">Withdraw</span> twice gives the same belief as reducing once. Consequently no number of withdrawals on a slot can restore a withdrawn value to signable status.</span>
+  <div class="proof"><span class="pl">Proof.</span> On an <span class="mono">Open</span> belief, <span class="mono">⟨Open(t), Withdraw⟩ ⤳ Open(strike t)</span> and a second withdrawal yields <span class="mono">Open(strike(strike t))</span>, equal to <span class="mono">Open(strike t)</span> by Proposition 2.13. On a <span class="mono">Repl</span> belief the same applies to <span class="mono">operative(s)</span>. After a strike, <span class="mono">provPro = 0</span> (Definition 2.12), so <span class="mono">corner ∈ {N, F}</span> and the gate blocks (Definition 2.15); idempotence prevents a second withdrawal from changing this. <span class="qed">∎</span></div>
+</div>
+<p class="remark"><span class="lab">Remark.</span> Theorem 6.1 turns on withdrawal being modeled by the absorbing <span class="mono">strike</span> rather than the involutive <span class="mono">¬</span>. A second strike re-clears an already-empty pro-channel and leaves the con total unchanged (Proposition 2.13, by the additive identity), so it is a no-op; a second refute, by contrast, would swap the channels back and resurrect the value. Modeling deletion as <span class="mono">strike</span> rather than <span class="mono">¬</span> is what makes the count of withdrawals irrelevant.</p>
+
+<div class="box thm">
+  <span class="lab">Theorem 6.2 (non-fabrication).</span> <span class="stmt">If a term <span class="mono">E</span> signs a value <span class="mono">v</span>, then <span class="mono">v</span> originates in <span class="mono">E</span> (Definition 3.6): some asserting event supplied <span class="mono">v</span> with positive pro-support.</span>
+  <div class="proof"><span class="pl">Proof.</span> We first show, by induction on <span class="mono">|E|</span>, that the pro-support of the signable part of <span class="mono">belief(E)</span> — that is, of <span class="mono">t</span> when <span class="mono">belief(E) = Open(t)</span>, or of <span class="mono">operative(s)</span> when <span class="mono">belief(E) = Repl(s)</span> — has every pro-candidate inherited from some event's pro-channel. The base belief <span class="mono">b<sub>0</sub> = Open(ε)</span> has empty pro. For the step, inspect the clauses of Definition 3.4: <span class="mono">Assert(g)</span> applies <span class="mono">⊕</span>, whose pro-support is the union of the two operands' pro-supports (Definition 2.9), adding only <span class="mono">g</span>'s pro-candidates; the <span class="mono">Supersede(g)</span> clauses set the new signable testimony to <span class="mono">g</span> (fresh case) or to the operative <span class="mono">g</span> of <span class="mono">supersede(t,g)</span> (Definition 2.14), whose pro is <span class="mono">g</span>'s; the inert case leaves the testimony unchanged; <span class="mono">Withdraw</span> applies <span class="mono">strike</span> (Definition 2.12), which only <em>removes</em> pro; and the <span class="mono">¬</span>-struck prior of a supersession (Definition 2.14) lands on the con-channel, so it is never the signable testimony. No clause introduces a pro-candidate from nothing, establishing the invariant. Now if <span class="mono">E</span> signs <span class="mono">v</span>, then <span class="mono">Accept(·) = v</span> requires <span class="mono">corner = T</span> and <span class="mono">value = v</span> (Definitions 2.15, 2.8), so <span class="mono">v</span> has positive pro-support in the signable testimony; by the invariant it originates in some event. <span class="qed">∎</span></div>
+</div>
+
+<div class="box thm">
+  <span class="lab">Theorem 6.3 (exclusivity).</span> <span class="stmt">A term never signs a value carrying any con-support; in particular a glutted value (one asserted and refuted) is never signed.</span>
+  <div class="proof"><span class="pl">Proof.</span> Signing requires <span class="mono">corner = T</span> (Definition 2.15), i.e. <span class="mono">isZero(provCon)</span> — the con <em>total</em> over all candidates is <span class="mono">0</span> (Definition 2.6). By zero-sum-freeness (Definition 2.2) a sum in <span class="mono">ℕ[X]</span> is <span class="mono">0</span> only if every summand is <span class="mono">0</span>, so no candidate carries con-support. A glut has <span class="mono">corner = B ≠ T</span> and is blocked outright. <span class="qed">∎</span></div>
+</div>
+
+<p class="remark"><span class="lab">Remark 6.4.</span> Theorem 6.3 explains the pairing in Definition 2.14: were the struck prior and the fresh operative corroborated into a single testimony, the prior's support would land on the con-channel, making <span class="mono">provCon ≠ 0</span> and forcing <span class="mono">corner = B</span>, so a legitimate supersession would be misread as a glut and blocked. Representing supersession as the pair <span class="mono">(¬t, g)</span> keeps the operative's con empty, so the operative can sign. The exclusivity theorem and the pair representation are two views of one fact.</p>
+
+<!-- ───────────────────────────────────────── -->
+<h3>Composition across slots</h3>
+<p>The results so far concern one slot. We now add the composition by which the value at one slot is <em>derived</em> from the values at others — the conjunction nodes of the network, such as a leverage ratio derived from a debt and an EBITDA — and prove the fail-closed propagation that makes a single missing input block the entire derivation.</p>
+
+<div class="box def">
+  <span class="lab">Definition 6.5 (derivation, <span class="mono">⊗<sub>k</sub></span>).</span> For testimonies <span class="mono">a</span> over <span class="mono">A</span> and <span class="mono">b</span> over <span class="mono">B</span> and a total function <span class="mono">f : A × B → C</span>, the <em>derivation</em> <span class="mono">a ⊗<sub>k</sub><sup>f</sup> b</span> — the knowledge-meet conjunction — is the testimony over <span class="mono">C</span> formed by joint use on both channels: for every pair <span class="mono">(x, y) ∈ cand(a) × cand(b)</span> it contributes to candidate <span class="mono">f(x, y)</span> the graded pair <span class="mono">( pro(a,x) · pro(b,y),  con(a,x) · con(b,y) )</span>, summing contributions that collide on one result value and normalizing (Definition 2.4). A derivation over an empty candidate set has no pairs to form.
+</div>
+
+<div class="box def">
+  <span class="lab">Definition 6.6 (derivation term; its testimony).</span> A <em>derivation</em> is a finite term <span class="mono">D ::= leaf(E) | node<sub>f</sub>(D<sub>1</sub>, D<sub>2</sub>)</span>, where <span class="mono">E</span> is an event term (Definition 3.2) standing at a leaf slot and <span class="mono">node<sub>f</sub></span> is a required conjunction. Let <span class="mono">sig(b)</span> denote the <em>signable testimony</em> of a belief: <span class="mono">sig(Open(t)) = t</span> and <span class="mono">sig(Repl(s)) = operative(s)</span>. The testimony of a derivation, written <span class="mono">⟦D⟧</span>, is <span class="mono">⟦leaf(E)⟧ = sig(belief(E))</span> and <span class="mono">⟦node<sub>f</sub>(D<sub>1</sub>, D<sub>2</sub>)⟧ = ⟦D<sub>1</sub>⟧ ⊗<sub>k</sub><sup>f</sup> ⟦D<sub>2</sub>⟧</span>. A leaf is a <em>gap</em> when <span class="mono">corner(sig(belief(E))) = N</span>.
+</div>
+
+<div class="box thm">
+  <span class="lab">Theorem 6.7 (fail-closed propagation; no gap-laundering).</span> <span class="stmt">If any leaf of a derivation <span class="mono">D</span> is a gap, then <span class="mono">corner(⟦D⟧) = N</span> at the root, and the gate blocks the root.</span>
+  <div class="proof"><span class="pl">Proof.</span> Two facts precede the induction. First, <span class="mono">corner(t) = N</span> iff <span class="mono">t = ε</span>: by Definition 2.6, <span class="mono">N</span> means <span class="mono">provPro(t) = provCon(t) = 0</span>; by zero-sum-freeness (Definition 2.2) a sum in <span class="mono">ℕ[X]</span> is <span class="mono">0</span> only if every summand is, so each candidate has both components <span class="mono">0</span>, and normalization (Definition 2.4) deletes every <span class="mono">(0,0)</span> entry, leaving the empty testimony <span class="mono">ε</span>; conversely <span class="mono">corner(ε) = N</span>. Second, <span class="mono">ε ⊗<sub>k</sub><sup>f</sup> b = ε = a ⊗<sub>k</sub><sup>f</sup> ε</span>: since <span class="mono">cand(ε) = ∅</span>, the pair set of Definition 6.5 is empty and the result has no candidates. (This is the algebra's fail-closed annihilator <span class="mono">N ⊗<sub>k</sub> x = N</span>, mechanically checked as the gap-annihilation property of <span class="mono">derive</span> in the <span class="mono">Testimony</span> law suite — distinct from the render-carrier rig annihilator <span class="mono">0<sub>M</sub> · x = 0<sub>M</sub></span>.) Now induct on the structure of <span class="mono">D</span>. If <span class="mono">D = leaf(E)</span>, the hypothesis gives <span class="mono">corner(⟦D⟧) = N</span> directly. If <span class="mono">D = node<sub>f</sub>(D<sub>1</sub>, D<sub>2</sub>)</span> and the gap leaf lies in, say, <span class="mono">D<sub>1</sub></span>, the induction hypothesis gives <span class="mono">corner(⟦D<sub>1</sub>⟧) = N</span>, so <span class="mono">⟦D<sub>1</sub>⟧ = ε</span>, whence <span class="mono">⟦D⟧ = ε ⊗<sub>k</sub><sup>f</sup> ⟦D<sub>2</sub>⟧ = ε</span> and <span class="mono">corner(⟦D⟧) = N</span>. The gate (Definition 2.15) requires <span class="mono">corner = T</span> and therefore blocks. <span class="qed">∎</span></div>
+</div>
+
+<p class="remark"><span class="lab">Remark 6.8.</span> Theorem 6.7 is the formal content of fault F1 (a redacted leaf): a single missing required input cannot be laundered into a signature, however deep the derivation. It uses only the knowledge-meet <span class="mono">⊗<sub>k</sub></span>. An actively <em>refuted</em> input (corner <span class="mono">F</span>) is instead handled by the algebra's truth-meet conjunction — not formalized in this note — which carries <span class="mono">F</span>, not <span class="mono">N</span>, toward the root (the F7-versus-F1 distinction); either way the gate blocks it, by Theorem 6.3. This aside is informal.</p>
+
+<h2 id="sound"><span class="n">7.</span>Soundness</h2>
+<p>Soundness is the property that what the system signs is true. We must distinguish two readings, because one is provable and one is — necessarily — not. Fix a <em>ground truth</em> assignment that designates, for each slot, the correct value; call an asserting event <em>faithful</em> if the value it supplies on its pro-channel is the correct one.</p>
+
+<div class="box thm">
+  <span class="lab">Theorem 7.1 (relative soundness).</span> <span class="stmt">If every event that <em>contributes</em> the signed value to <span class="mono">belief(E)</span> (Definition 3.6) is faithful, then the value <span class="mono">E</span> signs is correct. Contrapositively: if <span class="mono">E</span> signs an incorrect value, at least one contributing event was unfaithful.</span>
+  <div class="proof"><span class="pl">Proof.</span> Suppose <span class="mono">E</span> signs <span class="mono">v</span>. By Definition 2.15 the testimony the gate reads has <span class="mono">corner = T</span> and <span class="mono">card = 1</span>: exactly one pro-supported candidate, and (by Theorem 6.3) no con-support. By Definition 3.6 the contributing events are exactly those whose pro-support is live in that testimony. Were two contributing events to supply distinct values <span class="mono">v<sub>1</sub> ≠ v<sub>2</sub></span>, both would be live pro-candidates (Definition 2.9 keeps disagreeing values distinct), giving <span class="mono">card ≥ 2</span>; then <span class="mono">value</span> is undefined (Definition 2.8) and the gate blocks — contradicting that <span class="mono">E</span> signs. Hence every contributing event supplies the same value, the lone live pro-candidate <span class="mono">v</span> (which originates in <span class="mono">E</span> by Theorem 6.2); if each is faithful, <span class="mono">v</span> is correct. The argument is uniform over <span class="mono">Open(t)</span> and <span class="mono">Repl(s)</span>, the gate-read testimony being <span class="mono">t</span> or <span class="mono">operative(s)</span> respectively. A value struck by a supersession is, by Definition 3.6, <em>not</em> contributing — its support having moved to the con-channel — so it is unconstrained by the hypothesis, and the theorem is silent on it (correctly: the struck value is not the one signed). <span class="qed">∎</span></div>
+</div>
+
+<div class="remark">
+  <span class="lab">Corollary 7.2 (conservativity).</span> The calculus does not amplify the unfaithfulness of its inputs; it can only mask it by abstention. By Theorem 6.3 and the <span class="mono">card = 1</span> requirement, any disagreement among contributing events (a conflict) or any refutation blocks rather than signs. Hence the set of slots the calculus signs is contained in the set on which the contributing events agree and ground, and its rate of <em>signed-but-incorrect</em> outcomes is at most the rate at which the inputs are simultaneously unfaithful <em>and</em> agreed. Inference reduces input error; it never manufactures it.
+</div>
+
+<div class="remark">
+  <span class="lab">Non-theorem 7.3 (absolute soundness).</span> The unconditional statement — <em>if <span class="mono">E</span> signs <span class="mono">v</span>, then <span class="mono">v</span> is correct</em> — is <strong>not</strong> a theorem, and is in general false. Its hypothesis quantifies over the faithfulness of the asserting events, which the calculus does not control: an asserting event is produced by an external oracle (a language model grounding a figure), and the oracle may ground a value that is plausible, cited, and verifiable against its own source yet incorrect. The gate then accepts it. The frequency of such signed-but-incorrect outcomes is the experiment's headline metric, the <em>confidently-wrong-at-signature</em> (CWS) rate. Theorem 7.1 localizes this failure precisely: it lies entirely in the events' faithfulness — the oracle — and not in the reduction. A calculus cannot prove the soundness of an oracle it does not govern; it can only, as Corollary 7.2 shows, refuse to compound the oracle's errors and abstain when its inputs conflict.
+</div>
+
+<!-- ───────────────────────────────────────── -->
+<h2 id="adeq"><span class="n">8.</span>Adequacy</h2>
+<p>Finally we record that the operational system of §3 computes exactly the algebra's resolution, so the meta-theorems above are statements about the algebra, not about an unrelated model of it.</p>
+
+<div class="box thm">
+  <span class="lab">Proposition 8.1 (adequacy).</span> <span class="stmt">For every term <span class="mono">E</span>, the normal form <span class="mono">belief(E)</span> of Definition 3.5 equals the algebraic fold of the events of <span class="mono">E</span> under the operations of §2, and <span class="mono">Status(belief(E))</span> equals the gate decision the algebra assigns to that fold.</span>
+  <div class="proof"><span class="pl">Proof.</span> Definition 3.5 defines <span class="mono">belief</span> as the left fold of the step relation <span class="mono">⤳</span> from <span class="mono">b<sub>0</sub></span>, and Definition 3.4 defines each step as the corresponding algebraic operation (<span class="mono">⊕</span>, <span class="mono">supersede</span>, <span class="mono">strike</span>) under the same side conditions the algebra uses (the corner tests of Definition 2.6). The two are therefore the same function by construction. Definition 3.6 reads <span class="mono">Status</span> through the same gate (Definition 2.15) the algebra signs by. Hence the operational and algebraic resolutions coincide. <span class="qed">∎</span></div>
+</div>
+<p>Adequacy is immediate here because the calculus was distilled from the algebra rather than posited independently; we state it so that the soundness, safety, and confluence results transfer without gap to the implemented system, whose evaluator is exactly this fold.</p>
+
+<!-- ───────────────────────────────────────── -->
+<h2 id="disc"><span class="n">9.</span>Discussion</h2>
+<p>The calculus is well defined and strongly normalizing (§4), confluent on the commutative fragment and deliberately order-sensitive beyond it (§5), and safe in the sense that reduction never fabricates, resurrects, or contests a signature, and a single missing required input cannot be laundered through derivation into one (§6). Its soundness is <em>relative</em>: faithful inputs yield correct signatures, and the calculus is conservative, abstaining under conflict rather than guessing (§7). The single property it cannot supply — that a signature is unconditionally correct — is the soundness of the external oracle, whose failure rate is exactly what the rig measures. The status of each result is summarized below.</p>
+<table>
+  <thead><tr><th>Result</th><th>Kind</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>Thm 4.1 determinacy; 4.2 normalization</td><td>operational</td><td>proved (paper)</td></tr>
+    <tr><td>Thm 5.3 confluence on assertions</td><td>algebraic</td><td>proved; reduces to Prop 2.10, <em>machine-checked</em></td></tr>
+    <tr><td>Thm 6.1 strike absorption</td><td>safety</td><td>proved; reduces to Prop 2.13, <em>property-tested</em></td></tr>
+    <tr><td>Thm 6.2 non-fabrication; 6.3 exclusivity</td><td>safety</td><td>proved (paper, structural)</td></tr>
+    <tr><td>Thm 6.7 fail-closed propagation (no gap-laundering)</td><td>safety (network)</td><td>proved; reduces to the <span class="mono">⊗<sub>k</sub></span> annihilator, <em>machine-checked</em></td></tr>
+    <tr><td>Thm 7.1 relative soundness; Cor 7.2</td><td>soundness</td><td>proved (paper)</td></tr>
+    <tr><td>Prop 8.1 adequacy</td><td>bridge</td><td>proved (by construction)</td></tr>
+    <tr><td>Rem 5.4 full-reduction confluence</td><td>—</td><td><strong>non-theorem</strong>: false by design (order-sensitive)</td></tr>
+    <tr><td>Non-thm 7.3 absolute soundness</td><td>—</td><td><strong>non-theorem</strong>: false; its violation rate is CWS</td></tr>
+  </tbody>
+</table>
+<p>These are rigorous paper proofs, not a machine-checked development; the two load-bearing propositions (2.10, 2.13) are mechanically verified in the project's test suite, and the structural arguments (6.2, 6.3, 7.1) range only over the operations defined in §2. A fully formalized account — the reduction relation and these results in a proof assistant — is the natural next step, and the relaxation table of <a href="#r-found">[7]</a> already scopes which of the algebra's laws are essential to it.</p>
+
+<hr>
+
+<!-- ───────────────────────────────────────── -->
+<h2 id="notation">Notation</h2>
+<p>Every symbol used above, with its meaning and the definition that introduces it.</p>
+<table>
+  <thead><tr><th>Symbol</th><th>Meaning</th><th>Defined</th></tr></thead>
+  <tbody>
+    <tr><td class="sym">X</td><td>the fixed set of lineages (citation tokens)</td><td>Def 2.1</td></tr>
+    <tr><td class="sym">ℕ[X]</td><td>the free commutative semiring over <span class="mono">X</span>; the provenance polynomials</td><td>Def 2.2</td></tr>
+    <tr><td class="sym">+ , ·</td><td>semiring addition (alternative derivation) and multiplication (joint use)</td><td>Def 2.2</td></tr>
+    <tr><td class="sym">0 , 1</td><td>the additive identity (no support) and multiplicative identity (cites nothing) of <span class="mono">ℕ[X]</span></td><td>Def 2.2</td></tr>
+    <tr><td class="sym">isZero(p)</td><td>the predicate <span class="mono">p = 0</span> in <span class="mono">ℕ[X]</span></td><td>Def 2.2</td></tr>
+    <tr><td class="sym">A</td><td>the set of values a claim may take</td><td>Def 2.4</td></tr>
+    <tr><td class="sym">t , g</td><td>testimonies (finite maps <span class="mono">A ⇀ ℕ[X] × ℕ[X]</span>)</td><td>Def 2.4</td></tr>
+    <tr><td class="sym">⇀</td><td>finite partial map</td><td>Def 2.4</td></tr>
+    <tr><td class="sym">cand(t)</td><td>the candidate set of <span class="mono">t</span></td><td>Def 2.4</td></tr>
+    <tr><td class="sym">pro(t,a), con(t,a)</td><td>the for- and against-channel of candidate <span class="mono">a</span> in <span class="mono">t</span></td><td>Def 2.4</td></tr>
+    <tr><td class="sym">provPro(t), provCon(t)</td><td>the channel totals (sums over candidates)</td><td>Def 2.5</td></tr>
+    <tr><td class="sym">Σ</td><td>summation in <span class="mono">ℕ[X]</span></td><td>Def 2.5</td></tr>
+    <tr><td class="sym">ε</td><td>the gap: the empty testimony</td><td>Def 2.5</td></tr>
+    <tr><td class="sym">N, T, F, B</td><td>the Belnap values: gap, true, false, glut</td><td>Def 2.6</td></tr>
+    <tr><td class="sym">corner(t), β</td><td>the structural four-valued read of <span class="mono">t</span>, and the map producing it</td><td>Def 2.6</td></tr>
+    <tr><td class="sym">card(t)</td><td>the number of pro-supported candidates of <span class="mono">t</span></td><td>Def 2.7</td></tr>
+    <tr><td class="sym">#(S)</td><td>the cardinality of a finite set <span class="mono">S</span></td><td>Def 2.7</td></tr>
+    <tr><td class="sym">value(t)</td><td>the signable value (the clean unique <span class="mono">T</span>), when defined</td><td>Def 2.8</td></tr>
+    <tr><td class="sym">⊕</td><td>corroboration (the commutative monoid on testimonies)</td><td>Def 2.9</td></tr>
+    <tr><td class="sym">¬</td><td>refutation (channel swap; involutive)</td><td>Def 2.11</td></tr>
+    <tr><td class="sym">strike</td><td>deletion (clear pro, fold support to con; idempotent)</td><td>Def 2.12</td></tr>
+    <tr><td class="sym">supersede(t,g), (struck, operative)</td><td>the supersession constructor and pair</td><td>Def 2.14</td></tr>
+    <tr><td class="sym">⊗<sub>k</sub><sup>f</sup></td><td>derivation (knowledge-meet conjunction over a function <span class="mono">f</span>); the gap annihilates it</td><td>Def 6.5</td></tr>
+    <tr><td class="sym">D, leaf, node<sub>f</sub></td><td>a derivation term: a leaf slot, or a required conjunction of two derivations</td><td>Def 6.6</td></tr>
+    <tr><td class="sym">sig(b), ⟦D⟧</td><td>the signable testimony of a belief, and the testimony of a derivation</td><td>Def 6.6</td></tr>
+    <tr><td class="sym">ν̂ , M , θ</td><td>the trust model (valuation), its ordered carrier, and the threshold</td><td>Def 2.15</td></tr>
+    <tr><td class="sym">verify</td><td>the verifier predicate at the gate</td><td>Def 2.15</td></tr>
+    <tr><td class="sym">Accept(t)</td><td>the gate's acceptance (the signed value, when it signs)</td><td>Def 2.15</td></tr>
+    <tr><td class="sym">≥</td><td>the order on the render carrier <span class="mono">M</span></td><td>Def 2.15</td></tr>
+    <tr><td class="sym">Assert, Supersede, Withdraw</td><td>the three event forms</td><td>Def 3.1</td></tr>
+    <tr><td class="sym">E, |E|, [], ⧺</td><td>a term (event sequence), its length, the empty term, extension by one event</td><td>Def 3.2</td></tr>
+    <tr><td class="sym">Open(t), Repl(s), b<sub>0</sub></td><td>the two belief forms and the initial belief</td><td>Def 3.3</td></tr>
+    <tr><td class="sym">⟨b, e⟩ ⤳ b′</td><td>one-step reduction of belief <span class="mono">b</span> by event <span class="mono">e</span></td><td>Def 3.4</td></tr>
+    <tr><td class="sym">belief(E)</td><td>the normal form: evaluation of term <span class="mono">E</span></td><td>Def 3.5</td></tr>
+    <tr><td class="sym">Status(b)</td><td>the gate reading of a belief; "signs <span class="mono">v</span>" / "blocked"</td><td>Def 3.6</td></tr>
+    <tr><td class="sym">∈ , ⊆ , ∪ , ≠</td><td>set membership, inclusion, union; inequality (standard)</td><td>—</td></tr>
+    <tr><td class="sym">∎</td><td>end of proof (the Halmos tombstone <a href="#r-halmos">[5]</a>)</td><td>—</td></tr>
+  </tbody>
+</table>
+
+<!-- ───────────────────────────────────────── -->
+<h2 id="refs">References</h2>
+<ol class="refs">
+  <li id="r-belnap">N. D. Belnap. <em>A useful four-valued logic.</em> In J. M. Dunn and G. Epstein, eds., <em>Modern Uses of Multiple-Valued Logic</em>, Reidel, 1977.</li>
+  <li id="r-fitting">M. Fitting. <em>Bilattices and the semantics of logic programming.</em> Journal of Logic Programming 11(2):91–116, 1991.</li>
+  <li id="r-gkt">T. J. Green, G. Karvounarakis, and V. Tannen. <em>Provenance semirings.</em> In Proc. ACM PODS, 31–40, 2007.</li>
+  <li id="r-trat">F. Baader and T. Nipkow. <em>Term Rewriting and All That.</em> Cambridge University Press, 1998. (Confluence, normalization.)</li>
+  <li id="r-halmos">P. R. Halmos. <em>How to write mathematics.</em> L'Enseignement Mathématique 16:123–152, 1970. (The proof-ending tombstone; definition-before-use; the notation discipline.)</li>
+  <li id="r-ca">claim-algebra-lab. <em>The verifiable claim algebra.</em> <span class="mono">docs/claim-algebra/claim-algebra.html</span>.</li>
+  <li id="r-found">claim-algebra-lab. <em>Foundations and the relaxation table.</em> <span class="mono">docs/claim-algebra/claim-algebra-foundations.html</span>.</li>
+</ol>
+
+<p class="byline" style="margin-top:2.6rem;text-align:center;">Companion to the foundations note. The evaluator described here is the workbench's <span class="mono">Ledger</span> fold and the algebra's <span class="mono">Gate</span>; the results above are statements about that implemented system, related to it by Proposition 8.1.</p>
+
+</div>
+</body>
+</html>
