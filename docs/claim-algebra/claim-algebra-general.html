@@ -149,7 +149,7 @@
   <text x="452" y="215" font-size="13.5" fill="#1f6b4f">provenance; corroborate is a</text>
   <text x="452" y="234" font-size="13.5" fill="#1f6b4f">commutative monoid again.</text>
 </svg>
-<figcaption><strong>The candidate carrier (G1).</strong> <code>Testimony[A] = A &rarr;&#8320; (Prov, Prov)</code> — a finite map from each candidate value to its for/against provenance. At a glut the rivals coexist as keys, so <em>corroboration</em> becomes order-independent (a true commutative monoid) and the reconciler is handed both figures instead of one arbitrary survivor. The old single value is now a derived read: present only when there is exactly one for-candidate and nothing against.</figcaption>
+<figcaption><strong>The candidate carrier (G1).</strong> <code>Testimony[A] = A &rarr;&#8320; Channels(pro, con)</code> — a finite map from each candidate value to its for/against provenance. At a glut the rivals coexist as keys, so <em>corroboration</em> becomes order-independent (a true commutative monoid) and the reconciler is handed both figures instead of one arbitrary survivor. The old single value is now a derived read: present only when there is exactly one for-candidate and nothing against.</figcaption>
 </figure>
 
 <div class="note"><strong>Why this is more than tidiness.</strong> The old single value let the network <em>sign</em> one of two disagreeing corroborated figures — a confidently-wrong output. The candidate carrier blocks that structurally: two rivals read as <em>ambiguous</em>, and an ambiguous claim cannot clear the gate. The fix to the payload is also a fix to correctness.</div>

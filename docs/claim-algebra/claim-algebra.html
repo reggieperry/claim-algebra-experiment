@@ -482,7 +482,7 @@ object Prov:
 // each channel is empty, so no stored grade can drift from its provenance.
 final case class Testimony[+A](value: Option[A], provPro: Prov, provCon: Prov)
 // SHIPPED CARRIER: this single-value form is the readable shape. The implementation generalizes
-// `value: Option[A]` to a candidate map `A →₀ (Prov, Prov)`, so corroboration is a commutative
+// `value: Option[A]` to a candidate map `A →₀ Channels(pro, con)`, so corroboration is a commutative
 // monoid that keeps disagreeing rivals as DISTINCT candidates (an ambiguity, cardinality ≥ 2) —
 // not the left-biased `orElse` below — and truthMeet's con-channel is the three-term cross-term
 // ca·pb + pa·cb + ca·cb (recovering F ∧ₜ F = F). See claim-algebra-general.html and the foundations.
