@@ -463,7 +463,7 @@ object Ev:
 // unit monomial, is supported-but-citing-nothing. NOT Set[Lineage]: a set collapses · and + to union
 // and drops the ℕ multiplicity a non-idempotent trust model reads.
 final case class Monomial(exps: Map[Lineage, Int])     // multiset of tokens — joint use ·; empty = 1
-final case class Prov(terms: Map[Monomial, Int])       // polynomial — alternatives +; empty = 0 = gap
+final case class Prov(terms: Map[Monomial, BigInt])    // polynomial — alternatives +; empty = 0 = gap
 object Prov:
   val zero: Prov = Prov(Map.empty)                     // 0 — no support (the gap);  0 · x = 0
   val one:  Prov = Prov(Map(Monomial(Map.empty) -> 1)) // 1 — supported, cites nothing
@@ -481,7 +481,7 @@ object Prov:
 // rendered from the polynomials (renderEv), and the Belnap corner is read STRUCTURALLY from whether
 // each channel is empty, so no stored grade can drift from its provenance.
 final case class Testimony[+A](value: Option[A], provPro: Prov, provCon: Prov)
-// SHIPPED CARRIER: this single-value form is the readable shape. The implementation generalizes
+// READABLE SKETCH: this single-value form is shown for clarity; the SHIPPED carrier generalizes
 // `value: Option[A]` to a candidate map `A →₀ Channels(pro, con)`, so corroboration is a commutative
 // monoid that keeps disagreeing rivals as DISTINCT candidates (an ambiguity, cardinality ≥ 2) —
 // not the left-biased `orElse` below — and truthMeet's con-channel is the three-term cross-term
