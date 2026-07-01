@@ -23,6 +23,7 @@ The implementation these describe is [`../../src/main/scala/claimalgebra/`](../.
 - **[`library-overview.html`](library-overview.html)** — the plain-language plain-language overview (non-technical).
 - **[`claim-algebra-novelty.html`](claim-algebra-novelty.html)** — a citation-verified prior-art assessment: the novelty is a synthesis of settled parts, not an invention.
 - **[`diplomacy-agent-game.html`](diplomacy-agent-game.html)** — the algebra's third, adversarial instance (seven LLM powers playing Diplomacy over a trust semiring).
+- **[`claim-object-activation-design-brief.md`](claim-object-activation-design-brief.md)** — a design brief for activating the *full* claim object (all four coordinates, the glut, the confidence/verification axes) in an early-stage, multi-document deal corpus. Its credit-workbench Scenario-A design of record is [`../credit-deal-workbench/in-flight-deal-design.md`](../credit-deal-workbench/in-flight-deal-design.md).
 
 ## Superseded drafts — kept for history
 
