@@ -44,7 +44,7 @@ lazy val algebra = "org.typelevel" %% "algebra" % "2.12.0"
 // The official Anthropic Java SDK (the model boundary), reached over JVM interop and kept behind the
 // `LlmCall` facade — a Java artifact, so `%` not `%%`. Version resolved and the API confirmed against
 // the artifact at first wiring (scala-llm.md). API-key auth only.
-lazy val anthropic = "com.anthropic" % "anthropic-java" % "2.44.0"
+lazy val anthropic = "com.anthropic" % "anthropic-java" % "2.47.0"
 // The official OpenAI Java SDK — same boundary, behind the same `LlmCall` facade, so the workbench
 // can run GPT as well as Claude. A Java artifact (`%`); version + API confirmed against the resolved
 // jar (scala-llm.md). API-key auth only (OPENAI_API_KEY via OpenAIOkHttpClient.fromEnv()).
