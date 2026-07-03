@@ -184,9 +184,9 @@ object Testimony:
   given [A]: Eq[Testimony[A]] = Eq.fromUniversalEquals
 
   /** corroborate `⊕ₖ` as a commutative monoid with identity the gap — the lawful instance behind
-    * the fold-order independence the experiment relies on (proven directly in
-    * `TestimonyLawsSuite`). Supersession is deliberately NOT folded through this — it keeps a
-    * struck/operative pair (see `Ledger`), so this is corroboration only.
+    * the fold-order independence corroboration relies on (proven directly in `TestimonyLawsSuite`).
+    * Supersession is deliberately NOT folded through this — it keeps a struck/operative pair (see
+    * `Ledger`), so this is corroboration only.
     */
   given [A]: CommutativeMonoid[Testimony[A]] =
     CommutativeMonoid.instance(gap[A], (a, b) => corroborate(a, b))

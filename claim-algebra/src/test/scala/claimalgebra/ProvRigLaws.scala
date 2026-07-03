@@ -10,9 +10,9 @@ import org.typelevel.discipline.Laws
   * `RingLaws.commutativeRig` proves the two monoids, commutativity, the `0`/`1` identities, and
   * distributivity — but NOT annihilation, which for a rig with no additive inverse is an
   * independent axiom rather than a consequence of distributivity (you cannot derive `0 · x = 0` by
-  * cancelling). It is the fail-closed law the experiment rests on — a gap times anything is the
-  * gap, on both channels, under every trust model — so it gets its own RuleSet, per
-  * scala-testing.md's instruction to author the annihilators as a custom `discipline.Laws`.
+  * cancelling). It is the fail-closed law the algebra rests on — a gap times anything is the gap,
+  * on both channels, under every trust model — so it gets its own RuleSet, per scala-testing.md's
+  * instruction to author the annihilators as a custom `discipline.Laws`.
   */
 object ProvRigLaws extends Laws:
 

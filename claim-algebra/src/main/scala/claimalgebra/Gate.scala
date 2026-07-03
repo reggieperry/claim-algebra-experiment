@@ -11,9 +11,9 @@ enum Decision[+A]:
   case Blocked(reason: BlockReason)
 
 /** Why the gate refused to sign. A non-`True` corner, a sub-threshold grade, or a failed
-  * verification each block — and none of them is a confident-wrong, which is exactly the asymmetry
-  * the experiment's CWS metric rests on (abstaining, flagging a conflict, and reporting a
-  * refutation are all passes, not misses).
+  * verification each block — and none of them signs a wrong value, which is exactly the asymmetry
+  * the gate is built on (abstaining, flagging a conflict, and reporting a refutation are all safe
+  * non-signatures, not wrong signatures).
   */
 enum BlockReason:
   case Gap // told nothing (N)
@@ -27,15 +27,15 @@ enum BlockReason:
   *
   * {{{accept(c) ⟺ corner = True ∧ cardinality = 1 ∧ grade ≥ θ ∧ verify(c)}}}
   *
-  * CWS is measured here, so a gap, a glut, a false, or an AMBIGUITY (≥ 2 rival positives) can never
-  * be signed; only a verified, UNAMBIGUOUS `True` whose support clears the threshold yields a
-  * signature. The corner and the cardinality are read STRUCTURALLY from the provenance
-  * (model-free), and the grade is RENDERED on the pro-channel under the arm's trust model `M` — so
-  * the threshold `θ` lives in `M`, and the same network gates under any model by swapping
-  * `(nu, theta)`, never rerunning it. The cardinality conjunct only NARROWS acceptance, so the CWS
-  * asymmetry is preserved and tightened (foundations: fold 2). `True ∧ cardinality = 1 ⟹ a value`,
-  * so a "no value" block is unreachable; the `value` fold's empty branch is defensive, folded into
-  * `Ambiguous`.
+  * A wrong value can never be signed here — a gap, a glut, a false, or an AMBIGUITY (≥ 2 rival
+  * positives) can never be signed; only a verified, UNAMBIGUOUS `True` whose support clears the
+  * threshold yields a signature. The corner and the cardinality are read STRUCTURALLY from the
+  * provenance (model-free), and the grade is RENDERED on the pro-channel under the arm's trust
+  * model `M` — so the threshold `θ` lives in `M`, and the same network gates under any model by
+  * swapping `(nu, theta)`, never rerunning it. The cardinality conjunct only NARROWS acceptance, so
+  * the never-sign-a-wrong-value asymmetry is preserved and tightened (foundations: fold 2).
+  * `True ∧ cardinality = 1 ⟹ a value`, so a "no value" block is unreachable; the `value` fold's
+  * empty branch is defensive, folded into `Ambiguous`.
   */
 object Gate:
 

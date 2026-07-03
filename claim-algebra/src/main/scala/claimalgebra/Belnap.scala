@@ -4,10 +4,10 @@ package claimalgebra
   *
   * `Gap` is knowledge-bottom (told nothing); `Glut` is knowledge-top (told both); `True` is
   * supported-and-unrefuted; `False` is refuted-and-unsupported. The corner is a mechanical read of
-  * whether each channel carries evidence — no model in the loop — which is what lets the
-  * experiment's grader and gap/glut discrimination rate stay LLM-free, and identical under every
-  * trust model. It is read off the provenance polynomials ([[Prov.isZero]] per channel), not a
-  * rendered grade, so the chosen model can never move it.
+  * whether each channel carries evidence — no model in the loop — which is what lets a mechanical
+  * grader and the gap/glut discrimination stay model-free, and identical under every trust model.
+  * It is read off the provenance polynomials ([[Prov.isZero]] per channel), not a rendered grade,
+  * so the chosen model can never move it.
   */
 enum Belnap:
   case Gap, True, False, Glut

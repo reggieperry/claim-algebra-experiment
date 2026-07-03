@@ -162,6 +162,9 @@ lazy val workbench = (project in file("workbench"))
 // the whole build so `sbt check` / `test` fan out; depends on the library + extract and reuses the
 // library's test helpers via `test->test`. Does NOT depend on the workbench — the experiment never
 // imports it; the lab and the product are separate bounded contexts.
+lazy val libraryNeutrality =
+  taskKey[Unit]("Fail if claim-algebra/src carries domain vocabulary (the portability gate)")
+
 lazy val root = (project in file("."))
   .aggregate(claimAlgebra, extract, credit, workbench, gate)
   .dependsOn(claimAlgebra % "compile->compile;test->test", extract)
@@ -181,7 +184,19 @@ lazy val root = (project in file("."))
       algebraLaws,
       disciplineMunit,
       munitCatsEffect
-    )
+    ),
+    // The library-neutrality gate (docs/claim-algebra/library-portability-plan.md): claim-algebra
+    // must carry no domain (credit / product / experiment) vocabulary, so it stays portable for
+    // reuse across practices. Runs the grep-only pass (`--no-build` avoids nesting sbt inside sbt);
+    // wired into `sbt check` so neutrality cannot regress.
+    libraryNeutrality := {
+      import scala.sys.process.*
+      val log = streams.value.log
+      val exit = Process(Seq("bash", "scripts/library-neutrality.sh", "--no-build")).!
+      if (exit != 0)
+        sys.error("library-neutrality gate failed — claim-algebra/src carries domain vocabulary")
+      log.info("library-neutrality: claim-algebra is domain-neutral")
+    }
   )
 
 // The Scala differential gate (anti-weakening) — a self-contained binary that blocks
@@ -212,9 +227,9 @@ lazy val gate = (project in file("gate"))
   )
 
 // One gate the build must pass: formatting (sources + sbt files), the Scalazzi /
-// Scala 3 scalafix rules, then the law-first test suite. `sbt check` is green only
-// when all three are.
+// Scala 3 scalafix rules, the library-neutrality gate (claim-algebra stays domain-neutral),
+// then the law-first test suite. `sbt check` is green only when all are.
 addCommandAlias(
   "check",
-  "; scalafmtSbtCheck ; scalafmtCheckAll ; scalafixAll --check ; test"
+  "; scalafmtSbtCheck ; scalafmtCheckAll ; scalafixAll --check ; libraryNeutrality ; test"
 )

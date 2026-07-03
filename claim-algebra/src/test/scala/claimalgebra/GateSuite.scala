@@ -6,10 +6,10 @@ import org.scalacheck.Prop.forAll
 
 import Generators.given
 
-/** The acceptance gate is the experiment's measurement point, so it is pinned to its spec as a
-  * biconditional, plus an example for every blocking reason. The corner is read structurally from
-  * the provenance and the grade is rendered on the pro-channel under the fuzzy carrier [[Lev]] (the
-  * valuation `nu` assigns each token its confidence), so the threshold `θ` lives in `Lev`.
+/** The acceptance gate is the sole signing point, so it is pinned to its spec as a biconditional,
+  * plus an example for every blocking reason. The corner is read structurally from the provenance
+  * and the grade is rendered on the pro-channel under the fuzzy carrier [[Lev]] (the valuation `nu`
+  * assigns each token its confidence), so the threshold `θ` lives in `Lev`.
   */
 class GateSuite extends ScalaCheckSuite:
 
@@ -39,7 +39,7 @@ class GateSuite extends ScalaCheckSuite:
     }
   }
 
-  property("a non-True corner is never signed — the foundation of the CWS asymmetry") {
+  property("a non-True corner is never signed — the foundation of the never-sign-wrong asymmetry") {
     forAll { (t: Testimony[Int], theta: Lev, c: Lev) =>
       val nu: Lineage => Lev = _ => c
       (Testimony.corner(t) == Belnap.True) || !isAccepted(Gate.accept(t, theta, nu, yes))
