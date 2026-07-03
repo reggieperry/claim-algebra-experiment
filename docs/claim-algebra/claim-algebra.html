@@ -147,7 +147,7 @@ class CAT c; class ALG a; class TYP t;
   <strong>Where category theory does real work.</strong> Category theory belongs at the top in exactly three ways: <em>(i)</em> the universal property of the free semiring, applied <em>per channel</em>, which keeps "compute provenance once, evaluate many trust models" a one-line theorem; <em>(ii)</em> preservation of the zeros by morphisms, which makes fail-closed hold under every trust model at once; and <em>(iii)</em> the <em>twist</em> (product) representation of distributive bilattices, \(\mathsf{FOUR}\cong\mathsf{TWO}\odot\mathsf{TWO}\), which lets <em>(i)</em> and <em>(ii)</em> survive the move from a semiring to a bilattice. The twist says a bilattice is just a pair of lattice computations bolted together, so the semiring machinery applies twice rather than not at all. Past these three, further categorical generality would be decoration, and the note drops to the algebra. Abstraction is a tool for compression, not a display of generality.
 </div>
 
-<p><strong>Two layers, two names.</strong> The general object at the algebraic and type levels (a value, or <span class="mono">UNRESOLVED</span>, carried with its provenance and a grade in the value space \(K\)) is a <em>Testimony</em>: a value held together with what its sources attest for and against it. It is value-agnostic: the payload may be a fact, a cost, or a trust level, and the entire algebra of §3 and §4 operates at this layer. A <em>Claim</em> is a Testimony refined by a verification predicate, a Testimony that asserts something and can be checked against its provenance. So a Claim is a Testimony that verifies. The framework keeps the name "claim algebra" because verification is its motivating purpose, but the general structure underneath is a Testimony. What distinguishes this object from a plain graded value is what \(K\) <em>is</em>: not a commutative semiring but a distributive bilattice, so a Testimony carries a Belnap-valued (graded) annotation rather than a single semiring grade. The cost-routing instance (§8) is naturally a Testimony, a graded cost; the workbench's cited facts and Diplomacy's promises are Claims, where verification and the for/against bookkeeping do the work.</p>
+<p><strong>Two layers, two names.</strong> The general object at the algebraic and type levels (a value, or <span class="mono">UNRESOLVED</span>, carried with its provenance and a grade in the value space \(K\)) is a <em>Testimony</em>: a value held together with what its sources attest for and against it. It is value-agnostic: the payload may be a fact, a cost, or a trust level, and the entire algebra of §3 and §4 operates at this layer. A <em>Claim</em> is a Testimony refined by a verification predicate, a Testimony that asserts something and can be checked against its provenance. So a Claim is a Testimony that verifies. The framework keeps the name "claim algebra" because verification is its motivating purpose, but the general structure underneath is a Testimony. What distinguishes this object from a plain graded value is what \(K\) <em>is</em>: not a commutative semiring but a distributive bilattice, so a Testimony carries a Belnap-valued (graded) annotation rather than a single semiring grade. The cost-routing instance (§8) is naturally a Testimony, a graded cost; the workbench's cited facts and Diplomacy's promises are Claims, where verification and the for/against bookkeeping do the work. Convention for what follows: <em>claim</em>—and <em>claim algebra</em>—is the domain word for what an agent asserts and the name of the system, while the carrier type is written <code>Testimony[K, A]</code> and <code>Claim[K, A]</code> is its verification refinement; a figure therefore labels a composing wire by its carrier, <code>Testimony</code>, and a value that has passed or carries its verifier is a <code>Claim</code>.</p>
 
 <h2 id="cat">3 · The categorical layer <span class="tag t-cat">abstraction</span></h2>
 
@@ -162,12 +162,12 @@ class CAT c; class ALG a; class TYP t;
   <div class="diagram">
 <pre class="mermaid">
 flowchart LR
-A["extractor a"] -->|"Claim · cited · True/High"| R{{"deriver (⊗ₖ)"}}
-B["extractor b"] -->|"Claim · cited · True/Med"| R
-R -->|"Claim · derived · conf = Med ⊗ High = Med"| J{{"corroborate (⊕ₖ)"}}
-S["second source"] -->|"Claim · True/Med"| J
-X["refuting source"] -->|"Claim · refutes · False"| J
-J -->|"Claim · corroborated—or GLUT if for ∧ against both fire"| OUT["downstream agent"]
+A["extractor a"] -->|"Testimony · cited · True/High"| R{{"deriver (⊗ₖ)"}}
+B["extractor b"] -->|"Testimony · cited · True/Med"| R
+R -->|"Testimony · derived · conf = Med ⊗ High = Med"| J{{"corroborate (⊕ₖ)"}}
+S["second source"] -->|"Testimony · True/Med"| J
+X["refuting source"] -->|"Testimony · refutes · False"| J
+J -->|"Testimony · corroborated—or GLUT if for ∧ against both fire"| OUT["downstream agent"]
 classDef b fill:#eef3fb,stroke:#3a5a9e,color:#1a1a2e;
 classDef op fill:#fff8e8,stroke:#caa53a,color:#6b5410;
 class A,B,S,X,OUT b; class R,J op;
@@ -345,7 +345,7 @@ class A,A2 ok; class B,R gap; class B2,R2 bad; class M,M2 op;
 </figure>
 
 <h3>4.4 · The evidential pair is Belnap's second axis—verification is a <em>third</em></h3>
-<p>Three questions hide behind a single confident sentence, and they are independent. Confidence answers "how strong is the derivation, assuming the inputs hold?", and that grading lives on the <em>truth</em> axis of Figure 4 (the \(L\) of the twist). The <em>evidential</em> content (supported, refuted, neither, both) is the for/against pair, and that pair is exactly Belnap's structure: the knowledge order runs gap \(\mathbf{N}\) → glut \(\mathbf{B}\), the truth order runs \(\mathbf{F}\) → \(\mathbf{T}\), both internal to the evidential pair. Verification answers a different question again: does the value actually reproduce against the provenance it cites? Re-resolve the citation, re-match the quote. This is a decidable predicate \(\mathrm{verify} : \mathrm{Claim}\,a \to \mathrm{Bool}\), and it is <em>not</em> one of Belnap's two orderings. It is a third axis.</p>
+<p>Three questions hide behind a single confident sentence, and they are independent. Confidence answers "how strong is the derivation, assuming the inputs hold?", and that grading lives on the <em>truth</em> axis of Figure 4 (the \(L\) of the twist). The <em>evidential</em> content (supported, refuted, neither, both) is the for/against pair, and that pair is exactly Belnap's structure: the knowledge order runs gap \(\mathbf{N}\) → glut \(\mathbf{B}\), the truth order runs \(\mathbf{F}\) → \(\mathbf{T}\), both internal to the evidential pair. Verification answers a different question again: does the value actually reproduce against the provenance it cites? Re-resolve the citation, re-match the quote. This is a decidable predicate \(\mathrm{verify} : \mathrm{Testimony}\,a \to \mathrm{Bool}\), and it is <em>not</em> one of Belnap's two orderings. It is a third axis.</p>
 
 <div class="callout warn">
   <strong>A confusion worth naming.</strong> It is tempting to draw a 2×2 grid with <em>confidence</em> on one axis and <em>verification</em> on the other and call it "a bilattice in the sense of Belnap." It is not. Belnap's two orders are <em>truth</em> (false → true) and <em>knowledge</em> (gap → glut), and both are evidential. A faithful object therefore tracks <em>three</em> things, not two: support-for, support-against (these two <em>are</em> the Belnap value), and verified? (the orthogonal refinement). "High confidence · unverified" is a point on the <em>verification</em> axis crossed with a high <em>truth</em>-grade; it is not the glut \(\mathbf{B}\). The glut is "supported <em>and</em> refuted," a different idea entirely.
@@ -543,9 +543,9 @@ object Claim:
   <div class="diagram">
 <pre class="mermaid">
 flowchart LR
-D["debt extractor"] -->|"Claim[$] · cited · True/High"| R{{"ratio agent (⊗ₖ)"}}
-E["EBITDA extractor"] -->|"Claim[$] · cited · True/Med"| R
-R -->|"Claim[x] leverage · conf = High ⊗ Med = Med"| G["signature gate · T ∧ card=1 ∧ grade≥θ ∧ verify"]
+D["debt extractor"] -->|"Testimony[$] · cited · True/High"| R{{"ratio agent (⊗ₖ)"}}
+E["EBITDA extractor"] -->|"Testimony[$] · cited · True/Med"| R
+R -->|"Testimony[x] leverage · conf = High ⊗ Med = Med"| G["signature gate · T ∧ card=1 ∧ grade≥θ ∧ verify"]
 classDef b fill:#eef3fb,stroke:#3a5a9e,color:#1a1a2e;
 classDef op fill:#fff8e8,stroke:#caa53a,color:#6b5410;
 classDef gate fill:#eafaf0,stroke:#2a8c5a,color:#14502f;
@@ -589,7 +589,7 @@ A high-grade leverage figure whose citation does not reproduce sits in the dange
 </table>
 
 <div class="callout ok">
-  <strong>The concrete payoff at N = 1.</strong> A reviewer staring at <span class="mono">UNRESOLVED</span> on "Total Debt" cannot tell whether the term was never defined or defined twice in conflict—two situations that call for opposite actions (go find the definition versus reconcile two of them). With gap distinct from glut the workbench surfaces the glut as its own state, and treats a later amendment as a retraction of the earlier clause rather than a clobber. The leap from N = 1 to N agents is to make the nodes <em>agents</em> instead of <em>defined terms</em>: the same algebra, the same fail-closed guarantee, the same render-many-from-one, now carrying the gap/glut distinction across the wire for free. The concrete first step is to lift the harness's <code>LlmCall</code>/claim representation toward the <code>Claim[K, A]</code> shape, making the object explicit in code where it is currently implicit.
+  <strong>The concrete payoff at N = 1.</strong> A reviewer staring at <span class="mono">UNRESOLVED</span> on "Total Debt" cannot tell whether the term was never defined or defined twice in conflict—two situations that call for opposite actions (go find the definition versus reconcile two of them). With gap distinct from glut the workbench surfaces the glut as its own state, and treats a later amendment as a retraction of the earlier clause rather than a clobber. The leap from N = 1 to N agents is to make the nodes <em>agents</em> instead of <em>defined terms</em>: the same algebra, the same fail-closed guarantee, the same render-many-from-one, now carrying the gap/glut distinction across the wire for free. The concrete first step is to lift the harness's <code>LlmCall</code>/claim representation toward the <code>Testimony[K, A]</code> / <code>Claim[K, A]</code> shape, making the object explicit in code where it is currently implicit.
 </div>
 
 <h2 id="cost">8 · A second instance: cost routing in an agent fulfillment network</h2>
@@ -737,7 +737,7 @@ class N,O,J alg; class Rglut glut; class Rkeep ok;
 <p><strong>Capacity contention (routing).</strong> The §8 shortest-path routes <em>one</em> unit at a <em>fixed</em> cost. The moment two shipments contend for one lane's finite capacity, the problem becomes min-cost multi-commodity flow [27], a linear program or an auction, not a single semiring path. The <code>Reservable(CapacityToken)</code> field only <em>marks</em> the seam; it does not allocate.</p>
 
 <div class="callout">
-  <strong>The contribution, stated precisely.</strong> The mathematics is decades old: Belnap's four values (1977), Dunn's two-channel relational semantics, the Ginsberg–Fitting theory of bilattices and the twist representation, the Green–Karvounarakis–Tannen provenance semiring, and subjective logic. None of it is new. The claim is that the right wire format between LLM agents is a <em>graded bilattice</em> Claim: a two-channel, gap-distinct-from-glut, negation-closed value, fail-closed by the knowledge-meet annihilator, made trust-pluggable by a per-channel homomorphism and verifiable by an orthogonal predicate. Committing to this object turns a list of correctness <em>hopes</em> into a list of <em>theorems and type errors</em>, with contradiction now among the things the type system can see rather than the things it silently drops. The value concentrates where verification is the binding constraint (high-stakes, auditable, regulated work), and that is the wedge worth taking.
+  <strong>The contribution, stated precisely.</strong> The mathematics is decades old: Belnap's four values (1977), Dunn's two-channel relational semantics, the Ginsberg–Fitting theory of bilattices and the twist representation, the Green–Karvounarakis–Tannen provenance semiring, and subjective logic. None of it is new. The claim is that the right wire format between LLM agents is a <em>graded bilattice</em> value—a <em>Testimony</em>: two-channel, gap-distinct-from-glut, negation-closed, fail-closed by the knowledge-meet annihilator, made trust-pluggable by a per-channel homomorphism—refined to a <em>Claim</em> by an orthogonal verification predicate. Committing to this object turns a list of correctness <em>hopes</em> into a list of <em>theorems and type errors</em>, with contradiction now among the things the type system can see rather than the things it silently drops. The value concentrates where verification is the binding constraint (high-stakes, auditable, regulated work), and that is the wedge worth taking.
 </div>
 
 <h2 id="refs">11 · References</h2>
