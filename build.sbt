@@ -15,8 +15,17 @@ ThisBuild / version := "0.1.0-SNAPSHOT"
 
 // Standard Scala 3 scalafix setup: the compiler emits SemanticDB (built in to
 // Scala 3, no plugin) so semantic rules can run; the syntactic Scalazzi rules in
-// `.scalafix.conf` do not need it, but the gate's later semantic rules will.
+// `.scalafix.conf` do not need it, but the semantic ones below do.
 ThisBuild / semanticdbEnabled := true
+
+// typelevel-scalafix's cats lint rules give the monad/functor-fusion checks a blunt regex cannot
+// (a regex would false-positive on plain `Iterator`/`List` maps). Enabled in `.scalafix.conf`:
+// `TypelevelMapSequence` — `l.map(f).sequence` -> `l.traverse(f)`; it keys on `.sequence`, a
+// cats-only method, so it never misfires on stdlib. NOT enabled: `TypelevelAs`
+// (`.map(_ => x)` -> `.as(x)`) — verified it over-fires on a legitimate stdlib
+// `Iterator.map(_ => const)` (SourceScan) where `.as` does not exist, and the anti-suppression gate
+// leaves no clean escape, so it would break the build on correct code.
+ThisBuild / scalafixDependencies += "org.typelevel" %% "typelevel-scalafix-cats" % "0.5.0"
 
 // Compiler discipline is build-wide (ThisBuild), so the `gate` subproject is held to
 // the same bar — fatal warnings, unused-checking, value-discard — that it enforces.
