@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>July 1914 — a claim-ledger replay</title>
+<style>
+  :root{
+    --bg:#eef0ea; --sea:#d9e2e6; --panel:#faf9f4; --panel2:#f2f1ea;
+    --ink:#1c1b17; --ink2:#565349; --muted:#8a877d; --hair:#d8d5c9; --line:#c6c3b6;
+    --accent:#1d3a5f; --accent-ink:#f5f7fa;
+    --fr:#2a78d6; --it:#1baf7a; --at:#eda100; --ru:#008300; --de:#4a3aa7; --gb:#e34948; --rs:#e87ba4; --be:#eb6834;
+    --cT:#0c8a0c; --cF:#c93a3a; --cN:#8a877d; --cB:#9b3fc9; --amb:#b07c00; --war:#c93a3a;
+    --landA:.16; --landActiveA:.34;
+    --serif:Georgia,'Iowan Old Style','Times New Roman',serif;
+    --mono:ui-monospace,'SF Mono','Cascadia Mono',Consolas,'Liberation Mono',monospace;
+    --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f1317; --sea:#0b1015; --panel:#161b21; --panel2:#11161b;
+      --ink:#e9e7de; --ink2:#b3b0a4; --muted:#7d7a70; --hair:#262c33; --line:#333a43;
+      --accent:#7fa8d9; --accent-ink:#0f1317;
+      --fr:#3987e5; --it:#199e70; --at:#c98500; --ru:#1f9a1f; --de:#9085e9; --gb:#e66767; --rs:#d55181; --be:#d95926;
+      --cT:#2fae2f; --cF:#e05c5c; --cN:#7d7a70; --cB:#c169e8; --amb:#d99e1b; --war:#e05c5c;
+      --landA:.22; --landActiveA:.42;
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#eef0ea; --sea:#d9e2e6; --panel:#faf9f4; --panel2:#f2f1ea;
+    --ink:#1c1b17; --ink2:#565349; --muted:#8a877d; --hair:#d8d5c9; --line:#c6c3b6;
+    --accent:#1d3a5f; --accent-ink:#f5f7fa;
+    --fr:#2a78d6; --it:#1baf7a; --at:#eda100; --ru:#008300; --de:#4a3aa7; --gb:#e34948; --rs:#e87ba4; --be:#eb6834;
+    --cT:#0c8a0c; --cF:#c93a3a; --cN:#8a877d; --cB:#9b3fc9; --amb:#b07c00; --war:#c93a3a;
+    --landA:.16; --landActiveA:.34;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1317; --sea:#0b1015; --panel:#161b21; --panel2:#11161b;
+    --ink:#e9e7de; --ink2:#b3b0a4; --muted:#7d7a70; --hair:#262c33; --line:#333a43;
+    --accent:#7fa8d9; --accent-ink:#0f1317;
+    --fr:#3987e5; --it:#199e70; --at:#c98500; --ru:#1f9a1f; --de:#9085e9; --gb:#e66767; --rs:#d55181; --be:#d95926;
+    --cT:#2fae2f; --cF:#e05c5c; --cN:#7d7a70; --cB:#c169e8; --amb:#d99e1b; --war:#e05c5c;
+    --landA:.22; --landActiveA:.42;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--sans)}
+  .wrap{max-width:1240px;margin:0 auto;padding:1.1rem 1.2rem 3rem}
+  header.masthead{display:flex;flex-wrap:wrap;align-items:baseline;gap:.4rem 1.2rem;border-bottom:2px solid var(--ink);padding:.4rem 0 .7rem;margin-bottom:1rem}
+  header.masthead h1{font:700 1.55rem/1.15 var(--serif);margin:0;letter-spacing:.01em;text-wrap:balance}
+  header.masthead .sub{color:var(--ink2);font-size:.85rem}
+  header.masthead .stamp{margin-left:auto;font:600 .72rem/1 var(--mono);color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+  .grid{display:grid;grid-template-columns:minmax(0,58fr) minmax(0,42fr);gap:.9rem}
+  @media(max-width:980px){.grid{grid-template-columns:minmax(0,1fr)}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;display:flex;flex-direction:column}
+  .panel>.ptitle{display:flex;align-items:baseline;gap:.6rem;padding:.5rem .8rem .45rem;border-bottom:1px solid var(--hair)}
+  .ptitle b{font:700 .78rem/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+  .ptitle span{font-size:.74rem;color:var(--muted)}
+  /* ——— map ——— */
+  #mapbox{background:var(--sea);position:relative}
+  #mapbox svg{display:block;width:100%;height:auto}
+  .country{stroke:var(--ink);stroke-width:.8;stroke-opacity:.35;transition:fill-opacity .35s}
+  .country.neutral{fill:var(--ink);fill-opacity:.05;stroke-opacity:.2}
+  .clabel{font:600 9.5px var(--sans);letter-spacing:.14em;fill:var(--ink);opacity:.62;text-anchor:middle;pointer-events:none}
+  .clabel.small{font-size:8px;letter-spacing:.08em}
+  .cap{fill:var(--ink);stroke:var(--panel);stroke-width:1}
+  .caplabel{font:500 8.5px var(--sans);fill:var(--ink2);text-anchor:middle;pointer-events:none}
+  .arrow{fill:none;stroke-width:1.8}
+  .arrow.war{stroke:var(--war);stroke-width:2.4;marker-end:url(#ah-war)}
+  .arrow.ultimatum{stroke:var(--amb);marker-end:url(#ah-ultimatum)}
+  .arrow.telegram{stroke:var(--accent);stroke-dasharray:5 4;marker-end:url(#ah-telegram)}
+  .arrow.pledge{stroke:var(--ru);stroke-dasharray:2 4;marker-end:url(#ah-pledge)}
+  .pulse{animation:pulse 1.5s ease-out infinite}
+  @keyframes pulse{0%{stroke-width:1;stroke-opacity:.8}100%{stroke-width:14;stroke-opacity:0}}
+  @media(prefers-reduced-motion:reduce){.pulse{animation:none}}
+  #mapnote{position:absolute;left:.7rem;bottom:.6rem;max-width:46%;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:.45rem .6rem;font-size:.76rem;line-height:1.4;color:var(--ink2);box-shadow:0 2px 8px rgba(0,0,0,.12)}
+  #mapnote b{color:var(--ink);font-family:var(--serif)}
+  /* ——— algebra ——— */
+  .algsplit{display:grid;grid-template-columns:minmax(0,46fr) minmax(0,54fr);gap:0;min-height:0}
+  @media(max-width:520px){.algsplit{grid-template-columns:minmax(0,1fr)}}
+  #diamondbox{padding:.4rem .2rem .2rem;border-right:1px solid var(--hair)}
+  #diamondbox svg{display:block;width:100%;height:auto}
+  .dframe{fill:none;stroke:var(--hair);stroke-width:1}
+  .daxis{font:500 8px var(--sans);fill:var(--muted);text-anchor:middle;letter-spacing:.06em}
+  .dcorner{font:700 11px var(--mono);text-anchor:middle}
+  .cmark{transition:transform .5s cubic-bezier(.4,0,.2,1)}
+  @media(prefers-reduced-motion:reduce){.cmark{transition:none}}
+  .cmark circle{stroke:var(--panel);stroke-width:1.4}
+  .cmark text{font:700 7.5px var(--sans);fill:var(--panel);text-anchor:middle;pointer-events:none}
+  .cmark.hot circle{stroke:var(--ink);stroke-width:2}
+  .claimrows{padding:.35rem .55rem .5rem;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+  .crow{display:flex;align-items:center;gap:.5rem;padding:.28rem .45rem;border-radius:5px;cursor:pointer;border:1px solid transparent}
+  .crow:hover{background:var(--panel2)}
+  .crow.sel{border-color:var(--line);background:var(--panel2)}
+  .crow .dot{width:10px;height:10px;border-radius:50%;flex:none}
+  .crow .nm{font-size:.78rem;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chip{font:700 .62rem/1 var(--mono);letter-spacing:.05em;padding:.18rem .38rem;border-radius:4px;flex:none}
+  .chip.cT{background:var(--cT);color:#fff}.chip.cF{background:var(--cF);color:#fff}
+  .chip.cN{background:var(--cN);color:#fff}.chip.cB{background:var(--cB);color:#fff}
+  .chip.gate-sign{background:transparent;color:var(--cT);border:1px solid var(--cT)}
+  .chip.gate-block{background:transparent;color:var(--ink2);border:1px solid var(--line)}
+  .chip.card{background:var(--amb);color:#fff}
+  .chip.sup{background:transparent;border:1px dashed var(--muted);color:var(--ink2)}
+  /* detail */
+  #detail{border-top:1px solid var(--hair);padding:.55rem .75rem .7rem;background:var(--panel2);min-height:170px}
+  #detail h3{margin:.05rem 0 .1rem;font:700 .95rem/1.25 var(--serif)}
+  #detail .q{font-size:.74rem;color:var(--muted);margin-bottom:.45rem}
+  .cand{margin:.35rem 0 .1rem}
+  .cand .cv{font:600 .74rem var(--mono);color:var(--ink);display:flex;align-items:center;gap:.45rem;margin-bottom:.2rem}
+  .cand .cv .struckflag{color:var(--muted);font-weight:500;font-style:italic;font-family:var(--sans)}
+  .chan{display:flex;gap:.35rem;align-items:flex-start;margin:.15rem 0}
+  .chan .cl{font:700 .6rem/1.7 var(--mono);width:34px;flex:none;letter-spacing:.05em}
+  .chan.pro .cl{color:var(--cT)}.chan.con .cl{color:var(--cF)}
+  .toks{display:flex;flex-wrap:wrap;gap:.28rem}
+  .tok{display:inline-flex;align-items:center;gap:.32rem;font-size:.7rem;background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:.14rem .5rem .14rem .2rem;line-height:1.25}
+  .tok .nb{width:15px;height:15px;border-radius:50%;color:#fff;font:700 .58rem/15px var(--mono);text-align:center;flex:none}
+  .tok.struck{opacity:.62}.tok.struck .lb{text-decoration:line-through}
+  .tok.ghost{border-style:dashed}
+  .tok .why{color:var(--muted)}
+  .empty{font-size:.72rem;color:var(--muted);font-style:italic}
+  .gateline{margin-top:.5rem;padding-top:.45rem;border-top:1px dashed var(--hair);display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;font-size:.74rem;color:var(--ink2)}
+  .gateline .mono{font-family:var(--mono);font-size:.68rem}
+  .cws{display:inline-flex;align-items:center;gap:.3rem;font:700 .64rem var(--mono);color:#fff;background:var(--cF);border-radius:4px;padding:.2rem .45rem;letter-spacing:.04em}
+  /* ——— ledger ——— */
+  #ledger{margin-top:.9rem}
+  .scrub{display:flex;align-items:center;gap:.7rem;padding:.55rem .8rem;border-bottom:1px solid var(--hair)}
+  .scrub button{background:var(--accent);color:var(--accent-ink);border:0;border-radius:6px;font:700 .85rem/1 var(--sans);padding:.5rem .8rem;cursor:pointer}
+  .scrub button:disabled{opacity:.4;cursor:default}
+  .scrub button:focus-visible,.crow:focus-visible,.lrow:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .scrub input[type=range]{flex:1;accent-color:var(--accent)}
+  .scrub .pos{font:600 .72rem var(--mono);color:var(--ink2);white-space:nowrap}
+  .ledgrid{display:grid;grid-template-columns:minmax(0,34fr) minmax(0,66fr)}
+  @media(max-width:820px){.ledgrid{grid-template-columns:minmax(0,1fr)}}
+  #loglist{max-height:300px;overflow-y:auto;border-right:1px solid var(--hair)}
+  .lrow{display:flex;gap:.55rem;padding:.4rem .7rem;border-bottom:1px solid var(--hair);cursor:pointer;align-items:baseline}
+  .lrow:hover{background:var(--panel2)}
+  .lrow.cur{background:var(--panel2);box-shadow:inset 3px 0 0 var(--accent)}
+  .lrow.future{opacity:.45}
+  .lrow .d{font:600 .66rem/1.6 var(--mono);color:var(--muted);width:52px;flex:none}
+  .lrow .t{font-size:.78rem}
+  #evdetail{padding:.7rem .95rem .85rem}
+  #evdetail .ed{font:600 .7rem var(--mono);color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+  #evdetail h2{font:700 1.2rem/1.25 var(--serif);margin:.15rem 0 .35rem;text-wrap:balance}
+  #evdetail p{margin:.25rem 0 .5rem;max-width:62ch;color:var(--ink2)}
+  .oplist{display:flex;flex-direction:column;gap:.3rem;margin-top:.4rem}
+  .op{display:flex;flex-wrap:wrap;gap:.45rem;align-items:center;font:500 .72rem var(--mono);background:var(--panel2);border:1px solid var(--hair);border-radius:5px;padding:.34rem .55rem}
+  .op .opk{font-weight:700;letter-spacing:.04em}
+  .op .opk.assert,.op .opk.corroborate{color:var(--cT)}
+  .op .opk.refute{color:var(--cF)}
+  .op .opk.strike{color:var(--cB)}
+  .op .opk.supersede{color:var(--accent)}
+  .op .arrowr{color:var(--muted)}
+  .legendbar{display:flex;flex-wrap:wrap;gap:.4rem .9rem;align-items:center;padding:.5rem .8rem;border-top:1px solid var(--hair);font-size:.7rem;color:var(--ink2)}
+  .legendbar .li{display:inline-flex;align-items:center;gap:.3rem}
+  .legendbar .sw{width:9px;height:9px;border-radius:2px}
+  details.howto{margin:.7rem 0 0;font-size:.8rem;color:var(--ink2)}
+  details.howto summary{cursor:pointer;font-weight:600;color:var(--ink)}
+  details.howto p{max-width:78ch;margin:.4rem 0}
+  .kbd{font:600 .68rem var(--mono);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:.05rem .3rem;background:var(--panel)}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header class="masthead">
+  <h1>July 1914 — a claim-ledger replay</h1>
+  <div class="sub">The outbreak of the First World War as a fold over evidence events, on the claim algebra.</div>
+  <div class="stamp">28 Jun – 4 Aug 1914 · six claims · one ledger</div>
+</header>
+
+<div class="grid">
+  <!-- ══════════ MAP ══════════ -->
+  <section class="panel">
+    <div class="ptitle"><b>The board</b><span>Europe, summer 1914 — actors highlight; wires and armies move per step</span></div>
+    <div id="mapbox">
+      <svg id="map" viewBox="0 0 704 500" role="img" aria-label="Stylized map of Europe in 1914">
+        <defs>
+          <marker id="ah-war" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L8,4 L0,8 z" style="fill:var(--war)"></path>
+          </marker>
+          <marker id="ah-ultimatum" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L8,4 L0,8 z" style="fill:var(--amb)"></path>
+          </marker>
+          <marker id="ah-telegram" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L8,4 L0,8 z" style="fill:var(--accent)"></path>
+          </marker>
+          <marker id="ah-pledge" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L8,4 L0,8 z" style="fill:var(--ru)"></path>
+          </marker>
+        </defs>
+        <g id="countries"></g>
+        <g id="labels"></g>
+        <g id="arrows"></g>
+        <g id="capitals"></g>
+      </svg>
+      <div id="mapnote" hidden></div>
+    </div>
+    <div class="legendbar" id="maplegend"></div>
+  </section>
+
+  <!-- ══════════ ALGEBRA ══════════ -->
+  <section class="panel">
+    <div class="ptitle"><b>The algebra</b><span>position = rendered grade (ν̂, token counts) · badge = structural corner (presence read)</span></div>
+    <div class="algsplit">
+      <div id="diamondbox">
+        <svg id="diamond" viewBox="-16 0 246 230" role="img" aria-label="Belnap bilattice diamond with one marker per claim">
+          <g id="dframe"></g>
+          <g id="dmarks"></g>
+        </svg>
+      </div>
+      <div class="claimrows" id="claimrows"></div>
+    </div>
+    <div id="detail"></div>
+  </section>
+</div>
+
+<!-- ══════════ LEDGER ══════════ -->
+<section class="panel" id="ledger">
+  <div class="ptitle"><b>The decision ledger</b><span>step the fold forward and back — every state above is recomputed from the event prefix</span></div>
+  <div class="scrub">
+    <button id="prev" aria-label="Previous event">◀ Back</button>
+    <button id="next" aria-label="Next event">Forward ▶</button>
+    <input type="range" id="slider" min="0" value="0" aria-label="Event position">
+    <span class="pos" id="pos"></span>
+  </div>
+  <div class="ledgrid">
+    <div id="loglist"></div>
+    <div id="evdetail"></div>
+  </div>
+</section>
+
+<details class="howto">
+  <summary>How to read this</summary>
+  <p>Each ledger entry applies algebra operations to one of six tracked claims: <b>assert / corroborate</b> add a provenance token to a candidate's pro-channel, <b>refute</b> adds to the con-channel, <b>strike</b> withdraws an assertion (absorbing — the token is cleared from pro and retained on the record), and <b>supersede</b> lets a later position govern while the prior is struck and kept as a citable trace. Stepping is a pure re-fold of the event prefix, so back and forward are exact.</p>
+  <p>On the diamond, a marker's <i>position</i> is the rendered grade — a Count-carrier ν̂ over the token stacks — while its corner <i>badge</i> is the structural presence read (<span class="kbd">T</span> pro-only, <span class="kbd">F</span> con-only, <span class="kbd">N</span> neither, <span class="kbd">B</span> both). Rival positive candidates are <b>Ambiguity</b> (cardinality ≥ 2), never a glut: the glut takes con-channel mass. The gate signs only on corner T with exactly one candidate — this replay trivializes the full gate's other two conjuncts (the render threshold θ and verification), so accept reduces to corner = T ∧ cardinality = 1. A <span class="cws">CWS</span> flag marks the moments history signed against a blocked gate. Keys: <span class="kbd">←</span> <span class="kbd">→</span> step.</p>
+</details>
+</div>
+
+<script>
+'use strict';
+/* ————————————————— nations ————————————————— */
+const NATIONS = {
+  FR:{name:'France', color:'var(--fr)'},
+  IT:{name:'Italy', color:'var(--it)'},
+  AT:{name:'Austria-Hungary', color:'var(--at)'},
+  RU:{name:'Russia', color:'var(--ru)'},
+  DE:{name:'Germany', color:'var(--de)'},
+  GB:{name:'Britain', color:'var(--gb)'},
+  RS:{name:'Serbia', color:'var(--rs)'},
+  BE:{name:'Belgium', color:'var(--be)'},
+};
+const CAPS = {
+  GB:{x:168,y:196,label:'London'},
+  FR:{x:214,y:250,label:'Paris'},
+  BE:{x:246,y:212,label:'Brussels'},
+  DE:{x:390,y:181,label:'Berlin'},
+  AT:{x:438,y:262,label:'Vienna'},
+  IT:{x:376,y:382,label:'Rome'},
+  RS:{x:503,y:327,label:'Belgrade'},
+  RU:{x:640,y:52,label:'St Petersburg'},
+  SAR:{x:470,y:345,label:'Sarajevo'},
+  LUX:{x:278,y:238,label:'Lux.'},
+};
+/* low-poly 1914 borders — deliberately board-game stylized */
+const SHAPES = [
+  {id:'GB', pts:'150,64 183,92 172,128 196,162 205,193 186,214 152,221 122,206 136,172 120,140 140,110 126,86'},
+  {id:'IE', neutral:1, pts:'92,132 116,128 122,158 104,182 80,168'},
+  {id:'FR', pts:'168,238 214,226 246,215 262,222 270,240 286,246 278,300 300,332 288,356 240,362 224,372 150,352 158,300 104,258 140,242'},
+  {id:'BE', pts:'246,214 268,204 284,214 278,232 252,230'},
+  {id:'LU', neutral:1, pts:'271,232 283,232 285,243 273,242'},
+  {id:'NL', neutral:1, pts:'252,202 262,180 288,178 296,200 284,212 268,202'},
+  {id:'DE', pts:'286,214 288,178 306,160 330,148 356,152 388,140 440,132 504,130 540,146 524,164 478,170 470,192 490,212 470,220 440,230 416,228 392,236 372,272 330,272 304,248 288,246 278,232 284,214'},
+  {id:'DK', neutral:1, pts:'330,146 336,118 356,112 362,140 356,150'},
+  {id:'AT', pts:'408,212 416,226 440,228 470,218 505,222 560,232 588,240 592,268 566,296 544,326 506,324 490,344 470,362 434,368 412,332 396,318 392,300 372,274 392,238'},
+  {id:'RS', pts:'490,346 503,328 528,338 536,368 520,398 494,392 482,368'},
+  {id:'ME', neutral:1, pts:'468,362 484,366 480,380 464,374'},
+  {id:'AL', neutral:1, pts:'464,376 480,382 486,404 470,410 460,392'},
+  {id:'RU', pts:'544,142 524,164 478,170 470,192 490,212 505,222 560,232 588,240 604,300 704,300 704,16 566,16 616,44 578,62 540,102'},
+  {id:'IT', pts:'288,318 330,302 372,276 392,300 408,330 400,346 428,380 456,408 468,416 446,426 420,404 430,440 414,452 402,420 380,394 374,382 348,352 318,332 296,330'},
+  {id:'CH', neutral:1, pts:'298,268 330,262 340,286 308,296'},
+  {id:'ES', neutral:1, pts:'60,364 148,354 222,372 210,420 120,442 52,412'},
+  {id:'RO', neutral:1, pts:'592,268 660,296 644,338 566,330 546,300 566,296'},
+  {id:'BG', neutral:1, pts:'540,336 644,342 622,384 540,376'},
+  {id:'OT', neutral:1, pts:'560,430 704,410 704,470 560,470'},
+  {id:'SE', neutral:1, pts:'420,16 470,16 452,72 428,108 408,96 424,52'},
+  {id:'NO', neutral:1, pts:'360,90 400,20 416,16 404,60 388,100 368,110'},
+];
+const CLABELS = [
+  {id:'GB',x:158,y:150,t:'BRITAIN'},{id:'FR',x:210,y:300,t:'FRANCE'},
+  {id:'DE',x:380,y:200,t:'GERMANY'},{id:'AT',x:470,y:280,t:'AUSTRIA-HUNGARY',small:1},
+  {id:'RU',x:620,y:170,t:'RUSSIA'},{id:'IT',x:352,y:346,t:'ITALY'},
+  {id:'RS',x:508,y:368,t:'SERBIA',small:1},{id:'BE',x:263,y:224,t:'BE',small:1},
+];
+
+/* ————————————————— claims ————————————————— */
+const CLAIMS = {
+  CHEQ:{label:'The blank cheque’s scope', q:'What did Germany’s 5–6 July pledge to Austria commit?'},
+  SERB:{label:'Serbia’s reply satisfies the ultimatum', q:'Did the 25 July reply meet Austria’s demands?'},
+  MOB:{label:'Russian mobilization', q:'What is Russia actually mobilizing?'},
+  NEUT:{label:'Britain stays neutral', q:'Will Britain stand aside from a continental war?'},
+  ITAL:{label:'Italy fights with the Triple Alliance', q:'Will Italy honor the 1882 alliance?'},
+  BELG:{label:'Belgian neutrality is respected', q:'Will Germany honor the 1839 guarantee it co-signed?'},
+};
+const CORDER = ['CHEQ','SERB','MOB','NEUT','ITAL','BELG'];
+
+/* ops: assert|corroborate -> pro token; refute -> con token; strike -> withdraw token id (absorbing);
+   supersede -> winner candidate governs, losers struck-retained; note -> no state change */
+const EVENTS = [
+ {date:'1839–1912', title:'The standing ledger', actors:['IT','BE','DE','FR','AT'],
+  desc:'Before a shot is fired the ledger already carries the standing commitments — and one of them is already contradictory: Italy is pledged to the Triple Alliance and, secretly since 1902, to neutrality toward France. The Belgian guarantee of 1839 bears Prussia’s own signature.',
+  map:{note:'<b>The standing commitments.</b> Alliances are claims whose verification is deferred — promises awaiting adjudication.'},
+  ops:[
+   {claim:'ITAL', op:'assert', cand:'fights', ch:'pro', id:'triple', n:'AT', label:'Triple Alliance, 1882 (renewed 1912)'},
+   {claim:'ITAL', op:'refute', cand:'fights', id:'accord02', n:'FR', label:'Secret Franco-Italian accord, 1902'},
+   {claim:'BELG', op:'assert', cand:'respected', ch:'pro', id:'t1839', n:'DE', label:'Treaty of London, 1839 — Prussia a signatory'},
+  ]},
+ {date:'28 Jun', title:'Sarajevo', actors:['AT','RS'],
+  desc:'Gavrilo Princip shoots Archduke Franz Ferdinand and Duchess Sophie in Sarajevo. The ledger opens: for a month, everything that follows is claims — pledges, readings, ultimatums, telegrams — not yet armies.',
+  map:{marker:'SAR', note:'<b>The assassination.</b> No tracked claim moves yet; the crisis is about to start writing.'}, ops:[]},
+ {date:'5–6 Jul', title:'The blank cheque', actors:['DE','AT'],
+  desc:'Wilhelm II and Bethmann-Hollweg pledge Germany’s full support for whatever Austria decides. Berlin means a backed, localized punitive action; Vienna hears a license for war. One pledge, two live readings — cardinality two.',
+  map:{arrows:[{from:'DE',to:'AT',kind:'telegram'}], note:'<b>One claim, two readings.</b> This is honest Ambiguity — rival positive candidates, no con-channel mass. Not a glut.'},
+  ops:[
+   {claim:'CHEQ', op:'assert', cand:'localized backing', ch:'pro', id:'chq-b', n:'DE', label:'Berlin’s intent: punitive action, localized'},
+   {claim:'CHEQ', op:'assert', cand:'war license', ch:'pro', id:'chq-v', n:'AT', label:'Vienna’s reading: cover for war'},
+  ], gateNote:{claim:'CHEQ', cws:true, text:'Both capitals act on their own reading — signing through an Ambiguous block.'}},
+ {date:'7 Jul', title:'Vienna chooses the ultimatum', actors:['AT'],
+  desc:'The Austro-Hungarian ministerial council resolves on demands to Serbia framed so stiffly that acceptance is not expected. Vienna’s conduct corroborates its own reading of the cheque.',
+  map:{note:'<b>Acting on a reading.</b> Vienna pours evidence into the candidate it prefers.'},
+  ops:[{claim:'CHEQ', op:'corroborate', cand:'war license', ch:'pro', id:'chq-c', n:'AT', label:'Council resolves on an unacceptable ultimatum'}]},
+ {date:'20–23 Jul', title:'Poincaré at St Petersburg', actors:['FR','RU'],
+  desc:'The French president visits Russia; the alliance is reaffirmed over dinners and reviews. No tracked claim moves — but the wire between Paris and St Petersburg is warm.',
+  map:{arrows:[{from:'FR',to:'RU',kind:'pledge'}]}, ops:[]},
+ {date:'23 Jul', title:'The ultimatum is delivered', actors:['AT','RS'],
+  desc:'Austria hands Belgrade a 48-hour ultimatum — ten demands, including Austrian participation in the Serbian judicial inquiry. The claim slot opens: will the reply satisfy it?',
+  map:{arrows:[{from:'AT',to:'RS',kind:'ultimatum'}], note:'<b>48 hours.</b> The SERB slot opens — empty channels, corner N.'}, ops:[]},
+ {date:'25 Jul', title:'Serbia replies; Giesl leaves within the hour', actors:['RS','AT'],
+  desc:'Serbia accepts or conditionally accepts nearly everything, flatly rejecting only Austrian participation in the judicial inquiry (point 6). Minister Giesl pronounces the reply insufficient and departs Belgrade within thirty minutes — assertion and refutation land the same afternoon.',
+  map:{arrows:[{from:'RS',to:'AT',kind:'telegram'}], note:'<b>Pro and con in one day.</b> The claim is now a glut in the making: told it satisfies, told it does not.'},
+  ops:[
+   {claim:'SERB', op:'assert', cand:'satisfies', ch:'pro', id:'srb-r', n:'RS', label:'The Serbian reply: point 6 alone flatly rejected'},
+   {claim:'SERB', op:'refute', cand:'satisfies', id:'srb-g', n:'AT', label:'Giesl rejects the reply as insufficient'},
+  ]},
+ {date:'26–27 Jul', title:'Grey proposes a conference; Berlin declines', actors:['GB','DE'],
+  desc:'Grey floats a four-power conference on the 26th; Berlin declines the next day — and, reading London’s studied non-commitment as leave to proceed, plans on. The NEUT channels are empty by Grey’s own design; Germany treats the gap as a yes.',
+  map:{arrows:[{from:'GB',to:'DE',kind:'telegram'}], note:'<b>Planning against a gap.</b> Corner N — the gate says Missing. Berlin proceeds anyway.'},
+  ops:[], gateNote:{claim:'NEUT', cws:true, text:'German strategy leans on “Britain stays out” while the claim’s corner is N — a gap read as a yes.'}},
+ {date:'28 Jul', title:'Wilhelm reads the reply — “every cause for war falls away”', actors:['DE'],
+  desc:'The Kaiser finally reads Serbia’s answer and minutes that it is “a capitulation of the most humiliating kind” — every reason for war gone; he proposes Halt-in-Belgrade. A second reader corroborates the pro-channel. The corner does not move: the con-mass stands.',
+  map:{note:'<b>Corroboration cannot un-glut.</b> More pro raises the grade; the presence read still sees both channels.'},
+  ops:[{claim:'SERB', op:'corroborate', cand:'satisfies', ch:'pro', id:'srb-w', n:'DE', label:'Wilhelm’s minute: no cause for war remains'}]},
+ {date:'28 Jul', title:'Austria declares war on Serbia', actors:['AT','RS'],
+  desc:'By telegram, Austria-Hungary declares war — signing its course against a claim its own ally has just corroborated in the other direction. The gate reads Conflict; Vienna signs.',
+  map:{arrows:[{from:'AT',to:'RS',kind:'war'}], note:'<b>Signed against a glut.</b> The first CWS of the war proper.'},
+  ops:[], gateNote:{claim:'SERB', cws:true, text:'Vienna signs war against corner B — the reply both satisfies (Belgrade, Wilhelm) and fails (Giesl) on the record.'}},
+ {date:'29 Jul', title:'Belgrade shelled; Willy and Nicky wire past each other', actors:['AT','RS','DE','RU'],
+  desc:'Austrian monitors shell Belgrade. The Kaiser and the Tsar exchange personal telegrams that cross in transit — each replying to a superseded version of the other’s position. Nicholas assures: measures are defensive, aimed only at Austria.',
+  map:{arrows:[{from:'DE',to:'RU',kind:'telegram'},{from:'RU',to:'DE',kind:'telegram'}], note:'<b>Non-commutative fragment, hours of skew.</b> The telegrams are supersessions racing assertions.'},
+  ops:[{claim:'MOB', op:'assert', cand:'partial', ch:'pro', id:'mob-t', n:'RU', label:'The Tsar’s wire: partial, against Austria only'}]},
+ {date:'29 Jul', title:'Partial mobilization — and rival intelligence', actors:['RU','DE'],
+  desc:'Russia orders partial mobilization in four districts; German intelligence reports measures wider than that. Two candidates now carry pro-mass: partial and general. Cardinality two — Berlin should re-read; its doctrine instead says mobilization is war.',
+  map:{note:'<b>Ambiguity, not conflict.</b> Rival positives on one slot — the honest state of Berlin’s knowledge.'},
+  ops:[
+   {claim:'MOB', op:'corroborate', cand:'partial', ch:'pro', id:'mob-o', n:'RU', label:'Partial mobilization ordered, four districts'},
+   {claim:'MOB', op:'assert', cand:'general', ch:'pro', id:'mob-i', n:'DE', label:'German intelligence: measures exceed “partial”'},
+  ]},
+ {date:'29 Jul', title:'Grey’s warning', actors:['GB','DE'],
+  desc:'Grey tells Lichnowsky privately: if France is drawn in, Britain could not stand aside. The first token lands on NEUT — in the con-channel. Bethmann, the same night, bids for British neutrality in exchange for sparing France’s home territory.',
+  map:{arrows:[{from:'GB',to:'DE',kind:'telegram'}], note:'<b>The gap fills — against.</b> Con-only presence: the corner swings N → F.'},
+  ops:[{claim:'NEUT', op:'refute', cand:'stays neutral', id:'neut-g', n:'GB', label:'Grey: “could not stand aside” if France is attacked'}]},
+ {date:'30 Jul', title:'Grey rejects the neutrality bid', actors:['GB','DE'],
+  desc:'Grey’s telegram to Goschen refuses Bethmann’s offer as a bargain that “cannot for a moment be entertained” — the cabinet itself is still divided, but a second con token lands. Whatever Berlin hopes, the claim it is planning on now reads False on its own record.',
+  map:{arrows:[{from:'GB',to:'DE',kind:'telegram'}]},
+  ops:[{claim:'NEUT', op:'refute', cand:'stays neutral', id:'neut-r', n:'GB', label:'Grey refuses the neutrality bargain'}]},
+ {date:'30 Jul', title:'Russia orders general mobilization', actors:['RU'],
+  desc:'Nicholas yields to Sazonov; the general mobilization order goes out and is public by the 31st. The later position governs: “general” supersedes “partial,” and the prior is struck but stays on the record — a citable trace, not an erasure.',
+  map:{note:'<b>A clean supersession.</b> The one claim in the crisis that resolves exactly as the algebra intends.'},
+  ops:[{claim:'MOB', op:'supersede', winner:'general', id:'mob-g', n:'RU', label:'General mobilization ordered and published'}]},
+ {date:'31 Jul', title:'Kriegsgefahr — two ultimatums', actors:['DE','RU','FR'],
+  desc:'Germany proclaims “imminent danger of war” and issues two ultimatums: Russia must demobilize within twelve hours; France must declare neutrality within eighteen — with a secret instruction, never delivered, to then demand the fortresses of Toul and Verdun as guarantee. Austria orders general mobilization the same day.',
+  map:{arrows:[{from:'DE',to:'RU',kind:'ultimatum'},{from:'DE',to:'FR',kind:'ultimatum'}]}, ops:[]},
+ {date:'1 Aug', title:'Germany declares war on Russia', actors:['DE','RU','FR'],
+  desc:'The ultimatum expires; Germany declares war and mobilizes — France’s general mobilization order goes out the same afternoon, minutes before Germany’s own. The declaration is a derivation: doctrine (mobilization means war) joined with the one cleanly resolved claim on the board — MOB, general.',
+  map:{arrows:[{from:'DE',to:'RU',kind:'war'}], note:'<b>derive: doctrine ⊗ MOB(general).</b> The tragedy is which claim was allowed to resolve first.'}, ops:[]},
+ {date:'1 Aug', title:'The Lichnowsky telegram — a false dawn', actors:['GB','DE'],
+  desc:'Lichnowsky wires that Grey has offered British — and even French — neutrality if Germany refrains in the west. Wilhelm halts the western advance and calls for champagne; Moltke protests the deployment cannot be altered. A pro token lands on a claim already carrying con-mass: a glut, with armies in motion.',
+  map:{arrows:[{from:'GB',to:'DE',kind:'telegram'}], note:'<b>Told both.</b> Pro (Lichnowsky) against con (Grey, the cabinet) — corner B for a few hours of geopolitical vertigo.'},
+  ops:[{claim:'NEUT', op:'assert', cand:'stays neutral', ch:'pro', id:'neut-l', n:'GB', label:'Lichnowsky: Grey offers neutrality if the west is spared'}]},
+ {date:'1 Aug, night', title:'The misunderstanding is withdrawn', actors:['GB','DE'],
+  desc:'George V’s telegram — “there must be some misunderstanding” — and Lichnowsky’s follow-up wire arrive: there was no such offer. The assertion is struck — withdrawal is absorbing, the pro is cleared, and the token stays on the record as struck. “Now you can do what you like,” Wilhelm tells Moltke. The march west resumes.',
+  map:{arrows:[{from:'GB',to:'DE',kind:'telegram'}], note:'<b>strike, not refute.</b> Absorbing: a struck value cannot resurrect. The corner folds back to F.'},
+  ops:[{claim:'NEUT', op:'strike', target:'neut-l', label:'The misunderstanding withdrawn — no offer made'}]},
+ {date:'2 Aug', title:'Luxembourg occupied; ultimatum to Belgium', actors:['DE','BE','GB','FR'],
+  desc:'German troops enter Luxembourg; Brussels receives a twelve-hour ultimatum demanding free passage. Against the 1839 guarantee — co-signed by Prussia — the demand is con-mass on Germany’s own standing promise. Grey, the same day, pledges the Royal Navy to defend the French Channel coast.',
+  map:{arrows:[{from:'DE',to:'BE',kind:'ultimatum'},{from:'GB',to:'FR',kind:'pledge'}], marker:'LUX', note:'<b>A promise meets its violation.</b> Pro (1839) + con (the ultimatum): the betrayal corner.'},
+  ops:[
+   {claim:'BELG', op:'refute', cand:'respected', id:'blg-u', n:'DE', label:'Twelve-hour ultimatum: free passage or war'},
+   {claim:'NEUT', op:'refute', cand:'stays neutral', id:'neut-n', n:'GB', label:'Naval pledge to France — the Channel is covered'},
+  ]},
+ {date:'3 Aug', title:'Belgium refuses; Germany declares war on France; Italy declares neutrality', actors:['BE','DE','FR','IT'],
+  desc:'King Albert refuses passage and appeals to Britain for diplomatic support — the formal appeal to the guarantor powers follows the invasion. Germany declares war on France. And Italy — glutted on the ledger since 1902 — resolves its contradiction by defection: the alliance casus foederis, it announces, has not arisen.',
+  map:{arrows:[{from:'DE',to:'FR',kind:'war'}], note:'<b>The decade-old glut cashes out.</b> The algebra had Italy at corner B since the standing ledger.'},
+  ops:[{claim:'ITAL', op:'refute', cand:'fights', id:'ital-n', n:'IT', label:'Declaration of neutrality: the defensive clause not met'}]},
+ {date:'4 Aug', title:'Belgium invaded — “a scrap of paper”', actors:['DE','BE'],
+  desc:'German columns cross the frontier toward Liège. Bethmann-Hollweg tells the British ambassador he cannot believe London would go to war over “a scrap of paper.” The scrap is a signed claim, and its violation is now demonstrated on the record.',
+  map:{arrows:[{from:'DE',to:'BE',kind:'war'}], note:'<b>Betrayal is a glut</b> — told they would (1839, Prussia’s signature) and shown they did not (the invasion).'},
+  ops:[{claim:'BELG', op:'refute', cand:'respected', id:'blg-i', n:'DE', label:'The invasion — the violation demonstrated'}],
+  gateNote:{claim:'BELG', cws:true, text:'Berlin executes against corner B on its own co-signed guarantee, betting London will not derive war from it.'}},
+ {date:'4 Aug', title:'Britain declares war', actors:['GB','DE'],
+  desc:'London’s ultimatum — withdraw from Belgium — expires at 23:00. Britain declares war on Germany. The entry is a derivation the whole board could have computed: the 1839 commitment joined with its demonstrated violation. NEUT resolves False, corroborated to the end.',
+  map:{arrows:[{from:'GB',to:'DE',kind:'war'}], note:'<b>derive: 1839 ⊗ violation → war.</b> The claim Berlin planned on is closed, against.'},
+  ops:[{claim:'NEUT', op:'refute', cand:'stays neutral', id:'neut-w', n:'GB', label:'Declaration of war, 23:00, 4 August'}]},
+ {date:'Epilogue', title:'The fold, read back', actors:[],
+  desc:'Six claims, one ledger. MOB alone resolved cleanly — by supersession — and it was the trigger. Every other signature of the crisis was made against a blocked gate: the cheque signed through Ambiguity, Vienna through a Glut, Berlin planned on a Gap and executed against False and against its own guarantee’s Glut. Italy’s contradiction, on the books since 1902, resolved by defection. No dice, no hidden draws — all of the variance was in the claims.',
+  map:{note:'<b>The audit.</b> Step back through any decision — the fold is pure, so the replay is exact.'}, ops:[]},
+];
+
+/* ————————————————— pure fold ————————————————— */
+function freshState(){
+  const s={};
+  for(const k of CORDER) s[k]={cands:new Map(), superseded:null};
+  return s;
+}
+function getCand(cl,name){
+  if(!cl.cands.has(name)) cl.cands.set(name,{pro:[],con:[]});
+  return cl.cands.get(name);
+}
+function applyOp(state,op){
+  const cl=state[op.claim];
+  switch(op.op){
+    case 'assert': case 'corroborate':
+      getCand(cl,op.cand).pro.push({id:op.id,n:op.n,label:op.label}); break;
+    case 'refute':
+      getCand(cl,op.cand).con.push({id:op.id,n:op.n,label:op.label}); break;
+    case 'strike':
+      for(const c of cl.cands.values()){
+        const i=c.pro.findIndex(t=>t.id===op.target);
+        if(i>=0){const [t]=c.pro.splice(i,1); t.struck=true; t.strikeWhy=op.label; c.con.push(t);}
+      } break;
+    case 'supersede':{
+      const winner=op.winner;
+      for(const [name,c] of cl.cands){
+        if(name!==winner){ c.pro.forEach(t=>{t.struck=true;}); c.struckAll=true; }
+      }
+      getCand(cl,winner).pro.push({id:op.id,n:op.n,label:op.label});
+      cl.superseded={winner};
+      break;}
+  }
+}
+function stateAt(k){
+  const s=freshState();
+  for(let i=0;i<=k;i++) for(const op of EVENTS[i].ops) applyOp(s,op);
+  return s;
+}
+/* channel totals: struck-all candidates' pro does not count as live pro (retained trace) */
+function totals(cl){
+  /* a superseded (struckAll) candidate is the pair's refuted trace: neither its pro
+     nor its con pollutes the operative's live channels — mirroring the shipped
+     Supersession pair, where the operative signs clean */
+  let pro=0,con=0,liveCands=0;
+  for(const c of cl.cands.values()){
+    if(c.struckAll) continue;
+    pro+=c.pro.length; con+=c.con.length;
+    if(c.pro.length>0) liveCands++;
+  }
+  return {pro,con,card:liveCands};
+}
+function corner(t){
+  if(t.pro===0&&t.con===0)return 'N';
+  if(t.pro>0&&t.con===0)return 'T';
+  if(t.pro===0)return 'F';
+  return 'B';
+}
+function gate(cl){
+  const t=totals(cl);
+  const c=corner(t);
+  if(cl.superseded&&c==='T'&&t.card===1) return {v:'SIGNS',cls:'gate-sign',sup:true};
+  if(c==='N') return {v:'MISSING',cls:'gate-block'};
+  if(c==='B') return {v:'CONFLICT',cls:'gate-block'};
+  if(c==='F') return {v:'REFUTED',cls:'gate-block'};
+  if(t.card>1) return {v:'AMBIGUOUS',cls:'gate-block'};
+  return {v:'SIGNS',cls:'gate-sign'};
+}
+/* Count-carrier render: level(n)=n/(n+1); diamond coords */
+const lvl=n=>n/(n+1);
+function diamondXY(t){
+  const p=lvl(t.pro), c=lvl(t.con);
+  const x=115+(p-c)*92;
+  const y=196-(p+c)*82;
+  return {x,y};
+}
+
+/* ————————————————— static render ————————————————— */
+const svgNS='http://www.w3.org/2000/svg';
+function el(n,attrs,parent){const e=document.createElementNS(svgNS,n);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+function h(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;}
+
+(function drawMap(){
+  const g=document.getElementById('countries'), lg=document.getElementById('labels'), cg=document.getElementById('capitals');
+  for(const s of SHAPES){
+    const p=el('polygon',{points:s.pts,id:'cty-'+s.id},g);
+    p.classList.add('country'); if(s.neutral)p.classList.add('neutral');
+    if(!s.neutral){p.style.fill=NATIONS[s.id].color;p.style.fillOpacity='var(--landA)';}
+  }
+  for(const l of CLABELS){
+    const t=el('text',{x:l.x,y:l.y},lg); t.textContent=l.t;
+    t.classList.add('clabel'); if(l.small)t.classList.add('small');
+  }
+  for(const k in CAPS){
+    const c=CAPS[k];
+    el('circle',{cx:c.x,cy:c.y,r:(k==='SAR'||k==='LUX')?2.4:3,class:'cap',id:'cap-'+k},cg);
+    const t=el('text',{x:c.x,y:c.y-6,class:'caplabel'},cg); t.textContent=c.label;
+  }
+  const leg=document.getElementById('maplegend');
+  for(const k of ['GB','FR','BE','DE','AT','IT','RU','RS']){
+    const li=h('span','li');
+    li.innerHTML=`<span class="sw" style="background:${NATIONS[k].color}"></span>${NATIONS[k].name}`;
+    leg.appendChild(li);
+  }
+  const kinds=[['war','war declared'],['ultimatum','ultimatum'],['telegram','telegram / note'],['pledge','pledge']];
+  for(const [k,lab] of kinds){
+    const li=h('span','li');
+    li.innerHTML=`<svg width="26" height="8" aria-hidden="true"><line x1="1" y1="4" x2="25" y2="4" class="arrow ${k}" style="marker-end:none"></line></svg>${lab}`;
+    leg.appendChild(li);
+  }
+})();
+
+(function drawDiamond(){
+  const f=document.getElementById('dframe');
+  el('polygon',{points:'115,196 207,114 115,32 23,114',class:'dframe'},f);
+  el('line',{x1:115,y1:196,x2:115,y2:32,class:'dframe','stroke-dasharray':'2 3'},f);
+  el('line',{x1:23,y1:114,x2:207,y2:114,class:'dframe','stroke-dasharray':'2 3'},f);
+  const c=(x,y,t,col)=>{const e=el('text',{x,y,class:'dcorner',fill:`var(--${col})`},f);e.textContent=t;};
+  c(115,212,'N','cN'); c(115,24,'B','cB'); c(218,118,'T','cT'); c(12,118,'F','cF');
+  const ax=(x,y,t,rot)=>{const e=el('text',{x,y,class:'daxis',transform:rot?`rotate(${rot} ${x} ${y})`:''},f);e.textContent=t;};
+  ax(115,227,'F ← truth order ≤ₜ → T',0);
+  ax(-6,114,'N ← knowledge order ≤ₖ → B',-90);
+})();
+
+(function buildRows(){
+  const box=document.getElementById('claimrows');
+  for(const k of CORDER){
+    const r=h('div','crow'); r.id='crow-'+k; r.tabIndex=0; r.setAttribute('role','button');
+    r.innerHTML=`<span class="dot" id="dot-${k}"></span><span class="nm">${CLAIMS[k].label}</span><span id="badges-${k}" style="display:flex;gap:.25rem"></span>`;
+    r.addEventListener('click',()=>{selected=k;render();});
+    r.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selected=k;render();}});
+    box.appendChild(r);
+  }
+  const dm=document.getElementById('dmarks');
+  const cols={CHEQ:'var(--de)',SERB:'var(--rs)',MOB:'var(--ru)',NEUT:'var(--gb)',ITAL:'var(--it)',BELG:'var(--be)'};
+  for(const k of CORDER){
+    const g=el('g',{class:'cmark',id:'mark-'+k},dm);
+    el('circle',{r:8,fill:cols[k]},g);
+    const t=el('text',{y:2.6},g); t.textContent=k.slice(0,2);
+    document.getElementById('dot-'+k).style.background=cols[k];
+    g.style.cursor='pointer';
+    g.addEventListener('click',()=>{selected=k;render();});
+  }
+})();
+
+(function buildLog(){
+  const list=document.getElementById('loglist');
+  EVENTS.forEach((ev,i)=>{
+    const r=h('div','lrow'); r.id='lrow-'+i; r.setAttribute('role','button'); r.tabIndex=0;
+    r.innerHTML=`<span class="d">${ev.date}</span><span class="t">${ev.title}</span>`;
+    r.addEventListener('click',()=>{step=i;render();});
+    r.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();step=i;render();}});
+    list.appendChild(r);
+  });
+  const sl=document.getElementById('slider');
+  sl.max=EVENTS.length-1;
+  sl.addEventListener('input',()=>{step=+sl.value;render();});
+  document.getElementById('prev').addEventListener('click',()=>{if(step>0){step--;render();}});
+  document.getElementById('next').addEventListener('click',()=>{if(step<EVENTS.length-1){step++;render();}});
+  document.addEventListener('keydown',e=>{
+    if(e.target.tagName==='INPUT')return;
+    if(e.key==='ArrowLeft'&&step>0){step--;render();}
+    if(e.key==='ArrowRight'&&step<EVENTS.length-1){step++;render();}
+  });
+})();
+
+/* ————————————————— dynamic render ————————————————— */
+let step=0, lastStep=-1, selected='CHEQ';
+const CBADGE={T:'cT',F:'cF',N:'cN',B:'cB'};
+
+function arrowPath(a,b){
+  const A=CAPS[a],B=CAPS[b];
+  const mx=(A.x+B.x)/2, my=(A.y+B.y)/2;
+  const dx=B.x-A.x, dy=B.y-A.y, len=Math.hypot(dx,dy)||1;
+  const off=Math.min(34,len*.22);
+  const cx=mx-dy/len*off, cy=my+dx/len*off;
+  const t=.94;
+  const ex=(1-t)*(1-t)*A.x+2*(1-t)*t*cx+t*t*B.x;
+  const ey=(1-t)*(1-t)*A.y+2*(1-t)*t*cy+t*t*B.y;
+  return `M${A.x},${A.y} Q${cx},${cy} ${ex},${ey}`;
+}
+
+function render(){
+  const ev=EVENTS[step];
+  const state=stateAt(step);
+  /* auto-select the touched claim only when the step changes, so manual selection sticks */
+  if(step!==lastStep){
+    if(ev.ops.length) selected=ev.ops[0].claim;
+    else if(ev.gateNote) selected=ev.gateNote.claim;
+    lastStep=step;
+  }
+
+  /* map */
+  for(const s of SHAPES){
+    if(s.neutral)continue;
+    const p=document.getElementById('cty-'+s.id);
+    p.style.fillOpacity=ev.actors.includes(s.id)?'var(--landActiveA)':'var(--landA)';
+    p.style.strokeOpacity=ev.actors.includes(s.id)?'.7':'.35';
+  }
+  const ag=document.getElementById('arrows'); ag.innerHTML='';
+  (ev.map&&ev.map.arrows||[]).forEach(a=>{
+    el('path',{d:arrowPath(a.from,a.to),class:'arrow '+a.kind},ag);
+  });
+  document.querySelectorAll('.pulse').forEach(e=>e.remove());
+  const pulses=new Set(ev.actors); if(ev.map&&ev.map.marker)pulses.add(ev.map.marker);
+  for(const k of pulses){
+    const c=CAPS[k]; if(!c)continue;
+    el('circle',{cx:c.x,cy:c.y,r:4,fill:'none',stroke:'var(--ink)',class:'pulse'},document.getElementById('capitals'));
+  }
+  const note=document.getElementById('mapnote');
+  if(ev.map&&ev.map.note){note.hidden=false;note.innerHTML=ev.map.note;}else note.hidden=true;
+
+  /* diamond + rows — fan out markers that land on the same point so none is occluded */
+  const pos=CORDER.map(k=>{const t=totals(state[k]);const p=diamondXY(t);return {k,t,x:p.x,y:p.y};});
+  const groups=new Map();
+  for(const p of pos){
+    const key=`${Math.round(p.x)},${Math.round(p.y)}`;
+    if(!groups.has(key))groups.set(key,[]);
+    groups.get(key).push(p);
+  }
+  for(const g of groups.values()) g.forEach((p,i)=>{p.x+=(i-(g.length-1)/2)*11;});
+  for(const p of pos){
+    const k=p.k, t=p.t;
+    const m=document.getElementById('mark-'+k);
+    m.setAttribute('transform',`translate(${p.x} ${p.y})`);
+    m.classList.toggle('hot',k===selected);
+    const g=gate(state[k]);
+    const b=document.getElementById('badges-'+k);
+    const cn=corner(t);
+    let bs=`<span class="chip ${CBADGE[cn]}" title="structural corner">${cn}</span>`;
+    if(t.card>1)bs+=`<span class="chip card" title="candidates with live pro-support">×${t.card}</span>`;
+    if(state[k].superseded)bs+=`<span class="chip sup">SUP</span>`;
+    bs+=`<span class="chip ${g.cls}">${g.v}</span>`;
+    b.innerHTML=bs;
+    document.getElementById('crow-'+k).classList.toggle('sel',k===selected);
+  }
+
+  /* detail card */
+  const cl=state[selected], det=document.getElementById('detail');
+  const t=totals(cl), cn=corner(t), g=gate(cl);
+  let hd=`<h3>${CLAIMS[selected].label}</h3><div class="q">${CLAIMS[selected].q}</div>`;
+  let body='';
+  if(cl.cands.size===0) body=`<div class="empty">No testimony yet — both channels empty. Corner N: the gap.</div>`;
+  for(const [name,c] of cl.cands){
+    const struckAll=c.struckAll;
+    body+=`<div class="cand"><div class="cv">“${name}” ${struckAll?'<span class="struckflag">— struck by supersession, retained on the record</span>':''}</div>`;
+    body+=`<div class="chan pro"><span class="cl">PRO</span><span class="toks">`+
+      (c.pro.length?c.pro.map(tok=>tokHTML(tok,struckAll)).join(''):`<span class="empty">—</span>`)+`</span></div>`;
+    body+=`<div class="chan con"><span class="cl">CON</span><span class="toks">`+
+      (c.con.length?c.con.map(tok=>tokHTML(tok,false)).join(''):`<span class="empty">—</span>`)+`</span></div></div>`;
+  }
+  const gn=(ev.gateNote&&ev.gateNote.claim===selected)?ev.gateNote:null;
+  body+=`<div class="gateline"><span class="mono">corner=${cn} · cardinality=${t.card} · render(Count): pro ${t.pro} / con ${t.con}</span>`+
+    `<span class="chip ${g.cls}">gate: ${g.v}</span>`+
+    (gn&&gn.cws?`<span class="cws">⚠ CWS</span> <span>${gn.text}</span>`:'')+`</div>`;
+  det.innerHTML=hd+body;
+
+  /* ledger */
+  document.querySelectorAll('.lrow').forEach((r,i)=>{
+    r.classList.toggle('cur',i===step);
+    r.classList.toggle('future',i>step);
+  });
+  const cur=document.getElementById('lrow-'+step);
+  if(cur){ /* scroll only the log container — never the viewport */
+    const ll=document.getElementById('loglist');
+    const top=cur.offsetTop-ll.offsetTop;
+    if(top<ll.scrollTop) ll.scrollTop=top;
+    else if(top+cur.offsetHeight>ll.scrollTop+ll.clientHeight) ll.scrollTop=top+cur.offsetHeight-ll.clientHeight;
+  }
+  document.getElementById('slider').value=step;
+  document.getElementById('pos').textContent=`${step+1} / ${EVENTS.length}`;
+  document.getElementById('prev').disabled=step===0;
+  document.getElementById('next').disabled=step===EVENTS.length-1;
+  const ed=document.getElementById('evdetail');
+  let ops='';
+  if(ev.ops.length){
+    ops='<div class="oplist">'+ev.ops.map(o=>{
+      if(o.op==='strike')return `<span class="op"><span class="opk strike">strike</span> ${o.claim} <span class="arrowr">→</span> withdraw “${o.label}” (absorbing; retained on record)</span>`;
+      if(o.op==='supersede')return `<span class="op"><span class="opk supersede">supersede</span> ${o.claim} <span class="arrowr">→</span> “${o.winner}” governs; prior struck &amp; retained</span>`;
+      const ch=o.op==='refute'?'con':'pro';
+      return `<span class="op"><span class="opk ${o.op}">${o.op}</span> ${o.claim}[“${o.cand}”].${ch} <span class="arrowr">⊕</span> <span class="nb" style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${NATIONS[o.n].color};color:#fff;font:700 .55rem/14px var(--mono);text-align:center">${o.n}</span> ${o.label}</span>`;
+    }).join('')+'</div>';
+  }
+  ed.innerHTML=`<div class="ed">${ev.date} · step ${step+1}</div><h2>${ev.title}</h2><p>${ev.desc}</p>${ops}`;
+}
+function tokHTML(tok,struckAll){
+  const struck=tok.struck||struckAll;
+  const col=tok.n?NATIONS[tok.n].color:'var(--muted)';
+  return `<span class="tok${struck?' struck':''}${tok.struck?' ghost':''}" title="${tok.strikeWhy||''}">`+
+    `<span class="nb" style="background:${col}">${tok.n||'—'}</span><span class="lb">${tok.label}</span>`+
+    (tok.struck?`<span class="why">struck</span>`:'')+`</span>`;
+}
+render();
+</script>
+</body>
+</html>
