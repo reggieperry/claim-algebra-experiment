@@ -1,7 +1,11 @@
 // claim-algebra-lab — the falsification experiment for the verifiable claim algebra.
 //
-// Single root module for now. Split into modules (algebra / experiment / gate), each
-// producing a function-named binary, when the second binary is written — not before.
+// Multi-module: `claim-algebra` is the pure, dependency-minimal library (no cats-effect);
+// `extract` is the shared LLM/grounding infra; `workbench` is the credit product; the root
+// module is the lab (the falsification experiment + its credit `pipeline`); `gate` is the
+// independent differential gate. Packages stay `claimalgebra.*` across modules — the module
+// boundary is the sbt directory, and the hard seam is pure-vs-effectful (the library carries
+// no cats-effect and no SDK).
 //
 // Dependency versions are recent-stable at setup; confirm/bump on first `sbt update`.
 
@@ -35,6 +39,13 @@ ThisBuild / scalacOptions ++= Seq(
 ThisBuild / wartremoverWarnings := (if (wartScanMode) Warts.unsafe else Nil)
 ThisBuild / wartremoverErrors := Nil // never fatal — the gate diffs warts, it never gates absolutely
 
+// Determinism is first-class (seeded corpora, a mechanical grader, law/ScalaCheck suites). The
+// single-module build ran fully serial; across several modules sbt parallelizes test TASKS by
+// project, so pin it build-wide — no in-module parallelism, and at most one test task across the
+// whole build at once (the ProvLawsSuite maxSize/thrash rationale).
+ThisBuild / Test / parallelExecution := false
+Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
+
 lazy val catsCore = "org.typelevel" %% "cats-core" % "2.12.0"
 lazy val catsEffect = "org.typelevel" %% "cats-effect" % "3.5.4"
 // The ring hierarchy (Semiring / Rig / CommutativeRig) lives in `org.typelevel:algebra`,
@@ -61,14 +72,79 @@ lazy val algebraLaws = "org.typelevel" %% "algebra-laws" % "2.12.0" % Test
 lazy val disciplineMunit = "org.typelevel" %% "discipline-munit" % "2.0.0" % Test
 lazy val munitCatsEffect = "org.typelevel" %% "munit-cats-effect" % "2.0.0" % Test
 
+// The pure claim algebra — the library. Dependency-minimal (cats-kernel via cats-core, and the
+// `algebra` ring hierarchy for ℕ[X]); NO cats-effect and NO SDK, so the pure-vs-effectful seam is
+// structural rather than aspirational. Everything else depends on it. Its test scope carries the
+// discipline law stack (cats-laws / algebra-laws / discipline-munit) but NOT munit-cats-effect —
+// the core has no `IO` to test.
+lazy val claimAlgebra = (project in file("claim-algebra"))
+  .settings(
+    name := "claim-algebra",
+    libraryDependencies ++= Seq(
+      catsCore,
+      algebra,
+      munit,
+      munitScalacheck,
+      scalacheck,
+      catsLaws,
+      algebraLaws,
+      disciplineMunit
+    )
+  )
+
+// The shared model/grounding infrastructure: the `LlmCall` facade + the Anthropic/OpenAI adapters,
+// the pure `Corpus` grounding primitive, the domain value types, and the extractors. Effectful
+// (cats-effect + both SDKs + Jackson for the DTO carriers). Depended on by both the workbench and
+// the experiment, which is why it is its own module rather than folded into either.
+lazy val extract = (project in file("extract"))
+  .dependsOn(claimAlgebra)
+  .settings(
+    name := "extract",
+    libraryDependencies ++= Seq(
+      catsCore,
+      catsEffect,
+      anthropic,
+      openai,
+      jacksonAnnotations,
+      munit,
+      munitScalacheck,
+      scalacheck,
+      munitCatsEffect
+    )
+  )
+
+// The credit-deal workbench — the live product over real deals. Depends on the library and the
+// shared extract infra; independent of the experiment. The `test->test` edge reuses the library's
+// generators/law helpers (LedgerLawsSuite is checkAll-shaped, so the discipline stack is carried).
+lazy val workbench = (project in file("workbench"))
+  .dependsOn(claimAlgebra % "compile->compile;test->test", extract)
+  .settings(
+    name := "workbench",
+    libraryDependencies ++= Seq(
+      catsCore,
+      catsEffect,
+      anthropic,
+      openai,
+      jacksonAnnotations,
+      munit,
+      munitScalacheck,
+      scalacheck,
+      munitCatsEffect,
+      catsLaws,
+      algebraLaws,
+      disciplineMunit
+    )
+  )
+
+// The lab: the falsification experiment and its credit `pipeline` (experiment-private). Aggregates
+// the whole build so `sbt check` / `test` fan out; depends on the library + extract and reuses the
+// library's test helpers via `test->test`. Does NOT depend on the workbench — the experiment never
+// imports it; the lab and the product are separate bounded contexts.
 lazy val root = (project in file("."))
-  .aggregate(gate)
+  .aggregate(claimAlgebra, extract, workbench, gate)
+  .dependsOn(claimAlgebra % "compile->compile;test->test", extract)
   .settings(
     name := "claim-algebra-lab",
-    // Run test suites sequentially. Determinism is first-class here, and ordered,
-    // single-threaded execution also avoids CPU thrash from many ScalaCheck/law
-    // suites contending at once.
-    Test / parallelExecution := false,
     libraryDependencies ++= Seq(
       catsCore,
       catsEffect,
