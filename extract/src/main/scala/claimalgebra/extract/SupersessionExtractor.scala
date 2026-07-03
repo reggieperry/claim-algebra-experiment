@@ -15,7 +15,12 @@ import claimalgebra.*
   * resolves a `True` supersession and falls through on a `Glut`), so this never puts a value on the
   * wire — only the structural signal a value-only reader cannot represent.
   */
-final class SupersessionExtractor(llm: LlmCall[SupersessionDto], corpus: Corpus, rubric: String):
+final class SupersessionExtractor(
+    llm: LlmCall[SupersessionDto],
+    corpus: Corpus,
+    rubric: String,
+    retractionKind: Option[Kind] = None
+):
 
   /** Ground the two cited spans into the supersession meta-claim, in `IO`. Any call error is the
     * gap (no supersession), fail-closed.
@@ -34,13 +39,14 @@ final class SupersessionExtractor(llm: LlmCall[SupersessionDto], corpus: Corpus,
   private def ground(dto: SupersessionDto): Testimony[Unit] =
     Testimony.single((), groundSpan(dto.supersedeSpan), groundSpan(dto.withdrawSpan))
 
-  // A supersession span is TEMPORAL-RETRACTION evidence (G3): a restatement asserted or withdrawn.
-  // So a contested supersession's con-channel carries that kind, and κ̂ routes the conflict to the
-  // deal lead (Routing). The kind is a pure decoration — it does not change the grounded corner.
+  // The caller may tag each grounded span with an evidence kind (`retractionKind`) so a downstream
+  // reader can route a contested supersession's con-channel to whoever owns that kind. The kind is a
+  // pure decoration injected by the caller (default `None`, so this extractor names no taxonomy); it
+  // never changes the grounded corner.
   private def groundSpan(span: String): Prov =
     Option(span)
       .filter(corpus.containsSpan)
-      .flatMap(s => Lineage.from(s, Kind.TemporalRetraction))
+      .flatMap(s => Lineage.from(s, retractionKind))
       .fold(Prov.zero)(Prov.single)
 
 object SupersessionExtractor:

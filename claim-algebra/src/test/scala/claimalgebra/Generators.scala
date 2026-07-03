@@ -32,17 +32,22 @@ object Generators:
 
   given Cogen[Ev] = Cogen[(Lev, Lev)].contramap(e => (e.pro, e.con))
 
-  val genKind: Gen[Kind] = Gen.oneOf(Kind.values.toList)
-  given Arbitrary[Kind] = Arbitrary(genKind)
+  // Two NEUTRAL test-kinds (plus the un-annotated `None`) — enough to exercise κ̂'s union
+  // non-trivially with no domain taxonomy. `Kind` is an open marker, so the library supplies its
+  // own marks for the kind laws; a domain re-checks over its own closed enum. Case objects satisfy
+  // the value-based equals/hashCode the `Kind` map-key contract requires.
+  case object AlphaKind extends Kind
+  case object BetaKind extends Kind
+  val testKinds: List[Option[Kind]] = List(None, Some(AlphaKind), Some(BetaKind))
 
   // A small token pool so monomials and polynomials REPEAT tokens — that is what makes exponents
   // (joint use) and coefficients (alternative derivation) exceed one, exercising the non-idempotent
-  // carriers. Spanning ids × kinds so the κ̂ kind-reads reach every kind; Lineage.from is the
+  // carriers. Spanning ids × kinds so the κ̂ kind-reads reach each mark; Lineage.from is the
   // validating constructor, so the flatMap drops anything blank (nothing here).
   val validLineages: List[Lineage] =
     for
       id <- List("s1", "s2", "s3", "s4", "s5")
-      kind <- Kind.values.toList
+      kind <- testKinds
       lineage <- Lineage.from(id, kind)
     yield lineage
   val genLineage: Gen[Lineage] = Gen.oneOf(validLineages)

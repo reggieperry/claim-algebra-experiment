@@ -92,10 +92,32 @@ lazy val claimAlgebra = (project in file("claim-algebra"))
     )
   )
 
+// The credit practice's taxonomy — the concrete evidence kinds (`CreditKind`), the desks, and the
+// routing that INTERPRET the library's abstract `Kind` mark. A SIBLING of `extract` (dependsOn the
+// library only — NO `extract -> credit` edge, so the shared grounding infra stays domain-neutral):
+// the exemplar of extending the neutral library from one bounded context. No production consumer
+// today (`SupersessionExtractor` takes the retraction kind by injection, defaulting neutral); a
+// routing path adds `.dependsOn(credit)` when it wires the taxonomy in. `test->test` reuses the
+// library's `Generators`.
+lazy val credit = (project in file("credit"))
+  .dependsOn(claimAlgebra % "compile->compile;test->test")
+  .settings(
+    name := "credit",
+    libraryDependencies ++= Seq(
+      catsCore,
+      algebra,
+      munit,
+      munitScalacheck,
+      scalacheck
+    )
+  )
+
 // The shared model/grounding infrastructure: the `LlmCall` facade + the Anthropic/OpenAI adapters,
 // the pure `Corpus` grounding primitive, the domain value types, and the extractors. Effectful
 // (cats-effect + both SDKs + Jackson for the DTO carriers). Depended on by both the workbench and
-// the experiment, which is why it is its own module rather than folded into either.
+// the experiment, which is why it is its own module rather than folded into either. Domain-neutral:
+// `SupersessionExtractor` takes its retraction kind by injection (default `None`), naming no credit
+// value, so a second practice can reuse this layer.
 lazy val extract = (project in file("extract"))
   .dependsOn(claimAlgebra)
   .settings(
@@ -141,7 +163,7 @@ lazy val workbench = (project in file("workbench"))
 // library's test helpers via `test->test`. Does NOT depend on the workbench — the experiment never
 // imports it; the lab and the product are separate bounded contexts.
 lazy val root = (project in file("."))
-  .aggregate(claimAlgebra, extract, workbench, gate)
+  .aggregate(claimAlgebra, extract, credit, workbench, gate)
   .dependsOn(claimAlgebra % "compile->compile;test->test", extract)
   .settings(
     name := "claim-algebra-lab",

@@ -9,8 +9,8 @@ import Generators.given
   * ℕ[X_K] → (Set[Kind], ∪, ∅): it sends both `+` and `·` to ∪ and both `0` and `1` to ∅, so it is
   * NOT a rig homomorphism (it identifies the two units) — which is exactly why it is a pure read,
   * never a `CommutativeRig` instance and never folded into ν̂. On a carrier, `conflictKinds` reads
-  * it off the con-channel total: the kind-set of a glut's refutation — which desks a conflict
-  * routes to.
+  * it off the con-channel total: the kind-set of a glut's refutation — which kinds of refuting
+  * evidence a conflict carries (a consumer routes those to whoever owns them).
   */
 class KappaSuite extends ScalaCheckSuite:
 
@@ -19,8 +19,8 @@ class KappaSuite extends ScalaCheckSuite:
     assertEquals(Prov.one.kinds, Set.empty[Kind])
   }
 
-  property("κ̂(single(l)) = {l.kind} — a single citation contributes exactly its kind") {
-    forAll((l: Lineage) => Prov.single(l).kinds == Set(l.kind))
+  property("κ̂(single(l)) = l.kind.toSet — a citation contributes its kind, or ∅ if un-annotated") {
+    forAll((l: Lineage) => Prov.single(l).kinds == l.kind.toSet)
   }
 
   property("κ̂(p + q) = κ̂(p) ∪ κ̂(q) — additive-monoid homomorphism") {
@@ -51,16 +51,14 @@ class KappaSuite extends ScalaCheckSuite:
     }
   }
 
-  test("conflictKinds(gap) = ∅ — a gap routes to no desk") {
+  test("conflictKinds(gap) = ∅ — a gap has no conflict kind") {
     assertEquals(Testimony.conflictKinds(Testimony.gap[Int]), Set.empty[Kind])
   }
 
-  test("a refuted figure carries its con-channel kind — the worked routing read") {
-    // A balance-sheet figure refuted by a temporal retraction: the glut's con cites a
-    // TemporalRetraction span, so κ̂ names that kind (slice 3 maps it to the deal-lead desk).
-    val retraction = Lineage.from("notes-withdrawn", Kind.TemporalRetraction)
-    val con = retraction.fold(Prov.zero)(Prov.single)
-    val refuted =
-      Testimony.single(1, Prov.zero, con) // corner False/Glut depending; con cites the kind
-    assertEquals(Testimony.conflictKinds(refuted), Set(Kind.TemporalRetraction))
+  test("a refuted token carries its con-channel kind — the worked read") {
+    // A figure refuted by a con-channel token that carries a kind: κ̂ names that kind (a consumer
+    // then routes it). Uses a neutral test-kind; a domain re-checks the same read over its own enum.
+    val con = Lineage.from("withdrawn", Some(Generators.AlphaKind)).fold(Prov.zero)(Prov.single)
+    val refuted = Testimony.single(1, Prov.zero, con)
+    assertEquals(Testimony.conflictKinds(refuted), Set[Kind](Generators.AlphaKind))
   }

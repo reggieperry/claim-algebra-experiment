@@ -1,25 +1,19 @@
 package claimalgebra
 
-/** The KIND of evidence a citation carries (G3) — a closed set, each member routing a conflict to a
-  * DIFFERENT desk. A pure routing/blame-attribution decoration: it rides a [[Lineage]] token and is
-  * read out of a glut's con-channel by κ̂ ([[Testimony.conflictKinds]]); it is NEVER a rejection
-  * axis and never an input to the gate or the grade (the kind axis is a conservative extension —
-  * `accept` is unchanged by it; foundations: T-kind-conservative-extension,
-  * T-kind-grade-orthogonal).
+/** An abstract evidence-KIND mark carried on a [[Lineage]] token and unioned by κ̂ ([[Prov.kinds]]
+  * / [[Testimony.conflictKinds]]). A pure routing / blame-attribution decoration: it rides a token
+  * and is read out of a glut's con-channel; it is NEVER a rejection axis and never an input to the
+  * gate or the grade (foundations: T-kind-conservative-extension, T-kind-grade-orthogonal).
   *
-  *   - `Extraction` — a figure misread from the document → DATA QUALITY (a recheck).
-  *   - `Definitional` — two defensible readings of a defined term → CREDIT POLICY / legal.
-  *   - `TemporalRetraction` — a restatement asserted then withdrawn → the DEAL LEAD / agent.
-  *   - `Verification` — an independent source refutes the figure → AUDIT. (Distinct from the gate's
-  *     verify axis, which is the claim's boolean self-check; this is a refuting SOURCE on the
-  *     con-channel.)
+  * The library only TAGS and UNIONS marks — it never pattern-matches on one — so it carries no
+  * taxonomy of its own: a consumer supplies its own closed set of marks by extending this trait
+  * (e.g. `enum MyKind extends Kind`). κ̂ returns a `Set[Kind]` of abstract marks; a consumer
+  * narrows it to its own enum where it interprets them.
+  *
+  * CONTRACT: an implementation MUST have value-based `equals`/`hashCode` consistent with `==`,
+  * because a [[Lineage]] is a `Monomial` / `Prov` map key — a mark with reference-only equality
+  * would corrupt those keys and mis-render the grade upward (a fail-open). Every Scala 3 `enum`
+  * case and `case object` satisfies this; do not extend `Kind` with a class using reference
+  * equality.
   */
-enum Kind:
-  case Extraction, Definitional, TemporalRetraction, Verification
-
-object Kind:
-  /** The conservative default: an un-annotated citation is a plain extraction. This is what makes
-    * the kind a conservative widening — every pre-G3 `Lineage.from(id)` resolves to a
-    * default-Extraction token, and erasing the kind recovers the original ℕ[X] behavior.
-    */
-  val Default: Kind = Extraction
+trait Kind

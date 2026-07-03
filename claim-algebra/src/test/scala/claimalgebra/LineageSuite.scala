@@ -18,17 +18,20 @@ class LineageSuite extends FunSuite:
     assertEquals(Lineage.from("  s1  ").map(_.id), Option("s1"))
   }
 
-  test("from defaults the kind to Extraction — the conservative widening (G3)") {
-    assertEquals(Lineage.from("s1").map(_.kind), Option(Kind.Extraction))
+  test("from defaults the kind to None — an un-annotated citation carries no kind") {
+    assertEquals(Lineage.from("s1").flatMap(_.kind), None)
   }
 
-  test("from carries a non-default kind when given one") {
+  test("from carries a kind when given one") {
     assertEquals(
-      Lineage.from("s1", Kind.TemporalRetraction).map(_.kind),
-      Option(Kind.TemporalRetraction)
+      Lineage.from("s1", Some(Generators.AlphaKind)).flatMap(_.kind),
+      Option[Kind](Generators.AlphaKind)
     )
   }
 
   test("same id with different kinds are distinct — map-key sound over (id, kind)") {
-    assertNotEquals(Lineage.from("s1", Kind.Extraction), Lineage.from("s1", Kind.Verification))
+    assertNotEquals(
+      Lineage.from("s1", Some(Generators.AlphaKind)),
+      Lineage.from("s1", Some(Generators.BetaKind))
+    )
   }

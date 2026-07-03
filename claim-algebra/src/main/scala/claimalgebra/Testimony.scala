@@ -164,14 +164,12 @@ object Testimony:
   /** The Belnap corner, read STRUCTURALLY from the channel totals — model-free. */
   def corner[A](t: Testimony[A]): Belnap = Belnap.from(t.provPro.isZero, t.provCon.isZero)
 
-  /** κ̂ on the carrier (G3) — the kind-SET of a glut's refutation, read STRUCTURALLY from the
-    * con-channel total (model-free, the same provenance the corner is read from). `Glut →
-    * Conflict(κ̂)`: this names WHICH KINDS of refuting evidence are present — which desks a
-    * conflict routes to (extraction → data-quality, definitional → credit-policy, temporal →
-    * deal-lead, verification → audit). Empty for a gap or a clean `True` (no con). A pure routing /
-    * blame-attribution read: never an input to the gate or the grade (the kind axis is a
-    * conservative extension). Propagates for free through the provenance algebra (foundations:
-    * T-kind-propagation).
+  /** κ̂ on the carrier — the kind-SET of a glut's refutation, read STRUCTURALLY from the
+    * con-channel total (model-free, the same provenance the corner is read from).
+    * `Glut → Conflict(κ̂)`: this names WHICH KINDS of refuting evidence are present, so a consumer
+    * can route the conflict to whoever owns that kind. Empty for a gap or a clean `True` (no con).
+    * A pure routing / blame-attribution read: never an input to the gate or the grade. Propagates
+    * for free through the provenance algebra (foundations: T-kind-propagation).
     */
   def conflictKinds[A](t: Testimony[A]): Set[Kind] = t.provCon.kinds
 

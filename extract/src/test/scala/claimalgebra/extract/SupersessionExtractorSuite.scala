@@ -1,7 +1,7 @@
 package claimalgebra.extract
 
 import cats.effect.IO
-import claimalgebra.{Belnap, Desk, Routing, Testimony}
+import claimalgebra.{Belnap, Kind, Testimony}
 import munit.CatsEffectSuite
 
 /** The con-channel extractor's grounding, proven hermetically: the corner it produces is decided by
@@ -17,11 +17,20 @@ class SupersessionExtractorSuite extends CatsEffectSuite:
       |The restatement was subsequently withdrawn.""".stripMargin
   )
 
+  // A neutral test-kind injected into the extractor, so the con-channel carries a kind κ̂ can read.
+  // The extractor names no taxonomy of its own — the caller injects it (default `None`).
+  private case object RetractionKind extends Kind
+
   private def stub(supersede: String, withdraw: String): SupersessionExtractor =
     val llm = new LlmCall[SupersessionDto]:
       def call(systemPrompt: String, userMessage: String): IO[Either[CallError, SupersessionDto]] =
         IO.pure(Right(new SupersessionDto(supersede, withdraw)))
-    new SupersessionExtractor(llm, corpus, SupersessionExtractor.defaultRubric)
+    new SupersessionExtractor(
+      llm,
+      corpus,
+      SupersessionExtractor.defaultRubric,
+      Some(RetractionKind)
+    )
 
   test("a grounded supersede span with no withdrawal is a clean supersession (corner True)") {
     stub("superseded by the notes", "").extract.map { t =>
@@ -37,9 +46,9 @@ class SupersessionExtractorSuite extends CatsEffectSuite:
     }
   }
 
-  test("a contested supersession routes to the deal lead — κ̂ reads its temporal-retraction kind") {
+  test("a contested supersession carries the injected kind on its con-channel — κ̂ reads it") {
     stub("superseded by the notes", "The restatement was subsequently withdrawn").extract.map { t =>
-      assertEquals(Routing.route(t), Set(Desk.DealLead)) // TemporalRetraction → DealLead
+      assertEquals(Testimony.conflictKinds(t), Set[Kind](RetractionKind))
     }
   }
 

@@ -3,23 +3,22 @@ package claimalgebra
 import algebra.ring.CommutativeRig
 import cats.kernel.{CommutativeMonoid, Eq}
 
-/** A provenance atom: one lineage citation, carrying the [[Kind]] of evidence it is (G3). An
-  * identifier for now; the pipeline will refine it into a cited source span. A DISTINCT case class
-  * behind a private constructor — not an opaque alias of `String` — so a raw `String` cannot be
-  * passed where a lineage is wanted, and a citation that points nowhere cannot exist. The `kind` is
-  * a pure routing decoration read by κ̂ ([[Testimony.conflictKinds]]); it never affects the gate or
-  * the grade (`nu` keys on the `id`), so it is a CONSERVATIVE widening — every pre-G3 call resolves
-  * to a default-`Extraction` token and behaves exactly as before.
+/** A provenance atom: one lineage citation, optionally carrying the [[Kind]] of evidence it is. An
+  * identifier for now; a consumer refines it into a cited source span. A DISTINCT case class behind
+  * a private constructor — not an opaque alias of `String` — so a raw `String` cannot be passed
+  * where a lineage is wanted, and a citation that points nowhere cannot exist. The optional `kind`
+  * is a pure routing decoration read by κ̂ ([[Testimony.conflictKinds]]); it never affects the gate
+  * or the grade (`nu` keys on the `id`), so it is a CONSERVATIVE decoration — an un-annotated
+  * citation carries no kind (`None`), and κ̂ of it is ∅.
   */
-final case class Lineage private (id: String, kind: Kind)
+final case class Lineage private (id: String, kind: Option[Kind])
 
 object Lineage:
-  /** The only constructor: a non-blank citation id, trimmed, with the evidence kind (default
-    * `Extraction`). Fail-closed — a blank or whitespace-only id is no citation, so it yields `None`
-    * rather than a degenerate `Lineage`. The `kind` default keeps every existing `Lineage.from(id)`
-    * call source-compatible and behavior-identical.
+  /** The only constructor: a non-blank citation id, trimmed, optionally annotated with an evidence
+    * kind (default `None` — un-annotated). Fail-closed — a blank or whitespace-only id is no
+    * citation, so it yields `None` rather than a degenerate `Lineage`.
     */
-  def from(raw: String, kind: Kind = Kind.Default): Option[Lineage] =
+  def from(raw: String, kind: Option[Kind] = None): Option[Lineage] =
     Option.when(raw.trim.nonEmpty)(Lineage(raw.trim, kind))
 
   // Structural over (id, kind) — so two same-id citations of different kinds are distinct map keys.
@@ -140,7 +139,7 @@ object Prov:
       * [[evaluate]] (ν̂), which would corrupt the grade contract. Read off a glut's con-channel it
       * names which KINDS of refutation are present (foundations: T-kappa-additive-homomorphism).
       */
-    def kinds: Set[Kind] = p.support.map(_.kind)
+    def kinds: Set[Kind] = p.support.flatMap(_.kind)
 
     /** Render: the unique semiring homomorphism ν̂ : ℕ[X] → M induced by a token valuation `nu`
       * (claim-algebra.html §3.3). Evaluating the trust model and running the network commute, so
