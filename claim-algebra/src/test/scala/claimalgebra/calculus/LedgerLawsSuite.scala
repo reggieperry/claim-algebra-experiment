@@ -38,7 +38,7 @@ class LedgerLawsSuite extends ScalaCheckSuite:
     "Thm 4.1/4.2 — the fold is total: any event stream resolves to exactly one of four states"
   ) {
     forAll { (events: List[Evidence[Int]]) =>
-      states.contains(Ledger.resolve("slot", events).status)
+      states.contains(Ledger.resolve(events).status)
     }
   }
 
@@ -49,7 +49,7 @@ class LedgerLawsSuite extends ScalaCheckSuite:
     */
   property("Thm 6.2 — non-fabrication: a signed value originates in some event's pro-support") {
     forAll { (events: List[Evidence[Int]]) =>
-      Ledger.resolve("slot", events).value.forall { v =>
+      Ledger.resolve(events).value.forall { v =>
         events.exists {
           case Evidence.Asserted(g) => g.supported.contains(v)
           case Evidence.Superseded(g) => g.supported.contains(v)
@@ -67,6 +67,6 @@ class LedgerLawsSuite extends ScalaCheckSuite:
   property("Thm 5.3 — assertions fold order-independently (the commutative fragment)") {
     forAll { (ts: List[Testimony[Int]]) =>
       val asserts = ts.map(Evidence.Asserted(_))
-      Ledger.resolve("slot", asserts).value == Ledger.resolve("slot", asserts.reverse).value
+      Ledger.resolve(asserts).value == Ledger.resolve(asserts.reverse).value
     }
   }

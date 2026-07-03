@@ -2,9 +2,9 @@ package claimalgebra.calculus
 
 import claimalgebra.*
 
-/** A single graded-evidence event on one (deal, concept) SLOT — the unit of the event/fold model
-  * (the committee's verdict: adopt the event/fold MODEL now, not a streaming runtime). Per-slot
-  * belief is the fold of an ordered `Seq` of these events, and the four-state [[Row]] is a read off
+/** A single graded-evidence event on one SLOT (a subject/attribute pair) — the unit of the
+  * event/fold model (adopt the event/fold MODEL now, not a streaming runtime). Per-slot belief is
+  * the fold of an ordered `Seq` of these events, and the four-state [[Resolution]] is a read off
   * the fold ([[Ledger.resolve]]) — recompute-on-read, no stored status to drift.
   *
   * Each event carries an ALREADY-GROUNDED testimony, so the fold can never bypass the
@@ -12,7 +12,7 @@ import claimalgebra.*
   * evidence that actually grounded, exactly as the grounding layer already decided.
   *
   * Why a `foldLeft`, not a `foldMap(corroborate)`: assertions corroborate and are order-insensitive
-  * (`corroborate` is a commutative monoid), but the amendment/operator decisions are
+  * (`corroborate` is a commutative monoid), but the amendment/supersession decisions are
   * NON-commutative channel transforms — `supersede` strikes the prior to the con-channel and
   * installs a fresh operative, and the algebra keeps that as a `Supersession` PAIR precisely so it
   * never reads as a glut (`Testimony.corner` reads the channel TOTALS, so a struck prior plus a
@@ -26,14 +26,14 @@ enum Evidence[A]:
     */
   case Asserted(grounded: Testimony[A])
 
-  /** A grounded value that SUPERSEDES the current operative — an amendment, or the operator's "set
-    * operative" / "mark supersession". The prior operative is struck to the con-channel and kept on
-    * record; this value governs. If nothing is operative yet (the slot is a gap), it is simply a
-    * fresh assertion — nothing is struck.
+  /** A grounded value that SUPERSEDES the current operative — an amendment, or an explicit "set
+    * operative" / "mark supersession" decision. The prior operative is struck to the con-channel
+    * and kept on record; this value governs. If nothing is operative yet (the slot is a gap), it is
+    * simply a fresh assertion — nothing is struck.
     */
   case Superseded(grounded: Testimony[A])
 
-  /** The current operative is STRUCK with no replacement — a deletion (a covenant removed by
+  /** The current operative is STRUCK with no replacement — a deletion (an item removed by
     * amendment). The struck value is retained on the con-channel for audit; the slot reads Struck.
     */
   case Withdrawn[A]() extends Evidence[A]
@@ -71,10 +71,10 @@ object Ledger:
           Right(Supersession(s.struck, Testimony.strike(s.operative)))
     }
 
-  /** Resolve a slot to its four-state [[Row]] — the recompute-on-read off the folded belief, routed
-    * through the existing fail-closed resolvers ([[BelnapReader.resolve]] /
+  /** Resolve a slot to its structural [[Resolution]] — the recompute-on-read off the folded belief,
+    * routed through the existing fail-closed resolvers ([[BelnapReader.resolve]] /
     * [[BelnapReader.resolveSuperseded]]), so a value signs only if it gate-accepts on its own
     * document.
     */
-  def resolve[A](term: String, events: Seq[Evidence[A]]): Row[A] =
-    belief(events).fold(BelnapReader.resolve(term, _), BelnapReader.resolveSuperseded(term, _))
+  def resolve[A](events: Seq[Evidence[A]]): Resolution[A] =
+    belief(events).fold(BelnapReader.resolve, BelnapReader.resolveSuperseded)
