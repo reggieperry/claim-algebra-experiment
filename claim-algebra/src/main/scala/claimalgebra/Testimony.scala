@@ -161,6 +161,23 @@ object Testimony:
   def supersede[A](superseded: Testimony[A], amendment: Testimony[A]): Supersession[A] =
     Supersession(refute(superseded), amendment)
 
+  /** Token-scoped withdrawal — remove ONE assertion's support (the lineage token `l`) from every
+    * candidate's channels, dropping any candidate left empty (routed through [[of]], so a `(0, 0)`
+    * entry does not linger as an empty-channel ghost). The completion of the retraction op-set
+    * below the whole-testimony [[strike]]: strike MOVES a whole testimony's support to con (so it
+    * gluts a later re-assertion — an absorbing "distrust this slot"); a token withdrawal leaves NO
+    * con-mass, so a fresh assertion of the same value signs clean ("retract this one testimony").
+    * The retained audit trace is the recorded withdrawal EVENT
+    * (`calculus.Evidence.WithdrawnToken`), not a carrier channel — the object keeps its audit in
+    * the event term, not the belief. Well-formedness (token-uniqueness): a lineage id names exactly
+    * one assertion, so a withdrawn token is never reissued; on a collision this OVER-drops
+    * (fail-closed), never resurrects.
+    */
+  def withoutToken[A](a: Testimony[A], l: Lineage): Testimony[A] =
+    of(a.candidates.map { case (v, ch) =>
+      v -> Channels(ch.pro.withoutToken(l), ch.con.withoutToken(l))
+    })
+
   /** The Belnap corner, read STRUCTURALLY from the channel totals — model-free. */
   def corner[A](t: Testimony[A]): Belnap = Belnap.from(t.provPro.isZero, t.provCon.isZero)
 

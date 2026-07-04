@@ -38,6 +38,17 @@ enum Evidence[A]:
     */
   case Withdrawn[A]() extends Evidence[A]
 
+  /** ONE grounded assertion is withdrawn by its lineage token — a TOKEN-scoped retraction (an
+    * amendment struck one order, the rival intel standing), the completion of the retraction op-set
+    * that whole-slot [[Withdrawn]] cannot express. The token leaves both live channels with NO
+    * con-residue ([[Testimony.withoutToken]]), so a fresh assertion of the same value signs —
+    * whereas a whole-slot [[Withdrawn]] gluts it forever. The withdrawn token is retained as the
+    * recorded event (the audit trace lives in the event term, not the belief). Well-formedness: a
+    * lineage id names exactly one assertion (token-uniqueness), so a withdrawn token is never
+    * reissued.
+    */
+  case WithdrawnToken[A](token: Lineage) extends Evidence[A]
+
 object Ledger:
 
   /** A slot's belief: either a plain corroborated position ([[Left]]) or a supersession pair
@@ -69,6 +80,14 @@ object Ledger:
           Left(Testimony.strike(t)) // absorbing: a second Withdrawn keeps it struck (not refute)
         case (Right(s), Evidence.Withdrawn()) =>
           Right(Supersession(s.struck, Testimony.strike(s.operative)))
+        case (Left(t), Evidence.WithdrawnToken(l)) =>
+          // token-scoped: drop just this assertion's support; no con-residue, so a fresh assertion
+          // of the same value signs again (unlike the absorbing whole-slot Withdrawn above)
+          Left(Testimony.withoutToken(t, l))
+        case (Right(s), Evidence.WithdrawnToken(l)) =>
+          // the operative only — the struck prior is channel-blind and never signs, so it is left
+          // untouched (parity with the whole-slot Withdrawn on a Repl belief)
+          Right(Supersession(s.struck, Testimony.withoutToken(s.operative, l)))
     }
 
   /** Resolve a slot to its structural [[Resolution]] — the recompute-on-read off the folded belief,

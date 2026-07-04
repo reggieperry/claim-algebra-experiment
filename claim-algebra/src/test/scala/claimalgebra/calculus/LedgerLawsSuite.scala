@@ -24,7 +24,8 @@ class LedgerLawsSuite extends ScalaCheckSuite:
     Gen.frequency(
       4 -> Arbitrary.arbitrary[Testimony[Int]].map(Evidence.Asserted(_)),
       2 -> Arbitrary.arbitrary[Testimony[Int]].map(Evidence.Superseded(_)),
-      1 -> Gen.const(Evidence.Withdrawn[Int]())
+      1 -> Gen.const(Evidence.Withdrawn[Int]()),
+      1 -> Arbitrary.arbitrary[Lineage].map(Evidence.WithdrawnToken[Int](_))
     )
   )
 
@@ -54,6 +55,7 @@ class LedgerLawsSuite extends ScalaCheckSuite:
           case Evidence.Asserted(g) => g.supported.contains(v)
           case Evidence.Superseded(g) => g.supported.contains(v)
           case Evidence.Withdrawn() => false
+          case Evidence.WithdrawnToken(_) => false // a withdrawal supplies no pro-support
         }
       }
     }

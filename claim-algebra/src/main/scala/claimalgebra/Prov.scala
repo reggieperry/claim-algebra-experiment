@@ -132,6 +132,18 @@ object Prov:
       */
     def support: Set[Lineage] = p.terms.keySet.flatMap(_.exps.keySet)
 
+    /** Token-scoped retraction `∖` — drop every monomial that USED the token `l` (any monomial in
+      * which `l` has a nonzero exponent). A joint derivation through `l` collapses; an independent
+      * monomial for the same value survives. Additive (`(p + q) ∖ l = p∖l + q∖l`) and idempotent,
+      * an `ℕ[X] → ℕ[X∖{l}]` projection — NOT a rig homomorphism, and it need not be: it is applied
+      * per-channel, never through `·`. This is the primitive behind token-scoped withdrawal
+      * ([[Testimony.withoutToken]]): removing ONE assertion's support while rivals stand, distinct
+      * from the whole-testimony [[Testimony.strike]] (which MOVES support to con). Fail-closed on a
+      * token-id collision — it OVER-drops, never resurrects.
+      */
+    def withoutToken(l: Lineage): Prov =
+      Prov.of(p.terms.filterNot { case (m, _) => m.exps.contains(l) })
+
     /** κ̂ — the KIND-set of the citations in this provenance (G3). An additive-monoid homomorphism
       * ℕ[X_K] → (Set[Kind], ∪, ∅): `κ̂(0) = κ̂(1) = ∅`, `κ̂(p + q) = κ̂(p) ∪ κ̂(q)`, and
       * `κ̂(x · y) = κ̂(x) ∪ κ̂(y)` for non-zero factors. It identifies the two units, so it is NOT

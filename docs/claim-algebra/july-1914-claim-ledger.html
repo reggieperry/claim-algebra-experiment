@@ -230,8 +230,14 @@
 
 <details class="howto">
   <summary>How to read this</summary>
-  <p>Each ledger entry applies algebra operations to one of six tracked claims: <b>assert / corroborate</b> add a provenance token to a candidate's pro-channel, <b>refute</b> adds to the con-channel, <b>strike</b> withdraws an assertion (absorbing — the token is cleared from pro and retained on the record), and <b>supersede</b> lets a later position govern while the prior is struck and kept as a citable trace. Stepping is a pure re-fold of the event prefix, so back and forward are exact.</p>
-  <p>On the diamond, a marker's <i>position</i> is the rendered grade — a Count-carrier ν̂ over the token stacks — while its corner <i>badge</i> is the structural presence read (<span class="kbd">T</span> pro-only, <span class="kbd">F</span> con-only, <span class="kbd">N</span> neither, <span class="kbd">B</span> both). Rival positive candidates are <b>Ambiguity</b> (cardinality ≥ 2), never a glut: the glut takes con-channel mass. The gate signs only on corner T with exactly one candidate — this replay trivializes the full gate's other two conjuncts (the render threshold θ and verification), so accept reduces to corner = T ∧ cardinality = 1. A <span class="cws">CWS</span> flag marks the moments history signed against a blocked gate. Keys: <span class="kbd">←</span> <span class="kbd">→</span> step.</p>
+  <p>Each ledger entry applies algebra operations to one of six tracked claims: <b>assert / corroborate</b> add a provenance token to a candidate's pro-channel, <b>refute</b> adds to the con-channel, <b>strike</b> withdraws an assertion (the token is cleared from the live channels and retained on the record as a struck trace), and <b>supersede</b> lets a later position govern while the prior is struck and kept as a citable trace. Stepping is a pure re-fold of the event prefix, so back and forward are exact. This per-token strike is the algebra's <b>WithdrawToken(l)</b> — the token-scoped withdrawal of calculus Definition 2.16, which retracts one assertion (the Tsar's countermanded order) while rival tokens (the partial-mobilization intel) stand, leaving no con-residue; it is distinct from a whole-slot strike, which moves a slot's support to the con-channel so it gluts forever.</p>
+  <p>On the diamond, a marker's <i>position</i> is the rendered grade — a Count-carrier ν̂ over the token stacks — while its corner <i>badge</i> is the structural presence read (<span class="kbd">T</span> pro-only, <span class="kbd">F</span> con-only, <span class="kbd">N</span> neither, <span class="kbd">B</span> both). Rival positive candidates are <b>Ambiguity</b> (cardinality ≥ 2), never a glut: the glut takes con-channel mass. The gate signs only on corner T with exactly one candidate — this replay trivializes the full gate's other two conjuncts (the render threshold θ and verification), so accept reduces to corner = T ∧ cardinality = 1. A <span class="cws">CWS</span> flag marks the moments history signed against a blocked gate — a gate-override. (In the falsification experiment, CWS counts wrong values the gate itself accepts; here the gate is advisory, and sovereigns overrule it.) Keys: <span class="kbd">←</span> <span class="kbd">→</span> step.</p>
+</details>
+
+<details class="howto">
+  <summary>Scope &amp; sources</summary>
+  <p>This is an <b>epistemics replay</b> — the July Crisis read through one formal lens, as a demonstration of the ledger’s states and operations. It is not a causal thesis about the war’s origins: contingency, agency, and structure all did their work in 1914, and the historiographical debates (Fischer to Clark) are untouched here. What the replay claims is narrower — that the epistemic states the actors decided from have names, and that the record supports the names given.</p>
+  <p>Event sequence and particulars follow the standard accounts — Albertini, <i>The Origins of the War of 1914</i>; Clark, <i>The Sleepwalkers</i>; MacMillan, <i>The War That Ended Peace</i>. The operations are those of the companion claim-calculus note. One deliberate triviality: ν̂ here counts tokens and weights no source above another — Vienna corroborating its own reading raises its own grade — which is exactly the trust-model axis July 1914 most strains, and the axis the algebra reserves for per-channel valuations.</p>
 </details>
 </div>
 
@@ -367,12 +373,20 @@ const EVENTS = [
   desc:'Grey tells Lichnowsky privately: if France is drawn in, Britain could not stand aside. The first token lands on NEUT — in the con-channel. Bethmann, the same night, bids for British neutrality in exchange for sparing France’s home territory.',
   map:{arrows:[{from:'GB',to:'DE',kind:'telegram'}], note:'<b>The gap fills — against.</b> Con-only presence: the corner swings N → F.'},
   ops:[{claim:'NEUT', op:'refute', cand:'stays neutral', id:'neut-g', n:'GB', label:'Grey: “could not stand aside” if France is attacked'}]},
+ {date:'29 Jul, evening', title:'The Tsar signs general mobilization', actors:['RU'],
+  desc:'Pressed by Sazonov and the general staff after the shelling of Belgrade, Nicholas authorizes general mobilization; the order goes to the central telegraph office for dispatch. The general candidate gains its principal’s own signature — the marker climbs; the badge holds at Ambiguity.',
+  map:{note:'<b>Pro on the rival candidate.</b> Cardinality is still two — the gate still says Ambiguous.'},
+  ops:[{claim:'MOB', op:'assert', cand:'general', ch:'pro', id:'mob-g0', n:'RU', label:'General mobilization authorized — the order at the telegraph office'}]},
+ {date:'29 Jul, near midnight', title:'— and countermands it within hours', actors:['RU','DE'],
+  desc:'Wilhelm’s telegram lands, warning that military measures would cut across his mediation; Nicholas halts the dispatch — General Dobrorolsky is at the central telegraph office when the countermand arrives — and reverts to partial. Withdrawal is absorbing: the order is cleared from the live channel and kept on the record as a struck trace, which the decision of the 30th cannot erase. Had the countermand held, the one claim the gate ever signed would never have resolved.',
+  map:{note:'<b>strike, on the trigger claim itself.</b> The badge does not move — Ambiguity holds — but the ledger now carries a signed-and-withdrawn general order.'},
+  ops:[{claim:'MOB', op:'strike', target:'mob-g0', label:'The countermand — withdrawn before dispatch'}]},
  {date:'30 Jul', title:'Grey rejects the neutrality bid', actors:['GB','DE'],
   desc:'Grey’s telegram to Goschen refuses Bethmann’s offer as a bargain that “cannot for a moment be entertained” — the cabinet itself is still divided, but a second con token lands. Whatever Berlin hopes, the claim it is planning on now reads False on its own record.',
   map:{arrows:[{from:'GB',to:'DE',kind:'telegram'}]},
   ops:[{claim:'NEUT', op:'refute', cand:'stays neutral', id:'neut-r', n:'GB', label:'Grey refuses the neutrality bargain'}]},
  {date:'30 Jul', title:'Russia orders general mobilization', actors:['RU'],
-  desc:'Nicholas yields to Sazonov; the general mobilization order goes out and is public by the 31st. The later position governs: “general” supersedes “partial,” and the prior is struck but stays on the record — a citable trace, not an erasure.',
+  desc:'Nicholas yields to Sazonov a second time; the general mobilization order goes out and is public by the 31st. The later position governs: “general” supersedes “partial,” and the prior is struck but stays on the record — a citable trace, not an erasure. Beneath it on the record: the order of the 29th, signed and withdrawn.',
   map:{note:'<b>A clean supersession.</b> The one claim in the crisis that resolves exactly as the algebra intends.'},
   ops:[{claim:'MOB', op:'supersede', winner:'general', id:'mob-g', n:'RU', label:'General mobilization ordered and published'}]},
  {date:'31 Jul', title:'Kriegsgefahr — two ultimatums', actors:['DE','RU','FR'],
@@ -410,7 +424,7 @@ const EVENTS = [
   map:{arrows:[{from:'GB',to:'DE',kind:'war'}], note:'<b>derive: 1839 ⊗ violation → war.</b> The claim Berlin planned on is closed, against.'},
   ops:[{claim:'NEUT', op:'refute', cand:'stays neutral', id:'neut-w', n:'GB', label:'Declaration of war, 23:00, 4 August'}]},
  {date:'Epilogue', title:'The fold, read back', actors:[],
-  desc:'Six claims, one ledger. MOB alone resolved cleanly — by supersession — and it was the trigger. Every other signature of the crisis was made against a blocked gate: the cheque signed through Ambiguity, Vienna through a Glut, Berlin planned on a Gap and executed against False and against its own guarantee’s Glut. Italy’s contradiction, on the books since 1902, resolved by defection. No dice, no hidden draws — all of the variance was in the claims.',
+  desc:'Six claims, one ledger. MOB alone resolved cleanly — by supersession — and it was the trigger. Every other signature of the crisis was made against a blocked gate: the cheque signed through Ambiguity, Vienna through a Glut, Berlin planned on a Gap and executed against False and against its own guarantee’s Glut. Italy’s contradiction, on the books since 1902, resolved by defection — and stayed on the books: the alliance was never denounced, and the glut cashed out only in May 1915, when Italy went to war against Austria. No dice, no hidden draws — all of the variance was in the claims (a statement about this replay’s pure fold, not about history’s contingency: the countermanded order of the 29th is the contingency, kept on the record).',
   map:{note:'<b>The audit.</b> Step back through any decision — the fold is pure, so the replay is exact.'}, ops:[]},
 ];
 
@@ -456,10 +470,13 @@ function totals(cl){
   /* a superseded (struckAll) candidate is the pair's refuted trace: neither its pro
      nor its con pollutes the operative's live channels — mirroring the shipped
      Supersession pair, where the operative signs clean */
+  /* likewise a struck token is the withdrawal's retained trace, not live con-mass:
+     strike absorbs (the record keeps it; the channels do not) — refute is the live con op.
+     Without this, a withdrawn-then-superseded order would glut the operative forever. */
   let pro=0,con=0,liveCands=0;
   for(const c of cl.cands.values()){
     if(c.struckAll) continue;
-    pro+=c.pro.length; con+=c.con.length;
+    pro+=c.pro.length; con+=c.con.filter(t=>!t.struck).length;
     if(c.pro.length>0) liveCands++;
   }
   return {pro,con,card:liveCands};
