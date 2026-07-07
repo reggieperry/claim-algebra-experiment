@@ -191,6 +191,19 @@ const GOLDEN: readonly {
       candidateId: candidateId('dog'),
     },
   },
+  {
+    // The librarian's non-convergence flag (librarian-convergence-monitor) — the two STRUCTURAL counts,
+    // NO candidateId and NO reason string. Byte-for-byte the backend WireSuite golden.
+    name: 'convergence_warning',
+    json: '{"seq":29,"timestamp":30,"type":"convergence_warning","roundsWithoutConsolidation":5,"glutPersistence":4}',
+    want: {
+      seq: 29,
+      timestamp: 30,
+      type: 'convergence_warning',
+      roundsWithoutConsolidation: 5,
+      glutPersistence: 4,
+    },
+  },
 ];
 
 describe('decodeEvent', () => {
@@ -300,6 +313,54 @@ describe('decodeEvent', () => {
         timestamp: 28,
         type: 'resurrected',
         candidateId: '',
+      },
+    },
+    {
+      name: 'a convergence_warning with a negative roundsWithoutConsolidation',
+      input: {
+        seq: 29,
+        timestamp: 30,
+        type: 'convergence_warning',
+        roundsWithoutConsolidation: -1,
+        glutPersistence: 4,
+      },
+    },
+    {
+      name: 'a convergence_warning with a non-integer glutPersistence',
+      input: {
+        seq: 29,
+        timestamp: 30,
+        type: 'convergence_warning',
+        roundsWithoutConsolidation: 5,
+        glutPersistence: 2.5,
+      },
+    },
+    {
+      name: 'a convergence_warning with a non-numeric count',
+      input: {
+        seq: 29,
+        timestamp: 30,
+        type: 'convergence_warning',
+        roundsWithoutConsolidation: '5',
+        glutPersistence: 4,
+      },
+    },
+    {
+      name: 'a convergence_warning missing glutPersistence',
+      input: {
+        seq: 29,
+        timestamp: 30,
+        type: 'convergence_warning',
+        roundsWithoutConsolidation: 5,
+      },
+    },
+    {
+      name: 'a convergence_warning missing roundsWithoutConsolidation',
+      input: {
+        seq: 29,
+        timestamp: 30,
+        type: 'convergence_warning',
+        glutPersistence: 4,
       },
     },
     {
@@ -566,6 +627,23 @@ describe('decodeEvent', () => {
         questionId: questionId('q1'),
         seq: 21,
       },
+    });
+  });
+
+  it('admits ZERO convergence counts (a valid structural reading, unlike a 1-based id)', () => {
+    const decoded = decodeEvent({
+      seq: 29,
+      timestamp: 30,
+      type: 'convergence_warning',
+      roundsWithoutConsolidation: 0,
+      glutPersistence: 0,
+    });
+    expect(decoded).toEqual({
+      seq: 29,
+      timestamp: 30,
+      type: 'convergence_warning',
+      roundsWithoutConsolidation: 0,
+      glutPersistence: 0,
     });
   });
 

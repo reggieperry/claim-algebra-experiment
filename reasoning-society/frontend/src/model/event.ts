@@ -129,6 +129,19 @@ export type ReasoningEvent =
       // longer defeats it and it returns to the live board. NO `agentId`, belief-inert exactly as
       // `retired` — a re-fold consequence, never an un-delete (mirrors the Scala `Event.Resurrected`).
       readonly candidateId: CandidateId;
+    })
+  | (EventBase & {
+      readonly type: 'convergence_warning';
+      // The librarian's NON-CONVERGENCE flag (librarian-convergence-monitor): a purely STRUCTURAL
+      // detection that the search is not converging — no candidate consolidating, a persistent glut,
+      // the round budget spent without a signable candidate. It is DETECT-not-DIAGNOSE, so it carries
+      // the two structural COUNTS only and NEVER a `candidateId` or a reason string — the librarian is
+      // non-generative and cannot judge WHICH premise is wrong; the human, who holds the ground truth,
+      // diagnoses. Belief-inert like the lifecycle markers: it moves no hypothesis, changes no gate;
+      // it is a request for the human's help ("reconsider an earlier answer"), never a permission to
+      // guess. NO `agentId` — the librarian emits it, not an agent (mirrors `Event.ConvergenceWarning`).
+      readonly roundsWithoutConsolidation: number;
+      readonly glutPersistence: number;
     });
 
 export type EventType = ReasoningEvent['type'];

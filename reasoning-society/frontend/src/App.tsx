@@ -282,6 +282,7 @@ export function App(): ReactElement {
       <HeaderBar
         gate={belief.gate}
         candidates={belief.candidates}
+        convergence={belief.convergence}
         playhead={playhead}
         total={total}
         connection={live.status}

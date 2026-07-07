@@ -160,9 +160,9 @@ function histoTone(event: ReasoningEvent): string {
       return 'answer';
     case 'gate_abstain':
       return 'missing';
-    // The clarification pair, a recalled definition, and the librarian's retire/resurrect markers are
-    // vocabulary/lifecycle control flow — same band as the question events, belief-inert (never a live
-    // conflict or superseded spike on the histogram).
+    // The clarification pair, a recalled definition, the librarian's retire/resurrect markers, and its
+    // non-convergence flag are vocabulary/lifecycle/health control flow — same band as the question
+    // events, belief-inert (never a live conflict or superseded spike on the histogram).
     case 'question_proposed':
     case 'question_asked':
     case 'clarification_requested':
@@ -170,6 +170,7 @@ function histoTone(event: ReasoningEvent): string {
     case 'definition_remembered':
     case 'retired':
     case 'resurrected':
+    case 'convergence_warning':
       return 'question';
   }
 }

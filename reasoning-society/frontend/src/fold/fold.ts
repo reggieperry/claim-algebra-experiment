@@ -5,6 +5,7 @@ import type {
   BelnapCorner,
   Candidate,
   CandidateId,
+  ConvergenceStatus,
   CurrentQuestion,
   DefinitionClaim,
   GateDecision,
@@ -81,6 +82,11 @@ export function fold(
   const lastChallenges = new Map<QuestionId, Challenge>();
   const definitionsByQuestion = new Map<QuestionId, DefinitionClaim[]>();
   let gate: GateDecision = { kind: 'watching' };
+  // The librarian's non-convergence flag in scope (librarian-convergence-monitor). Belief-inert: a
+  // `convergence_warning` sets it; a later `gate_sign` clears it (the game converged) — so at the end
+  // of the fold it holds the most recent warning with no subsequent sign, or `undefined`. Tracked
+  // alongside `gate`, never touching `accs`, so it moves no candidate.
+  let convergence: ConvergenceStatus | undefined;
   let lastAsked: AskedQuestion | undefined;
 
   for (const event of events) {
@@ -182,6 +188,19 @@ export function fold(
           candidateId: event.candidateId,
           seq: event.seq,
         };
+        // The game converged and signed — clear any standing non-convergence flag (a warning is in
+        // scope only until a subsequent sign). A `gate_abstain` deliberately does NOT clear it:
+        // abstaining-to-budget-exhaustion IS the stuck state the flag exists to surface.
+        convergence = undefined;
+        break;
+      case 'convergence_warning':
+        // Belief-inert (librarian-convergence-monitor): the non-convergence flag moves NO
+        // candidate/belief/gate. It records only the STRUCTURAL evidence of the latest warning — the
+        // two counts, never a candidate or a reason — so the header can surface the human hand-off.
+        convergence = {
+          roundsWithoutConsolidation: event.roundsWithoutConsolidation,
+          glutPersistence: event.glutPersistence,
+        };
         break;
       case 'retired':
       case 'resurrected':
@@ -205,6 +224,7 @@ export function fold(
     candidates,
     cardinality,
     gate,
+    convergence,
     currentQuestion: buildCurrentQuestion(
       lastAsked,
       answers,

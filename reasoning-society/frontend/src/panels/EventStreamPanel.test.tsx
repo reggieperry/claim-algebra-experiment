@@ -143,3 +143,42 @@ describe('EventStreamPanel lifecycle markers', () => {
     expect(screen.getAllByText('dog').length).toBeGreaterThanOrEqual(2);
   });
 });
+
+// The librarian's non-convergence flag (librarian-convergence-monitor) renders in the log as a
+// STRUCTURAL line — the two counts, no candidate name — attributed to the Librarian.
+describe('EventStreamPanel convergence flag', () => {
+  const withWarning: readonly ReasoningEvent[] = [
+    {
+      type: 'assert',
+      agentId: cartographer,
+      candidateId: dog,
+      content: 'dog',
+      seq: 1,
+      timestamp: 1,
+    },
+    {
+      type: 'convergence_warning',
+      roundsWithoutConsolidation: 5,
+      glutPersistence: 4,
+      seq: 2,
+      timestamp: 2,
+    },
+  ];
+
+  it('renders the warning structurally (the counts, no candidate name)', () => {
+    render(
+      <EventStreamPanel
+        events={withWarning}
+        playhead={2}
+        resolveAgent={resolveAgent}
+      />,
+    );
+    // Attributed to the Librarian, which detects the stuck search but does not diagnose it.
+    expect(screen.getByText('Librarian')).toBeInTheDocument();
+    expect(screen.getByText('flags')).toBeInTheDocument();
+    // The detail is the two structural counts — and never a candidate name.
+    const detail = screen.getByText(/search not converging/i);
+    expect(detail).toHaveTextContent(/5 rounds, glut persisting 4/i);
+    expect(detail).not.toHaveTextContent(/dog/i);
+  });
+});

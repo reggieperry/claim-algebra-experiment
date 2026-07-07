@@ -237,6 +237,33 @@
   color: var(--ink-dim);
   font-variant-numeric: tabular-nums;
 }
+/* The librarian's non-convergence flag (librarian-convergence-monitor) — the human hand-off surfaced
+   by the header when the search is structurally stuck. Prominent but NON-ALARMING: the caution amber
+   (--c-conflict) tint, not the red of an error. Present only while flagged (derived, cleared by a
+   sign), so it appears and clears with the fold. Wraps and caps its width so it never blows the header. */
+.header-flag {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  max-width: 30rem;
+  padding: 3px 9px;
+  border: 1px solid var(--c-conflict);
+  border-radius: 4px;
+  background: var(--panel-raise);
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+.header-flag__icon {
+  color: var(--c-conflict);
+}
+.header-flag__msg {
+  color: var(--ink-dim);
+}
+.header-flag__evidence {
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 
 /* Highlight-over-hide: a scoped-out row dims, it is never removed (build2-ui-design §4). */
 .is-dimmed {

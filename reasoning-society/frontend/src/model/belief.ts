@@ -75,6 +75,18 @@ export interface PendingChallenge {
   readonly term: Term;
 }
 
+// The librarian's non-convergence flag as DERIVED state (librarian-convergence-monitor): the two
+// STRUCTURAL counts of the most recent `convergence_warning` in scope at the playhead that has not
+// since been cleared by a `gate_sign`. It carries NO candidate and NO diagnosis — detect-not-diagnose:
+// the librarian flags THAT the search is structurally stuck (no candidate consolidating / a persistent
+// glut), never WHICH answer is wrong; the human, who holds the ground truth, reconsiders an earlier
+// answer. Derived by the fold, stored nowhere — `undefined` when the search is not flagged as stuck
+// (never warned, or a later sign cleared it), so scrubbing re-derives its presence at each playhead.
+export interface ConvergenceStatus {
+  readonly roundsWithoutConsolidation: number;
+  readonly glutPersistence: number;
+}
+
 // The whole fold result at a playhead — what every panel reads. Nothing here is stored between
 // frames; it is recomputed by the fold each render (brief §1).
 export interface BeliefState {
@@ -82,5 +94,10 @@ export interface BeliefState {
   readonly candidates: readonly Candidate[]; // sorted by grade desc, then first-seen
   readonly cardinality: number; // count of live for-candidates (corner === 'resolved')
   readonly gate: GateDecision;
+  // The non-convergence flag in scope at the playhead, or `undefined` when the search is not flagged
+  // as stuck (librarian-convergence-monitor). BELIEF-INERT — it never changes `candidates`/`gate`; it
+  // is a separate structural read the fold tracks alongside the gate, cleared by a later `gate_sign`,
+  // so replay shows it appear at the warning and clear on convergence (scrubbable).
+  readonly convergence: ConvergenceStatus | undefined;
   readonly currentQuestion: CurrentQuestion | undefined;
 }

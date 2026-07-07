@@ -17,6 +17,7 @@ export type {
   BeliefState,
   BelnapCorner,
   Candidate,
+  ConvergenceStatus,
   CurrentQuestion,
   GateDecision,
   PendingChallenge,

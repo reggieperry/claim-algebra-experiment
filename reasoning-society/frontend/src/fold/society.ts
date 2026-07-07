@@ -63,6 +63,7 @@ function agentOf(event: ReasoningEvent): AgentId | undefined {
     case 'gate_sign':
     case 'retired':
     case 'resurrected':
+    case 'convergence_warning':
       return undefined;
   }
 }

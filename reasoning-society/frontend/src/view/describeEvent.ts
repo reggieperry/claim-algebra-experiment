@@ -29,9 +29,10 @@ export function agentOf(event: ReasoningEvent): AgentId | undefined {
     case 'gate_sign':
     case 'retired':
     case 'resurrected':
+    case 'convergence_warning':
       // The oracle's answer, the human's challenge, a recalled definition, the gate's decisions, and
-      // the librarian's lifecycle markers carry no agent — the retirement is a structural fact about
-      // the log, not one agent's move.
+      // the librarian's lifecycle + non-convergence markers carry no agent — the flag is a structural
+      // fact about the log the librarian detected, not one agent's move.
       return undefined;
   }
 }
@@ -123,6 +124,15 @@ export function describeEvent(
     case 'resurrected':
       // The librarian restores a hypothesis that regained live support (§B, recovery).
       return { actor: 'Memory', verb: 'restores', detail: event.candidateId };
+    case 'convergence_warning':
+      // The librarian's non-convergence flag (librarian-convergence-monitor) — rendered STRUCTURALLY
+      // from the two counts, NEVER a candidate name or a diagnosis of which answer is wrong. Attributed
+      // to the Librarian, which DETECTS that the search is stuck without judging WHY (the human does).
+      return {
+        actor: 'Librarian',
+        verb: 'flags',
+        detail: `search not converging — ${event.roundsWithoutConsolidation.toString()} rounds, glut persisting ${event.glutPersistence.toString()}`,
+      };
     default:
       return assertNever(event);
   }

@@ -33,6 +33,21 @@ function positiveIntField(
     : null;
 }
 
+// A NON-NEGATIVE-INTEGER field — the shape a structural COUNT takes on the wire (rounds-without-
+// consolidation, glut-persistence on the convergence flag). Rejects a fraction, a `NaN`/`Infinity`,
+// and a negative, so a display lie (a count of "-1" or "2.5") never reaches the header; ZERO is
+// admitted (a count of zero is a valid structural reading — distinct from `positiveIntField`, which
+// guards a 1-based id/seq that cannot be zero).
+function nonNegativeIntField(
+  obj: Record<string, unknown>,
+  key: string,
+): number | null {
+  const value = obj[key];
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0
+    ? value
+    : null;
+}
+
 // A plain string field — `content` / `note` / `reason` may be empty, so emptiness is not rejected here.
 function stringField(obj: Record<string, unknown>, key: string): string | null {
   const value = obj[key];
@@ -317,6 +332,23 @@ export function decodeEvent(json: unknown): ReasoningEvent | null {
       return candidate === null
         ? null
         : { ...base, type: 'resurrected', candidateId: candidateId(candidate) };
+    }
+    case 'convergence_warning': {
+      // The librarian's non-convergence flag — the two STRUCTURAL counts, both finite non-negative
+      // integers, and NOTHING else (no candidateId, no reason string, matching Wire.scala's golden).
+      // A negative, fractional, or absent count is a lie about the structural reading, so it fails the
+      // whole frame closed rather than reaching the header as a displayed count.
+      const rounds = nonNegativeIntField(json, 'roundsWithoutConsolidation');
+      const glut = nonNegativeIntField(json, 'glutPersistence');
+      if (rounds === null || glut === null) {
+        return null;
+      }
+      return {
+        ...base,
+        type: 'convergence_warning',
+        roundsWithoutConsolidation: rounds,
+        glutPersistence: glut,
+      };
     }
     default:
       // An unrecognized discriminator is not a frame we understand — reject it.

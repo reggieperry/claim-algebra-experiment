@@ -460,3 +460,115 @@ describe('fold — a recalled definition is belief-inert', () => {
     expect(fold(events, 3).currentQuestion?.definitions).toEqual([]);
   });
 });
+
+// The librarian's non-convergence flag (librarian-convergence-monitor) — belief-inert, and derived
+// from the fold at the playhead (no stored flag), so replay shows it appear at the warning and clear
+// on convergence. The flag carries the two STRUCTURAL counts only; the fold never reads a candidate.
+describe('fold — the convergence flag is belief-inert and derived', () => {
+  it('appending a convergence_warning leaves candidates, cardinality, and gate unchanged', () => {
+    fc.assert(
+      fc.property(genLog, (base) => {
+        const extended: readonly ReasoningEvent[] = [
+          ...base,
+          {
+            seq: base.length + 1,
+            timestamp: 0,
+            type: 'convergence_warning',
+            roundsWithoutConsolidation: 5,
+            glutPersistence: 4,
+          },
+        ];
+        const baseState = fold(base, base.length);
+        const extendedState = fold(extended, extended.length);
+        // Belief-inert: no candidate, no cardinality, no gate change — only the separate flag moves.
+        expect(extendedState.candidates).toEqual(baseState.candidates);
+        expect(extendedState.cardinality).toBe(baseState.cardinality);
+        expect(extendedState.gate).toEqual(baseState.gate);
+      }),
+      { seed: 4242, numRuns: 200 },
+    );
+  });
+
+  // A stuck game: two rivals asserted then each refuted (a churning glut, nothing consolidating), and
+  // the librarian flags non-convergence. No gate_sign follows, so the flag stands.
+  const stuck: readonly ReasoningEvent[] = log([
+    { type: 'assert', agentId: a1, candidateId: c1, content: 'fossil' },
+    { type: 'assert', agentId: a2, candidateId: c2, content: 'amber' },
+    { type: 'refute', agentId: a2, candidateId: c1, note: 'no' },
+    { type: 'refute', agentId: a1, candidateId: c2, note: 'no' },
+    {
+      type: 'convergence_warning',
+      roundsWithoutConsolidation: 5,
+      glutPersistence: 4,
+    },
+  ]);
+
+  it('a warning in scope with no later sign surfaces the structural counts', () => {
+    const state = fold(stuck, stuck.length);
+    expect(state.convergence).toEqual({
+      roundsWithoutConsolidation: 5,
+      glutPersistence: 4,
+    });
+  });
+
+  it('the flag is a STRUCTURAL count only — it carries no candidate and no reason', () => {
+    const state = fold(stuck, stuck.length);
+    // The derived flag's whole surface is the two counts — proving detect-not-diagnose: no candidateId,
+    // no reason string could reach a reader from here.
+    expect(Object.keys(state.convergence ?? {}).sort()).toEqual([
+      'glutPersistence',
+      'roundsWithoutConsolidation',
+    ]);
+  });
+
+  it('a later gate_sign clears the flag (the game converged)', () => {
+    const signed: readonly ReasoningEvent[] = [
+      ...stuck,
+      { seq: 6, timestamp: 6, type: 'gate_sign', candidateId: c1 },
+    ];
+    expect(fold(signed, signed.length).convergence).toBeUndefined();
+  });
+
+  it('a gate_abstain does NOT clear the flag (abstain-to-exhaustion IS the stuck state)', () => {
+    const abstained: readonly ReasoningEvent[] = [
+      ...stuck,
+      { seq: 6, timestamp: 6, type: 'gate_abstain', reason: 'budget spent' },
+    ];
+    expect(fold(abstained, abstained.length).convergence).toEqual({
+      roundsWithoutConsolidation: 5,
+      glutPersistence: 4,
+    });
+  });
+
+  it('is absent before the warning seq and present at/after it — derived, not stored (scrubbable)', () => {
+    // Before the warning (playhead 4) the flag is absent; at the warning (playhead 5) it appears —
+    // re-derived from the prefix at each playhead, never carried across.
+    expect(fold(stuck, 4).convergence).toBeUndefined();
+    expect(fold(stuck, 5).convergence).toEqual({
+      roundsWithoutConsolidation: 5,
+      glutPersistence: 4,
+    });
+  });
+
+  it('a fresh warning after a sign re-arms the flag (the latest warning with no later sign)', () => {
+    const reArmed: readonly ReasoningEvent[] = log([
+      { type: 'assert', agentId: a1, candidateId: c1, content: 'x' },
+      {
+        type: 'convergence_warning',
+        roundsWithoutConsolidation: 3,
+        glutPersistence: 2,
+      },
+      { type: 'gate_sign', candidateId: c1 },
+      {
+        type: 'convergence_warning',
+        roundsWithoutConsolidation: 6,
+        glutPersistence: 5,
+      },
+    ]);
+    // The sign cleared the first warning; the second re-arms with its own counts.
+    expect(fold(reArmed, reArmed.length).convergence).toEqual({
+      roundsWithoutConsolidation: 6,
+      glutPersistence: 5,
+    });
+  });
+});
