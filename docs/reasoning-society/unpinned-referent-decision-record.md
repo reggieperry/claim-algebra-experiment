@@ -34,7 +34,7 @@ case only. A gluted concept-slot conjoined by `⊗ₖ` does not block — it lau
 con-channels by the truth-meet `∧ₜ` (`Testimony.truthMeet`), or gate each concept-slot independently
 before signing the composite, and the `⊗ₖ`+6.7 justification for the glut case must be struck.
 
-## The load-bearing finding — `⊗ₖ` launders a gluted concept-slot (confirmed three ways)
+## The decisive finding — `⊗ₖ` launders a gluted concept-slot (confirmed three ways)
 
 The hypothesis that decided the evaluation: `⊗ₖ` is the **knowledge-meet**, and the glut (`Both`) is the
 knowledge-order top, so `glut ⊗ₖ x = x` — the glut is *absorbed*, not propagated. Confirmed against source:
