@@ -37,9 +37,8 @@ describe('definitionsOf', () => {
       {
         term: term('alive'),
         meaning: 'a living creature currently alive',
-        agent: a1,
-        questionId: qa,
         establishedSeq: 1,
+        origin: { agent: a1, questionId: qa },
       },
     ]);
   });
@@ -102,9 +101,8 @@ describe('definitionsOf', () => {
     expect(derived[0]).toEqual({
       term: term('alive'),
       meaning: 'a living creature currently alive',
-      agent: a2,
-      questionId: qa,
       establishedSeq: 3,
+      origin: { agent: a2, questionId: qa },
     });
   });
 
@@ -118,14 +116,14 @@ describe('definitionsOf', () => {
       },
     ]);
     // A recalled definition (persistent memory) shows in the definitions list; its provenance is the
-    // ORIGIN (the agent/question that first established it), its seek target its birth index here.
+    // ORIGIN (the game/agent/question that first established it — gameId present), its seek target its
+    // birth index here.
     expect(definitionsOf(events, events.length)).toEqual([
       {
         term: term('alive'),
         meaning: 'a living creature currently alive',
-        agent: a1,
-        questionId: qa,
         establishedSeq: 1,
+        origin: { agent: a1, questionId: qa, gameId: 1 },
       },
     ]);
   });
@@ -147,14 +145,54 @@ describe('definitionsOf', () => {
       },
     ]);
     const derived = definitionsOf(events, events.length);
-    // One row, at the recalled term's first-seen position, carrying the THIS-GAME meaning + provenance.
+    // One row, at the recalled term's first-seen position, carrying the THIS-GAME meaning + provenance
+    // (gameId ABSENT — the current game's exchange supersedes the carried one).
     expect(derived).toEqual([
       {
         term: term('alive'),
         meaning: 'this game: a living creature currently alive',
-        agent: a2,
-        questionId: qa,
         establishedSeq: 2,
+        origin: { agent: a2, questionId: qa },
+      },
+    ]);
+  });
+
+  it('challenge-a-remembered: the this-game meaning is current, the recalled origin stays attributable by scrub', () => {
+    // The challenge-a-remembered-definition payoff (two-tier-reset-design §Challenging): a fresh game
+    // seeds a recalled def; the human challenges the term; the proposer redefines it this game.
+    const events = log([
+      {
+        type: 'definition_remembered',
+        term: term('alive'),
+        meaning: 'recalled: any living tissue',
+        origin: { gameId: 1, agentId: a1, questionId: qa, seq: 9 },
+      },
+      {
+        type: 'definition_given',
+        agentId: a2,
+        questionId: qa,
+        term: term('alive'),
+        meaning: 'this game: a living creature currently alive',
+      },
+    ]);
+    // At the head: the CURRENT meaning is the this-game one (latest-wins), attributed to this game
+    // (gameId absent) — no stale "recalled" badge over a superseded definition.
+    expect(definitionsOf(events, events.length)).toEqual([
+      {
+        term: term('alive'),
+        meaning: 'this game: a living creature currently alive',
+        establishedSeq: 2,
+        origin: { agent: a2, questionId: qa },
+      },
+    ]);
+    // The recalled origin STAYS ATTRIBUTABLE: scrub back to before the redefinition and the recalled
+    // definition — with its game-1 provenance intact — is what the panel shows (the trace is retained).
+    expect(definitionsOf(events, 1)).toEqual([
+      {
+        term: term('alive'),
+        meaning: 'recalled: any living tissue',
+        establishedSeq: 1,
+        origin: { agent: a1, questionId: qa, gameId: 1 },
       },
     ]);
   });

@@ -38,7 +38,8 @@ export function DefinitionsPanel({
               key={definition.term}
               definition={definition}
               dimmed={
-                selectedAgent !== null && definition.agent !== selectedAgent
+                selectedAgent !== null &&
+                definition.origin.agent !== selectedAgent
               }
               onSeek={onSeek}
               resolveAgent={resolveAgent}
@@ -63,11 +64,22 @@ function DefinitionRow({
   onSeek,
   resolveAgent,
 }: DefinitionRowProps): ReactElement {
+  // The §5 audit surface: a RECALLED definition (`origin.gameId` present) shows where it came from —
+  // "recalled from game N". Rendered from `origin.gameId` (the ORIGIN game), NEVER the recalled event's
+  // own `seq`, so the human sees the true cross-game provenance of the current vocabulary.
+  const recalledGame = definition.origin.gameId;
   return (
     <li className={`def-row${dimmed ? ' is-dimmed' : ''}`}>
       <div className="def-row__head">
         <span className="def-row__term">{definition.term}</span>
-        <span className="def-row__by">by {resolveAgent(definition.agent)}</span>
+        {recalledGame !== undefined ? (
+          <span className="def-row__recalled">
+            recalled from game {recalledGame}
+          </span>
+        ) : null}
+        <span className="def-row__by">
+          by {resolveAgent(definition.origin.agent)}
+        </span>
       </div>
       <p className="def-row__meaning">{definition.meaning}</p>
       <button

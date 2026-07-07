@@ -418,6 +418,72 @@ describe('decodeEvent', () => {
         origin: { agentId: 'a2', questionId: 'q1', seq: Number.NaN },
       },
     },
+    {
+      name: 'a definition_remembered whose origin seq is zero (≤ 0)',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'definition_remembered',
+        term: 'alive',
+        meaning: 'm',
+        origin: { agentId: 'a2', questionId: 'q1', seq: 0 },
+      },
+    },
+    {
+      name: 'a definition_remembered whose origin seq is negative',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'definition_remembered',
+        term: 'alive',
+        meaning: 'm',
+        origin: { agentId: 'a2', questionId: 'q1', seq: -3 },
+      },
+    },
+    {
+      name: 'a definition_remembered whose origin seq is a non-integer',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'definition_remembered',
+        term: 'alive',
+        meaning: 'm',
+        origin: { agentId: 'a2', questionId: 'q1', seq: 1.5 },
+      },
+    },
+    {
+      name: 'a definition_remembered whose origin gameId is zero (≤ 0)',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'definition_remembered',
+        term: 'alive',
+        meaning: 'm',
+        origin: { gameId: 0, agentId: 'a2', questionId: 'q1', seq: 21 },
+      },
+    },
+    {
+      name: 'a definition_remembered whose origin gameId is negative',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'definition_remembered',
+        term: 'alive',
+        meaning: 'm',
+        origin: { gameId: -1, agentId: 'a2', questionId: 'q1', seq: 21 },
+      },
+    },
+    {
+      name: 'a definition_remembered whose origin gameId is a non-integer',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'definition_remembered',
+        term: 'alive',
+        meaning: 'm',
+        origin: { gameId: 2.5, agentId: 'a2', questionId: 'q1', seq: 21 },
+      },
+    },
   ];
 
   it.each(malformed)('rejects $name as null', ({ input }) => {

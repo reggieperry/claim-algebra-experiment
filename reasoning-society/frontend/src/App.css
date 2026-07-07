@@ -187,6 +187,43 @@
   font-size: 0.7rem;
   color: var(--c-missing);
 }
+/* Full Reset — the destructive sibling of New game (clears learned definitions too), armed by a brief
+   inline confirm. Tinted toward the warning hue so the heavier gesture reads as heavier. */
+.header-fullreset {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.header-fullreset__arm,
+.header-fullreset__confirm,
+.header-fullreset__cancel {
+  padding: 4px 10px;
+  border: 1px solid var(--frame);
+  border-radius: 4px;
+  background: var(--panel-raise);
+  color: var(--ink-dim);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease;
+}
+.header-fullreset__arm:hover:not(:disabled),
+.header-fullreset__confirm:hover:not(:disabled) {
+  border-color: var(--c-missing);
+  color: var(--ink);
+}
+.header-fullreset__confirm {
+  border-color: var(--c-missing);
+  color: var(--c-missing);
+}
+.header-fullreset__arm:disabled,
+.header-fullreset__confirm:disabled,
+.header-fullreset__cancel:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 .header-gate {
   font-size: 0.72rem;
   color: var(--ink-dim);
@@ -933,6 +970,16 @@
   font-size: 0.74rem;
   font-weight: 600;
   color: #b08cff;
+}
+.def-row__recalled {
+  font-size: 0.56rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--c-rival);
+  border: 1px solid var(--frame);
+  border-radius: 3px;
+  padding: 0 4px;
+  white-space: nowrap;
 }
 .def-row__by {
   margin-left: auto;

@@ -125,9 +125,9 @@ export function fold(
         const claim: DefinitionClaim = {
           term: event.term,
           meaning: event.meaning,
-          agent: event.agentId,
-          questionId: event.questionId,
           establishedSeq: event.seq,
+          // A this-game exchange — provenance is the current game, so `origin.gameId` is ABSENT.
+          origin: { agent: event.agentId, questionId: event.questionId },
         };
         const existing = definitionsByQuestion.get(event.questionId) ?? [];
         existing.push(claim);

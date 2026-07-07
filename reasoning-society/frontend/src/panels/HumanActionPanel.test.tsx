@@ -20,9 +20,8 @@ const resolveAgent = (id: AgentId): string =>
 const aliveDefinition: DefinitionClaim = {
   term: term('alive'),
   meaning: 'a living creature currently alive',
-  agent: proposer,
-  questionId: qAlive,
   establishedSeq: 21,
+  origin: { agent: proposer, questionId: qAlive },
 };
 
 // A current question with no clarification outstanding — the baseline open turn.

@@ -20,6 +20,19 @@ function numberField(obj: Record<string, unknown>, key: string): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+// A POSITIVE-INTEGER field — the shape a 1-based counter (a game id, an event seq) takes on the wire.
+// Rejects a fraction, a zero, and a negative, so a display-robustness lie (a badge reading "game 0" or
+// "game 2.5") never reaches the audit surface. Used for the `origin` provenance the badge renders from.
+function positiveIntField(
+  obj: Record<string, unknown>,
+  key: string,
+): number | null {
+  const value = obj[key];
+  return typeof value === 'number' && Number.isInteger(value) && value > 0
+    ? value
+    : null;
+}
+
 // A plain string field — `content` / `note` / `reason` may be empty, so emptiness is not rejected here.
 function stringField(obj: Record<string, unknown>, key: string): string | null {
   const value = obj[key];
@@ -64,16 +77,18 @@ function governingTerms(raw: unknown): readonly Term[] | null {
 }
 
 // The nested `origin` of a `definition_remembered` frame (two-tier-reset-design) — untrusted, so
-// every field is validated. `agentId` / `questionId` are non-blank ids, `seq` a finite number, and
-// `gameId` is OPTIONAL: absent (a not-yet-stamped provenance) omits the key; present must be a finite
-// number, else the whole frame fails closed. Mirrors the backend `Wire.originJson` shape.
+// every field is validated. `agentId` / `questionId` are non-blank ids; `seq` and `gameId` are the
+// provenance the "recalled from game N" badge renders from, so both are tightened to POSITIVE INTEGERS
+// (a 1-based `GameId`/event `seq` on the backend — `GameId.first = 1`): a `seq`/`gameId` that is ≤ 0 or
+// non-integer is a lie the badge would otherwise display, so it fails the whole frame closed. `gameId`
+// stays OPTIONAL: absent (a not-yet-stamped provenance) omits the key. Mirrors `Wire.originJson`.
 function originOf(raw: unknown): DefinitionOrigin | null {
   if (!isRecord(raw)) {
     return null;
   }
   const agent = idField(raw, 'agentId');
   const question = idField(raw, 'questionId');
-  const seq = numberField(raw, 'seq');
+  const seq = positiveIntField(raw, 'seq');
   if (agent === null || question === null || seq === null) {
     return null;
   }
@@ -86,9 +101,8 @@ function originOf(raw: unknown): DefinitionOrigin | null {
   if (rawGame === undefined) {
     return base;
   }
-  return typeof rawGame === 'number' && Number.isFinite(rawGame)
-    ? { ...base, gameId: rawGame }
-    : null;
+  const gameId = positiveIntField(raw, 'gameId');
+  return gameId === null ? null : { ...base, gameId };
 }
 
 // The three con/pro-claim variants share the agent + candidate + note shape; validate it once.

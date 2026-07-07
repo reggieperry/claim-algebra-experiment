@@ -8,3 +8,5 @@ export { postChallenge } from './postChallenge';
 export type { PostChallengeOptions } from './postChallenge';
 export { postStart } from './postStart';
 export type { PostStartOptions } from './postStart';
+export { postReset } from './postReset';
+export type { PostResetOptions } from './postReset';

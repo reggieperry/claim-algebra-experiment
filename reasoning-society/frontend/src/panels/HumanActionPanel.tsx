@@ -186,7 +186,7 @@ function DefinitionClaims({
           <span className="human__def-term">{definition.term}</span>
           <span className="human__def-meaning">{definition.meaning}</span>
           <span className="human__def-by">
-            by {resolveAgent(definition.agent)}
+            by {resolveAgent(definition.origin.agent)}
           </span>
         </li>
       ))}

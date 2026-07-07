@@ -212,6 +212,111 @@ describe('App (live backend)', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('New game stays instant — a single click POSTs /start with no confirm step', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue({ ok: true, status: 200 } as unknown as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const user = userEvent.setup();
+    render(<App />);
+    act(() => {
+      MockEventSource.instances[0]?.emitOpen();
+    });
+
+    // One click fires the POST — New game (which keeps learned definitions) needs no confirm.
+    await user.click(screen.getByRole('button', { name: /new game/i }));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/start');
+  });
+
+  it('Full reset requires a confirm, then POSTs /reset and reconnects the stream', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue({ ok: true, status: 200 } as unknown as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    const first = MockEventSource.instances[0];
+    act(() => {
+      first?.emitOpen();
+    });
+    act(() => {
+      first?.emit(questionFrame());
+    });
+
+    // Arm the destructive gesture — nothing posts yet (Full reset clears learned definitions, so the
+    // confirm is REQUIRED before it fires).
+    await user.click(screen.getByRole('button', { name: /full reset/i }));
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // Confirm → the reset is requested over POST /reset.
+    await user.click(screen.getByRole('button', { name: /confirm reset/i }));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe('/reset');
+    expect(init).toMatchObject({ method: 'POST' });
+
+    // On success the stream reconnected: a fresh EventSource opened and the old one closed.
+    await waitFor(() => {
+      expect(MockEventSource.instances).toHaveLength(2);
+    });
+    expect(first?.closed).toBe(true);
+
+    // The old game's log was dropped — its question is gone until the fresh stream refills the board.
+    expect(
+      within(screen.getByRole('region', { name: /oracle/i })).queryByText(
+        /is it alive\?/i,
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it('a cancelled Full reset confirm posts nothing and re-disarms', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue({ ok: true, status: 200 } as unknown as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const user = userEvent.setup();
+    render(<App />);
+    act(() => {
+      MockEventSource.instances[0]?.emitOpen();
+    });
+
+    // Arm, then cancel — no reset is posted (the confirm gate held).
+    await user.click(screen.getByRole('button', { name: /full reset/i }));
+    await user.click(screen.getByRole('button', { name: /^cancel$/i }));
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // The control disarmed back to its single Full reset button.
+    expect(
+      screen.getByRole('button', { name: /full reset/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /confirm reset/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('hides Full reset offline (no backend to reset)', () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValue({ ok: true, status: 200 } as unknown as Response),
+    );
+    render(<App />);
+
+    // The stream errors → the App falls back offline, and Full reset withdraws (degrade gracefully).
+    act(() => {
+      MockEventSource.instances[0]?.emitError();
+    });
+    expect(
+      screen.queryByRole('button', { name: /full reset/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it('disables the New game button while the start request is in flight', async () => {
     let resolveFetch: ((response: Response) => void) | undefined;
     const pending = new Promise<Response>((resolve) => {

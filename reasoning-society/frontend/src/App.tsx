@@ -10,7 +10,13 @@ import {
   memoryOf,
   societyOf,
 } from './fold';
-import { postAnswer, postChallenge, postStart, useLiveEvents } from './live';
+import {
+  postAnswer,
+  postChallenge,
+  postReset,
+  postStart,
+  useLiveEvents,
+} from './live';
 import { AGENTS, agentName, MOCK_EVENTS } from './mock';
 import type { AgentId, Answer } from './model';
 import {
@@ -77,6 +83,10 @@ export function App(): ReactElement {
   // state only — the events array stays the single source of truth (ts-react: derive, don't store).
   const [newGamePending, setNewGamePending] = useState(false);
   const [newGameError, setNewGameError] = useState<string | null>(null);
+  // The Full Reset's in-flight flag and transient failure — the sibling of the New game state above,
+  // for POST /reset (which also clears learned definitions). Derived UI state only.
+  const [fullResetPending, setFullResetPending] = useState(false);
+  const [fullResetError, setFullResetError] = useState<string | null>(null);
 
   // The single source of truth and its pure projections — recomputed every render, stored nowhere.
   const belief = fold(events, playhead);
@@ -233,6 +243,28 @@ export function App(): ReactElement {
       });
   };
 
+  // The Full Reset gesture (two-tier-reset-design): ask the backend to fully reset (POST /reset — clears
+  // the working log AND persistent memory), and on success reconnect the SSE stream so it catches up on
+  // the emptied log. The confirm lives in the HeaderBar's button (a destructive action is armed before it
+  // fires); this handler is the sibling of handleNewGame, guarding pending/error the same way.
+  const handleFullReset = (): void => {
+    if (fullResetPending) {
+      return;
+    }
+    setFullResetError(null);
+    setFullResetPending(true);
+    void postReset()
+      .then(() => {
+        live.reconnect();
+      })
+      .catch(() => {
+        setFullResetError('could not reset — please retry');
+      })
+      .finally(() => {
+        setFullResetPending(false);
+      });
+  };
+
   const handleToggleTier = (key: string): void => {
     setExpanded((current) => {
       const next = new Set(current);
@@ -256,6 +288,9 @@ export function App(): ReactElement {
         onNewGame={handleNewGame}
         newGamePending={newGamePending}
         newGameError={newGameError}
+        onFullReset={handleFullReset}
+        fullResetPending={fullResetPending}
+        fullResetError={fullResetError}
       />
 
       <aside className="observatory__nav">

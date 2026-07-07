@@ -21,16 +21,14 @@ const definitions: readonly DefinitionClaim[] = [
   {
     term: term('alive'),
     meaning: 'a living creature currently alive',
-    agent: a1,
-    questionId: qAlive,
     establishedSeq: 21,
+    origin: { agent: a1, questionId: qAlive },
   },
   {
     term: term('pet'),
     meaning: 'kept as a companion',
-    agent: a2,
-    questionId: qAlive,
     establishedSeq: 27,
+    origin: { agent: a2, questionId: qAlive },
   },
 ];
 
@@ -98,5 +96,44 @@ describe('DefinitionsPanel', () => {
     const pet = items.find((li) => li.textContent.includes('pet'));
     expect(alive).not.toHaveClass('is-dimmed');
     expect(pet).toHaveClass('is-dimmed');
+  });
+
+  it('renders a "recalled from game N" badge for a RECALLED definition (origin.gameId), from the game not the seq', () => {
+    // A recalled definition carries `origin.gameId` (the ORIGIN game 2), and its establishedSeq (1) is a
+    // DIFFERENT number — the badge must read the game, never the seq (§5 audit surface).
+    const recalled: readonly DefinitionClaim[] = [
+      {
+        term: term('alive'),
+        meaning: 'a living creature currently alive',
+        establishedSeq: 1,
+        origin: { agent: a1, questionId: qAlive, gameId: 2 },
+      },
+    ];
+    render(
+      <DefinitionsPanel
+        definitions={recalled}
+        selectedAgent={null}
+        onSeek={vi.fn()}
+        resolveAgent={resolveAgent}
+      />,
+    );
+    expect(screen.getByText(/recalled from game 2/i)).toBeInTheDocument();
+    // The seek target is still the this-log birth index — the badge did not borrow it.
+    expect(
+      screen.getByRole('button', { name: /established @e-1/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows no recalled badge for a this-game definition (origin.gameId absent) — only "by <agent>"', () => {
+    render(
+      <DefinitionsPanel
+        definitions={definitions}
+        selectedAgent={null}
+        onSeek={vi.fn()}
+        resolveAgent={resolveAgent}
+      />,
+    );
+    expect(screen.queryByText(/recalled from game/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/by Cartographer/i)).toBeInTheDocument();
   });
 });

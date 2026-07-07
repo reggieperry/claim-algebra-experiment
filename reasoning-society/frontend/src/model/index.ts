@@ -11,7 +11,7 @@ export type {
 } from './event';
 export { ANSWERS } from './event';
 
-export type { DefinitionClaim } from './definition';
+export type { DefinitionClaim, DefinitionClaimOrigin } from './definition';
 
 export type {
   BeliefState,
