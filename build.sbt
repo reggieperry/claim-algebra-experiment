@@ -181,6 +181,7 @@ lazy val reasoningSociety = (project in file("reasoning-society/backend"))
     libraryDependencies ++= Seq(
       catsCore,
       catsEffect,
+      jacksonAnnotations, // the AgentMoveDto structured-output carrier (Java) annotates with Jackson
       munit,
       munitScalacheck,
       scalacheck,
