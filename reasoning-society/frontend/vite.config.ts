@@ -21,6 +21,7 @@ export default defineConfig({
       '/answer': { target: BACKEND, changeOrigin: true },
       '/challenge': { target: BACKEND, changeOrigin: true },
       '/start': { target: BACKEND, changeOrigin: true },
+      '/reset': { target: BACKEND, changeOrigin: true },
     },
   },
   preview: { host: true, port: 4173 },
