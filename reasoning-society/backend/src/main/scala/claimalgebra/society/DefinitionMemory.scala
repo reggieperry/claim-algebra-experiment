@@ -20,17 +20,26 @@ final class DefinitionMemory private (ref: Ref[IO, Map[Term, Definition]]):
   /** The established definitions, in first-seen order — the seed replayed into a fresh game. */
   def recall: IO[List[Definition]] = ref.get.map(_.values.toList)
 
-  /** Harvest the definitions established by the just-finished game and merge them into the store
-    * (called on New Game, BEFORE the working log is cleared — harvest-then-clear fails closed,
-    * invariant 4). Each harvested entry's provenance is stamped `gameId None → Some(current)`; a
-    * carried `Some(g)` is PRESERVED, so a definition's origin never drifts across generations
-    * (invariant 8 — provenance stability). Merge is latest-wins keyed by the normalized term: a
-    * this-game redefinition supersedes the recalled meaning at the term's first-seen position, and
-    * re-remembering the same set is idempotent.
+  /** Merge already-harvested established definitions into the store. Each entry's provenance is
+    * stamped `gameId None → Some(current)`; a carried `Some(g)` is PRESERVED, so a definition's
+    * origin never drifts across generations (invariant 8 — provenance stability). Merge is
+    * latest-wins keyed by the normalized term: a this-game redefinition supersedes the recalled
+    * meaning at the term's first-seen position, and re-remembering the same set is idempotent.
+    *
+    * This is the primitive the reset mechanics call: [[GameSupervisor.newGame]] reads the finishing
+    * game's established definitions off the working log and merges them here, BEFORE clearing the
+    * working log — harvest-then-clear fails closed (invariant 4).
+    */
+  def remember(current: GameId, definitions: List[Definition]): IO[Unit] =
+    val stamped = definitions.map(stamp(current))
+    ref.update(store => stamped.foldLeft(store)((acc, d) => acc.updated(d.term, d)))
+
+  /** Harvest the definitions established by a finished game's LOG and [[remember]] them —
+    * `remember(current, Definitions.established(log))`. The log-shaped convenience over the
+    * definition-list primitive above.
     */
   def remember(current: GameId, log: Vector[Event]): IO[Unit] =
-    val harvested = Definitions.established(log).map(stamp(current))
-    ref.update(store => harvested.foldLeft(store)((acc, d) => acc.updated(d.term, d)))
+    remember(current, Definitions.established(log))
 
   /** Clear the persistent store — the Full Reset half (invariant 5: definitions are lost ONLY on a
     * Full Reset, never on a New Game).

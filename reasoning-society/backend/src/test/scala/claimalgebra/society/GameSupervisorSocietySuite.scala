@@ -8,14 +8,14 @@ import munit.CatsEffectSuite
 
 import scala.concurrent.duration.*
 
-/** The restart mechanics end to end over REAL actors and the real shared transport — the same
+/** The reset mechanics end to end over REAL actors and the real shared transport — the same
   * [[GameSupervisor]] + [[TopicSink]] + [[RemoteOracle]] wiring `RunServer` uses. It proves the
   * properties the synthetic [[GameSupervisorSuite]] cannot: that cancelling an in-flight game tears
   * down its real [[ActorSystem]] (LogActor + AgentActors) so it can post nothing more, and that a
-  * restart refills the shared replay log from `seq 1` with no event from the cancelled game.
+  * New Game refills the shared replay log from `seq 1` with no event from the cancelled game.
   *
   * The scripted cohort proposes a question and then PARKS on the [[RemoteOracle]] (which never
-  * auto-answers), so each game is genuinely in flight — mid-park — when the next restart cancels
+  * auto-answers), so each game is genuinely in flight — mid-park — when the next New Game cancels
   * it. A signalling sink completes a `Deferred` when a `QuestionAsked` is emitted, so the test
   * awaits the parked state deterministically (no sleep).
   */
@@ -68,7 +68,7 @@ class GameSupervisorSocietySuite extends CatsEffectSuite:
     )
 
   test(
-    "a restart tears the old game's actors down and refills the shared log from seq 1 (no leak)"
+    "a New Game tears the old game's actors down and refills the shared log from seq 1 (no leak)"
   ) {
     for
       topicAndSink <- TopicSink.make
@@ -77,18 +77,24 @@ class GameSupervisorSocietySuite extends CatsEffectSuite:
       askedSignal <- Ref[IO].of(Option.empty[Deferred[IO, Unit]])
       sink = signallingSink(base, askedSignal)
       llmFor <- scriptedLlms(proposeThenPark)
-      playGame = Society.play(AgentStrategy.cohort, llmFor, oracle, sink, config, noTimeout)
-      resetState = logRef.set(Vector.empty[Event]) *> oracle.reset
-      games <- GameSupervisor.make(playGame, resetState)
+      playSeeded = (seed: List[Definition]) =>
+        Society.play(AgentStrategy.cohort, llmFor, oracle, sink, config, noTimeout, seed = seed)
+      memory <- DefinitionMemory.make
+      gameCounter <- Ref[IO].of(GameId.first)
+      // The propose-then-park cohort establishes no definitions, so the harvest is empty and the
+      // fresh game's seed is empty — game two refills the log from seq 1, byte-identical.
+      harvest = (_: GameId) => logRef.get.map(Definitions.established)
+      clearWorking = logRef.set(Vector.empty[Event]) *> oracle.reset
+      games <- GameSupervisor.make(playSeeded, memory, gameCounter, harvest, clearWorking)
 
-      // Await a helper that installs a fresh signal, restarts, and blocks until the new game parks.
-      awaitAsked = (d: Deferred[IO, Unit]) => askedSignal.set(Some(d)) *> games.restart *> d.get
+      // Await a helper that installs a fresh signal, New-Games, and blocks until the new game parks.
+      awaitAsked = (d: Deferred[IO, Unit]) => askedSignal.set(Some(d)) *> games.newGame *> d.get
       firstAsked <- Deferred[IO, Unit]
       _ <- awaitAsked(firstAsked) // game 1 runs to the parked state
       firstLog <- logRef.get
 
       secondAsked <- Deferred[IO, Unit]
-      _ <- awaitAsked(secondAsked) // restart: cancel game 1, reset the log, fork game 2 → it parks
+      _ <- awaitAsked(secondAsked) // New Game: cancel game 1, clear the log, fork game 2 → it parks
       secondLog <- logRef.get
       _ <- games.shutdown
     yield
@@ -96,13 +102,13 @@ class GameSupervisorSocietySuite extends CatsEffectSuite:
       assertEquals(firstLog.map(_.seq), Vector(1, 2, 3), clue("game 1 numbered its own log from 1"))
       assert(firstLog.exists(isQuestionAsked), clue("game 1 asked its question and parked"))
 
-      // The restart cleared the shared log and the SECOND game refilled it from seq 1 — the cancelled
-      // game's events are gone (else the log would be six events, or its seqs non-contiguous), and its
-      // torn-down actors posted nothing into the new game.
+      // The New Game cleared the shared log and the SECOND game refilled it from seq 1 — the
+      // cancelled game's events are gone (else the log would be six events, or its seqs
+      // non-contiguous), and its torn-down actors posted nothing into the new game.
       assertEquals(
         secondLog.map(_.seq),
         Vector(1, 2, 3),
-        clue("the restart reset the shared log and the fresh game refilled it from seq 1")
+        clue("the New Game reset the shared log and the fresh game refilled it from seq 1")
       )
       assertEquals(
         secondLog.count(isQuestionAsked),

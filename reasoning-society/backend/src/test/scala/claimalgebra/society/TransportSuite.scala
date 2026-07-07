@@ -72,7 +72,7 @@ class TransportSuite extends CatsEffectSuite with SocietyFixtures:
       topicAndSink <- TopicSink.make
       (sink, topic, logRef) = topicAndSink
       oracle <- RemoteOracle.make
-      routes = SocietyRoutes(topic, logRef, oracle, IO.unit).orNotFound
+      routes = SocietyRoutes(topic, logRef, oracle, IO.unit, IO.unit).orNotFound
       resp <- routes.run(Request[IO](method = Method.GET, uri = uri"/events"))
       _ = assertEquals(resp.status, Status.Ok)
       _ = assertEquals(resp.contentType.map(_.mediaType), Some(MediaType.`text/event-stream`))
@@ -101,7 +101,7 @@ class TransportSuite extends CatsEffectSuite with SocietyFixtures:
       topicAndSink <- TopicSink.make
       (sink, topic, logRef) = topicAndSink
       oracle <- RemoteOracle.make
-      routes = SocietyRoutes(topic, logRef, oracle, IO.unit).orNotFound
+      routes = SocietyRoutes(topic, logRef, oracle, IO.unit, IO.unit).orNotFound
       // Events are emitted BEFORE any subscriber connects — a bare Topic would lose them entirely.
       _ <- List(e1, e2, e3).traverse_(sink.emit)
       resp <- routes.run(Request[IO](method = Method.GET, uri = uri"/events"))
@@ -151,7 +151,7 @@ class TransportSuite extends CatsEffectSuite with SocietyFixtures:
       topicAndSink <- TopicSink.make
       (sink, topic, logRef) = topicAndSink
       oracle <- RemoteOracle.make
-      routes = SocietyRoutes(topic, logRef, oracle, IO.unit).orNotFound
+      routes = SocietyRoutes(topic, logRef, oracle, IO.unit, IO.unit).orNotFound
       llmFor <- scriptedLlms(appleScripts)
       result <- topic.subscribeAwaitUnbounded.use { stream =>
         val autoAnswer: IO[Unit] =
@@ -176,7 +176,7 @@ class TransportSuite extends CatsEffectSuite with SocietyFixtures:
       topicAndSink <- TopicSink.make
       (_, topic, logRef) = topicAndSink
       oracle <- RemoteOracle.make
-      routes = SocietyRoutes(topic, logRef, oracle, IO.unit).orNotFound
+      routes = SocietyRoutes(topic, logRef, oracle, IO.unit, IO.unit).orNotFound
       parked <- oracle.respond(Question(qid, "is it alive?")).start
       resolved <- postChallengeWhenRegistered(routes, qid, "Alive")
       move <- parked.joinWithNever
@@ -191,7 +191,7 @@ class TransportSuite extends CatsEffectSuite with SocietyFixtures:
       topicAndSink <- TopicSink.make
       (_, topic, logRef) = topicAndSink
       oracle <- RemoteOracle.make
-      routes = SocietyRoutes(topic, logRef, oracle, IO.unit).orNotFound
+      routes = SocietyRoutes(topic, logRef, oracle, IO.unit, IO.unit).orNotFound
       notJson <- routes.run(
         Request[IO](method = Method.POST, uri = uri"/challenge").withEntity("not json")
       )
@@ -209,7 +209,7 @@ class TransportSuite extends CatsEffectSuite with SocietyFixtures:
       topicAndSink <- TopicSink.make
       (_, topic, logRef) = topicAndSink
       oracle <- RemoteOracle.make
-      routes = SocietyRoutes(topic, logRef, oracle, IO.unit).orNotFound
+      routes = SocietyRoutes(topic, logRef, oracle, IO.unit, IO.unit).orNotFound
       notJson <- routes.run(
         Request[IO](method = Method.POST, uri = uri"/answer").withEntity("not json")
       )

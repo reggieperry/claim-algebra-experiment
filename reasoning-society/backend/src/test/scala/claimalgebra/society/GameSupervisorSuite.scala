@@ -4,11 +4,12 @@ import cats.effect.{Deferred, IO, Ref, Resource}
 import cats.syntax.all.*
 import munit.CatsEffectSuite
 
-/** The single-game supervisor's restart mechanics, proven on a SYNTHETIC game program
-  * (Deferred/Ref, no real actors, no sleep) so the cancel → reset → fork ordering, the no-stacking
-  * guarantee, and the teardown-on-cancel signal are asserted deterministically. The end-to-end
-  * teardown of REAL actors over the shared transport is exercised in
-  * [[GameSupervisorSocietySuite]].
+/** The single-game supervisor's reset mechanics (New Game / Full Reset), proven on a SYNTHETIC game
+  * program (Deferred/Ref, no real actors, no sleep) so the cancel → clear → fork ordering, the
+  * no-stacking guarantee (across BOTH reset paths, sharing one mutex), and the teardown-on-cancel
+  * signal are asserted deterministically. The definitions round-trip is
+  * [[GameSupervisorResetSuite]]; the end-to-end teardown of REAL actors over the shared transport
+  * is exercised in [[GameSupervisorSocietySuite]].
   *
   * The synthetic game acquires a `Resource` (the stand-in for the game's ActorSystem) that:
   *   - on ACQUIRE records a `start-N` marker in the shared "transport log", bumps the in-flight
@@ -31,14 +32,18 @@ class GameSupervisorSuite extends CatsEffectSuite:
       starts: Ref[IO, Int], // total game-body acquisitions
       nextStarted: Ref[IO, Option[Deferred[IO, Unit]]] // a per-restart "reached in-flight" signal
   ):
-    /** Restart and deterministically await the fresh game reaching its in-flight region — no sleep.
-      * (Sequential-only: it relies on there being no other game racing for the single signal.)
+    /** New Game (or Full Reset) and deterministically await the fresh game reaching its in-flight
+      * region — no sleep. (Sequential-only: it relies on there being no other game racing for the
+      * single signal.)
       */
-    def restartAndAwaitStart: IO[Unit] =
+    def newGameAndAwaitStart: IO[Unit] = awaitAfter(games.newGame)
+    def fullResetAndAwaitStart: IO[Unit] = awaitAfter(games.fullReset)
+
+    private def awaitAfter(reset: IO[Unit]): IO[Unit] =
       for
         d <- Deferred[IO, Unit]
         _ <- nextStarted.set(Some(d))
-        _ <- games.restart
+        _ <- reset
         _ <- d.get
       yield ()
 
@@ -50,20 +55,28 @@ class GameSupervisorSuite extends CatsEffectSuite:
       maxInFlight <- Ref[IO].of(0)
       starts <- Ref[IO].of(0)
       nextStarted <- Ref[IO].of(Option.empty[Deferred[IO, Unit]])
-      playGame = Resource
-        .make(
-          for
-            n <- starts.updateAndGet(_ + 1)
-            _ <- log.update(_ :+ s"start-$n")
-            live <- inFlight.updateAndGet(_ + 1)
-            _ <- maxInFlight.update(_ max live)
-            sig <- nextStarted.getAndSet(None)
-            _ <- sig.traverse_(_.complete(()).void)
-          yield n
-        )(n => released.update(_ + 1) *> inFlight.update(_ - 1) *> log.update(_ :+ s"release-$n"))
-        .surround(IO.never[Outcome])
-      resetState = log.set(Vector.empty)
-      games <- GameSupervisor.make(playGame, resetState)
+      // The synthetic game ignores its seed (this suite tests the mechanical cancel → clear → fork
+      // spine and the no-stacking mutex; the definitions round-trip is GameSupervisorResetSuite).
+      playSeeded = (_: List[Definition]) =>
+        Resource
+          .make(
+            for
+              n <- starts.updateAndGet(_ + 1)
+              _ <- log.update(_ :+ s"start-$n")
+              live <- inFlight.updateAndGet(_ + 1)
+              _ <- maxInFlight.update(_ max live)
+              sig <- nextStarted.getAndSet(None)
+              _ <- sig.traverse_(_.complete(()).void)
+            yield n
+          )(n => released.update(_ + 1) *> inFlight.update(_ - 1) *> log.update(_ :+ s"release-$n"))
+          .surround(IO.never[Outcome])
+      memory <- DefinitionMemory.make
+      gameCounter <- Ref[IO].of(GameId.first)
+      // Nothing to harvest in this synthetic (the markers are not definitions); the clear stands in
+      // for the replay-log clear + oracle reset.
+      harvest = (_: GameId) => IO.pure(List.empty[Definition])
+      clearWorking = log.set(Vector.empty)
+      games <- GameSupervisor.make(playSeeded, memory, gameCounter, harvest, clearWorking)
     yield Harness(games, log, released, inFlight, maxInFlight, starts, nextStarted)
 
   // Poll the in-flight count with a fiber yield (no sleep) until it settles at `n`.
@@ -73,11 +86,11 @@ class GameSupervisorSuite extends CatsEffectSuite:
       case _ => IO.cede *> awaitInFlight(h, n)
     }
 
-  test("restart forks exactly one running game over a cleared log") {
+  test("newGame forks exactly one running game over a cleared log") {
     harness
       .flatMap { h =>
         (for
-          _ <- h.restartAndAwaitStart
+          _ <- h.newGameAndAwaitStart
           log <- h.log.get
           inFlight <- h.inFlight.get
           starts <- h.starts.get
@@ -93,13 +106,13 @@ class GameSupervisorSuite extends CatsEffectSuite:
   }
 
   test(
-    "a second restart cancels the first: one running game, prior torn down, log reset (no stack)"
+    "a second newGame cancels the first: one running game, prior torn down, log reset (no stack)"
   ) {
     harness
       .flatMap { h =>
         (for
-          _ <- h.restartAndAwaitStart // game 1
-          _ <- h.restartAndAwaitStart // game 2 — cancels 1, clears the log, forks 2
+          _ <- h.newGameAndAwaitStart // game 1
+          _ <- h.newGameAndAwaitStart // game 2 — cancels 1, clears the log, forks 2
           inFlight <- h.inFlight.get
           maxInFlight <- h.maxInFlight.get
           released <- h.released.get
@@ -127,13 +140,13 @@ class GameSupervisorSuite extends CatsEffectSuite:
       }
   }
 
-  test("concurrent restarts never stack two games and settle on one (mutex-serialized)") {
+  test("concurrent newGames never stack two games and settle on one (mutex-serialized)") {
     harness
       .flatMap { h =>
         (for
-          // Hammer the supervisor with concurrent restarts; the mutex must serialize them so no two
+          // Hammer the supervisor with concurrent New Games; the mutex must serialize them so no two
           // games are ever alive at once.
-          _ <- List.fill(6)(h.games.restart).parSequence_
+          _ <- List.fill(6)(h.games.newGame).parSequence_
           _ <- awaitInFlight(h, 1) // the last-forked game reaches its in-flight region and stays
           inFlight <- h.inFlight.get
           maxInFlight <- h.maxInFlight.get
@@ -142,7 +155,61 @@ class GameSupervisorSuite extends CatsEffectSuite:
           assertEquals(
             maxInFlight,
             1,
-            clue("no two games were ever in-flight at once — the mutex serialized the restarts")
+            clue("no two games were ever in-flight at once — the mutex serialized the New Games")
+          )
+        )
+          .guarantee(h.games.shutdown)
+      }
+  }
+
+  test("concurrent newGame AND fullReset settle on one game, never interleave (mutex witness)") {
+    harness
+      .flatMap { h =>
+        (for
+          // Mix the two reset paths under the storm: the SAME mutex serializes newGame and
+          // fullReset, so the two can never both be mid-fork (no stacked game across the two paths).
+          _ <- List
+            .fill(4)(List(h.games.newGame, h.games.fullReset))
+            .flatten
+            .parSequence_
+          _ <- awaitInFlight(h, 1)
+          inFlight <- h.inFlight.get
+          maxInFlight <- h.maxInFlight.get
+        yield
+          assertEquals(inFlight, 1, clue("exactly one game runs after the mixed storm"))
+          assertEquals(
+            maxInFlight,
+            1,
+            clue("newGame and fullReset never overlapped — one mutex serializes both")
+          )
+        )
+          .guarantee(h.games.shutdown)
+      }
+  }
+
+  test("fullReset forks one fresh game over a cleared log (the working-scope wipe)") {
+    harness
+      .flatMap { h =>
+        (for
+          _ <- h.newGameAndAwaitStart // game 1
+          _ <-
+            h.fullResetAndAwaitStart // Full Reset — cancels 1, clears the log, forks a fresh game
+          inFlight <- h.inFlight.get
+          maxInFlight <- h.maxInFlight.get
+          released <- h.released.get
+          log <- h.log.get
+        yield
+          assertEquals(inFlight, 1, clue("exactly one game runs after the reset"))
+          assertEquals(maxInFlight, 1, clue("the two games never overlapped"))
+          assertEquals(
+            released,
+            1,
+            clue("the first game's resource was released on cancel — no leak")
+          )
+          assertEquals(
+            log,
+            Vector("start-2"),
+            clue("the log was cleared before the fresh game — no leftover from the first")
           )
         )
           .guarantee(h.games.shutdown)
@@ -153,7 +220,7 @@ class GameSupervisorSuite extends CatsEffectSuite:
     harness
       .flatMap { h =>
         for
-          _ <- h.restartAndAwaitStart
+          _ <- h.newGameAndAwaitStart
           _ <- h.games.shutdown
           _ <- h.games.shutdown // idempotent — no running game, a no-op
           inFlight <- h.inFlight.get

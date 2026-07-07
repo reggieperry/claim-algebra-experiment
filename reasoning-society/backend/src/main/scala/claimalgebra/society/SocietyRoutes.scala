@@ -17,9 +17,12 @@ import org.http4s.{EntityDecoder, HttpRoutes, ServerSentEvent}
   *   - `POST /answer` — the human oracle's reply `{questionId, answer}` (`answer` in
   *     `yes|no|unknown`). Untrusted input: a malformed body is a 400 (never a 500), and a valid
   *     body completes the pending [[RemoteOracle]] question so the game proceeds.
-  *   - `POST /start` — restart the game (the injected `startGame`: the [[GameSupervisor]] cancels
-  *     the running game, resets the shared log/oracle, and forks one fresh game — serialized, so
-  *     two `POST /start`s cannot stack games).
+  *   - `POST /start` — New Game (the injected `newGame`: the [[GameSupervisor]] cancels the running
+  *     game, HARVESTS its definitions into persistent memory, clears the working log/oracle, and
+  *     forks one fresh game seeded with the recalled definitions — serialized, so two
+  *     `POST /start`s cannot stack games). Definitions carry over.
+  *   - `POST /reset` — Full Reset (the injected `fullReset`): New Game PLUS clearing the persistent
+  *     definitions — a truly blank session.
   *   - `GET  /` — a plain-text landing describing the endpoints (the React viewer is slice 3b).
   */
 object SocietyRoutes:
@@ -35,7 +38,8 @@ object SocietyRoutes:
       |  GET  /events    text/event-stream — the live event log as JSON frames
       |  POST /answer    {"questionId": "...", "answer": "yes|no|unknown"}
       |  POST /challenge {"questionId": "...", "term": "..."}   (define a term before answering)
-      |  POST /start     restart the game (fresh log, one game)
+      |  POST /start     New Game — fresh working log, one game; learned definitions kept
+      |  POST /reset     Full Reset — New Game plus clearing the learned definitions
       |""".stripMargin
 
   /** Wire the routes.
@@ -44,15 +48,18 @@ object SocietyRoutes:
     *   the event log Topic every SSE subscriber reads.
     * @param oracle
     *   the human/oracle seam `POST /answer` completes.
-    * @param startGame
-    *   restart the single game (the [[GameSupervisor]]'s serialized cancel → reset → fork); returns
-    *   once the fresh game has been forked.
+    * @param newGame
+    *   New Game (`POST /start`) — the [[GameSupervisor]]'s serialized cancel → harvest → clear →
+    *   fork; keeps the learned definitions. Returns once the fresh game has been forked.
+    * @param fullReset
+    *   Full Reset (`POST /reset`) — as New Game, but also clears the persistent definitions.
     */
   def apply(
       topic: Topic[IO, Event],
       logRef: Ref[IO, Vector[Event]],
       oracle: RemoteOracle,
-      startGame: IO[Unit]
+      newGame: IO[Unit],
+      fullReset: IO[Unit]
   ): HttpRoutes[IO] =
     HttpRoutes.of[IO] {
       case GET -> Root / "events" =>
@@ -103,9 +110,15 @@ object SocietyRoutes:
         }
 
       case POST -> Root / "start" =>
-        // Restart the single game (serialized by the GameSupervisor's mutex): the response returns
-        // once the old game is torn down, the shared state reset, and one fresh game forked.
-        startGame *> Ok(Json.obj("started" -> true.asJson))
+        // New Game (serialized by the GameSupervisor's mutex): the response returns once the old
+        // game is torn down, its definitions harvested, the working scope reset, and one fresh game
+        // forked seeded with the learned definitions.
+        newGame *> Ok(Json.obj("started" -> true.asJson))
+
+      case POST -> Root / "reset" =>
+        // Full Reset (serialized by the same mutex): as New Game, but the persistent definitions are
+        // cleared too — a truly blank session.
+        fullReset *> Ok(Json.obj("reset" -> true.asJson))
 
       case GET -> Root =>
         Ok(landing)
