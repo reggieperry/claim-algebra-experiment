@@ -5,6 +5,15 @@ channel-asymmetry) is the requirements. Settled 2026-07-07 by two design committ
 against rev 2's reformulation. This changes what the gate signs — the fail-closed core — so the design
 is dominated by not signing a falsehood.
 
+> **Update (2026-07-07) — §C gate scoping was subsequently DROPPED.** An independent pressure-test found
+> the §C described below (the `soleView` leading-candidate evaluation) either signs *around* a contested
+> hypothesis (a reachable fail-open, violating the review addendum's HOLD path) or reduces to the masking
+> predicate (dead weight). Slice 1's self-withdrawal retirement is the complete safe fix on its own; the
+> remaining work (slice 2/3) is the visible half — the LogActor marker wiring, agents-see-retired, and the
+> frontend replay — with **no gate change**. The §C material below and in the slice plan is retained for
+> the record but is not built. See `hypothesis-lifecycle-decision-record.md` for the findings and the
+> decision.
+
 ## The decision: self-withdrawal, not channel-recency
 
 rev 2 retires a hypothesis when its pro channel has no live support and its con channel has standing
