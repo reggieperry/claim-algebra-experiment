@@ -20,6 +20,12 @@ trait SocietyFixtures:
   // A small term pool for the clarification events — a couple of challengeable terms.
   val termPool: List[Term] = List("alive", "animal").map(mkTerm)
 
+  // Terms whose VALUE collides with a candidate label (e.g. "dog") — a definition's term/meaning is
+  // now load-bearing (a grounded answer's `governing` cites terms), so the belief-inertness
+  // generator must exercise a definition that LOOKS like a candidate value, to confirm it still
+  // never becomes a phantom backer or corroboration of that candidate.
+  val collidingTermPool: List[Term] = candidatePool.map(c => mkTerm(c.value))
+
   def mkAgent(raw: String): AgentId = AgentId.from(raw).fold(fail(_), identity)
   def mkAnswer(raw: String): Answer = Answer.from(raw).fold(fail(_), identity)
   def mkQuestion(raw: String): QuestionId = QuestionId.from(raw).fold(fail(_), identity)
@@ -70,9 +76,13 @@ trait SocietyFixtures:
   val genInertClarification: Gen[Event] =
     for
       question <- genQuestion
-      term <- genTerm
+      // Draw from the challengeable terms UNION the candidate-colliding terms, so a definition on a
+      // term like "dog" (a candidate label) is exercised for belief-inertness.
+      term <- Gen.oneOf(termPool ++ collidingTermPool)
       agent <- genAgent
-      meaning <- Gen.oneOf("living creature currently alive", "any living tissue", "")
+      // Meanings include a candidate-value-shaped string ("dog") and the empty string: an agent that
+      // cannot crisply define its term is itself diagnostic (clarification-feature §2).
+      meaning <- Gen.oneOf("living creature currently alive", "any living tissue", "dog", "")
       seq <- Gen.choose(1000, 9999)
       isChallenge <- Gen.oneOf(true, false)
     yield

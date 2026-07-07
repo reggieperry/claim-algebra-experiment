@@ -46,6 +46,48 @@ class LiveSocietySmokeSuite extends CatsEffectSuite:
     }
   }
 
+  test("a real Haiku agent defines its challenged term end to end (clarification)") {
+    val config = SocietyConfig(maxRounds = 4, roundTimeout = 60.seconds, hardDeadline = 4.minutes)
+    val alive = Term.from("alive").fold(fail(_), identity)
+    AnthropicLlmCall.clientResource.use { client =>
+      val llm = AnthropicLlmCall(client, classOf[AgentMoveDto])
+      val definer = AnthropicLlmCall(client, classOf[DefinitionDto])
+      for
+        // The human CHALLENGES "alive" on the first asked question, then answers the rest — so the
+        // proposing agent must define its term with a real structured call before grounding resumes.
+        oracle <- Oracle.scriptedMoves(
+          List(
+            HumanMove.Challenge(alive),
+            HumanMove.Answer(OracleAnswer.Yes),
+            HumanMove.Answer(OracleAnswer.No),
+            HumanMove.Answer(OracleAnswer.Yes)
+          )
+        )
+        collected <- Ref[IO].of(Vector.empty[Event])
+        sink = new EventSink:
+          def emit(event: Event): IO[Unit] =
+            collected.update(_ :+ event) *> IO.println(event.toString)
+        _ <- Society.play(
+          AgentStrategy.cohort,
+          _ => llm,
+          oracle,
+          sink,
+          config,
+          definerFor = _ => definer
+        )
+        events <- collected.get
+      yield
+        assert(events.exists(isClarificationRequested), "the challenge was recorded")
+        val definitions = events.collect { case Event.DefinitionGiven(_, _, _, _, _, m) => m }
+        assert(definitions.nonEmpty, "a real agent supplied at least one definition")
+        assert(definitions.forall(_.trim.nonEmpty), "every definition carries a non-blank meaning")
+    }
+  }
+
+  private def isClarificationRequested(event: Event): Boolean = event match
+    case _: Event.ClarificationRequested => true
+    case _ => false
+
   // Pattern-matching predicates (isInstanceOf is banned by the Scalazzi subset).
   private def isRealMove(event: Event): Boolean = event match
     case _: Event.Assert => true

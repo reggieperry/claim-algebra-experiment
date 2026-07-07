@@ -123,6 +123,9 @@ final class LogActor(
     case ToLog.Post(round, agent, move) => onPost(round, agent, move).map(withState)
     case ToLog.RoundTimeout(round) => onTimeout(round).map(withState)
     case ToLog.Answered(qid, ans) => onAnswered(qid, ans).map(withState)
+    case ToLog.Challenged(qid, term) => onChallenged(qid, term).map(withState)
+    case ToLog.Defined(qid, agent, term, meaning) =>
+      onDefined(qid, agent, term, meaning).map(withState)
 
   private def withState(s: LogState): LogActor = new LogActor(context, deps, s)
 
@@ -152,13 +155,49 @@ final class LogActor(
   private def onAnswered(qid: QuestionId, ans: OracleAnswer): IO[LogState] =
     if state.phase == Phase.Ended then IO.pure(state)
     else
-      appendEmit(state.log)((seq, ts) => Event.AnswerGiven(seq, ts, qid, ans)).flatMap {
+      // `governing` is derived from the LOG (clarification-feature §4): the terms whose meaning was
+      // established FOR THIS QUESTION in this exchange — every one has a `DefinitionGiven`, so the
+      // record can never cite a term with no established definition. Empty when nothing was
+      // challenged-and-defined (a plain, non-clarified answer).
+      val governing = governingTerms(state.log, qid)
+      appendEmit(state.log)((seq, ts) => Event.AnswerGiven(seq, ts, qid, ans, governing)).flatMap {
         case (log2, _) =>
           open(
             state.copy(log = log2),
             state.round.next
           ) // the answer opens a NEW round (the barrier)
       }
+
+  /** A CHALLENGE pauses grounding (clarification-feature §1): log `ClarificationRequested` (no
+    * `AnswerGiven`, so nothing enters the ledger and the round does not close), route a
+    * [[ToAgent.Clarify]] to the question's PROPOSER (§2 — it must defend its own question's
+    * meaning), and RE-ASK the same question so the human can answer against the definition or
+    * challenge again. Re-asking here (not on the agent's reply) is what keeps the human unblocked
+    * even if the agent never defines — fail-closed, never a wedge.
+    */
+  private def onChallenged(qid: QuestionId, term: Term): IO[LogState] =
+    if state.phase == Phase.Ended then IO.pure(state)
+    else
+      appendEmit(state.log)((seq, ts) => Event.ClarificationRequested(seq, ts, qid, term)).flatMap {
+        case (log2, _) =>
+          val s2 = state.copy(log = log2)
+          sendClarify(s2, qid, term) *> reAsk(s2, qid).as(s2)
+      }
+
+  /** The asking agent supplied a meaning (clarification-feature §2): log it as a `DefinitionGiven`
+    * claim, available to every agent for the rest of the game. Belief-inert — no round effect, no
+    * barrier effect, never a signature; the re-ask already happened on the challenge.
+    */
+  private def onDefined(
+      qid: QuestionId,
+      agent: AgentId,
+      term: Term,
+      meaning: String
+  ): IO[LogState] =
+    if state.phase == Phase.Ended then IO.pure(state)
+    else
+      appendEmit(state.log)((seq, ts) => Event.DefinitionGiven(seq, ts, agent, qid, term, meaning))
+        .map { case (log2, _) => state.copy(log = log2) }
 
   // --- the round loop ---
 
@@ -197,18 +236,58 @@ final class LogActor(
           Event.QuestionAsked(seq, ts, pending.asker, pending.id, pending.text)
         )
           .flatMap { case (log2, _) =>
-            // An oracle FAULT (e.g. a stdin IOException) degrades to a belief-inert Unknown that
-            // still opens the next round, rather than wedging the loop until the hard deadline.
-            val reply = deps.oracle
-              .answer(Question(pending.id, pending.text))
-              .handleError(_ => OracleAnswer.Unknown)
-              .flatMap { ans =>
-                MessageId.from(s"answered-${pending.id.value}") match
-                  case Right(mid) => context.self.tell(mid, ToLog.Answered(pending.id, ans))
-                  case Left(_) => IO.unit
-              }
-            deps.scheduler.submit(reply).as(s.copy(log = log2))
+            submitRespond(pending.id, pending.text).as(s.copy(log = log2))
           }
+
+  /** Background one oracle round-trip for a question and route the human's move back as a self-send
+    * (clarification-feature): an [[HumanMove.Answer]] becomes [[ToLog.Answered]], an
+    * [[HumanMove.Challenge]] becomes [[ToLog.Challenged]]. Shared by the FIRST ask
+    * ([[askQuestion]], which also emits `QuestionAsked`) and the RE-ASK ([[reAsk]], which does
+    * not). An oracle FAULT (e.g. a stdin IOException) degrades to a belief-inert `Answer(Unknown)`
+    * that still opens the next round rather than wedging the loop until the hard deadline.
+    */
+  private def submitRespond(qid: QuestionId, text: String): IO[Unit] =
+    val reply = deps.oracle
+      .respond(Question(qid, text))
+      .handleError(_ => HumanMove.Answer(OracleAnswer.Unknown))
+      .flatMap(routeHumanMove(qid, _))
+    deps.scheduler.submit(reply)
+
+  private def routeHumanMove(qid: QuestionId, move: HumanMove): IO[Unit] = move match
+    case HumanMove.Answer(ans) =>
+      MessageId.from(s"answered-${qid.value}") match
+        case Right(mid) => context.self.tell(mid, ToLog.Answered(qid, ans))
+        case Left(_) => IO.unit
+    case HumanMove.Challenge(term) =>
+      MessageId.from(s"challenged-${qid.value}-${term.value}") match
+        case Right(mid) => context.self.tell(mid, ToLog.Challenged(qid, term))
+        case Left(_) => IO.unit
+
+  /** Re-ask a question after a challenge (clarification-feature §1) — background a fresh oracle
+    * round-trip WITHOUT re-emitting `QuestionAsked` (the question was already asked; only the human
+    * gets another turn). Fail-closed if the question text can no longer be found (impossible on the
+    * live path — a challenge names a question that was asked): nothing to re-ask.
+    */
+  private def reAsk(s: LogState, qid: QuestionId): IO[Unit] =
+    questionText(s.log, qid) match
+      case Some(text) => submitRespond(qid, text)
+      case None => IO.unit
+
+  /** Route a [[ToAgent.Clarify]] to the PROPOSER of the challenged question (clarification-feature
+    * §2). Fail-closed at every gap: an unknown proposer, a proposer no longer in the registry, or a
+    * missing question text simply sends no Clarify — the human answers ungrounded, never a wedge
+    * and never a wrong sign (the definition is belief-inert regardless).
+    */
+  private def sendClarify(s: LogState, qid: QuestionId, term: Term): IO[Unit] =
+    (proposerOf(s.log, qid), questionText(s.log, qid)) match
+      case (Some(agentId), Some(text)) =>
+        refOf(s.agents, agentId) match
+          case Some(ref) =>
+            MessageId.from(s"clarify-${qid.value}-${term.value}") match
+              case Right(mid) => send(ref, mid, ToAgent.Clarify(qid, text, term))
+              case Left(_) => IO.unit
+          case None => IO.unit
+      case _ => IO.unit
 
   private def sign(s: LogState, winner: Answer): IO[LogState] =
     appendEmit(s.log)((seq, ts) => Event.GateSign(seq, ts, winner)).flatMap { case (log2, _) =>
@@ -272,6 +351,44 @@ final class LogActor(
       case Event.QuestionProposed(_, _, agent, qid, content) if !asked.contains(qid.value) =>
         LogActor.Pending(agent, qid, content)
     }
+
+  /** The terms established (challenged-and-defined) for THIS question — one per distinct
+    * `DefinitionGiven` on `qid` (clarification-feature §4). Every term returned has a
+    * `DefinitionGiven` in the log by construction, so `AnswerGiven.governing` can never cite a term
+    * with no established definition.
+    */
+  private def governingTerms(log: Vector[Event], qid: QuestionId): List[Term] =
+    log
+      .collect {
+        case Event.DefinitionGiven(_, _, _, q, term, _) if q == qid => term
+      }
+      .distinct
+      .toList
+
+  /** Who proposed `qid` — the asking agent the challenge routes its Clarify to (§2). */
+  private def proposerOf(log: Vector[Event], qid: QuestionId): Option[AgentId] =
+    log.collectFirst {
+      case Event.QuestionProposed(_, _, agent, q, _) if q == qid => agent
+    }
+
+  /** The text of `qid` as it was asked (falling back to its proposal) — the question the human is
+    * answering/challenging and the context the agent defines the term in.
+    */
+  private def questionText(log: Vector[Event], qid: QuestionId): Option[String] =
+    log
+      .collectFirst {
+        case Event.QuestionAsked(_, _, _, q, content) if q == qid => content
+      }
+      .orElse(log.collectFirst {
+        case Event.QuestionProposed(_, _, _, q, content) if q == qid => content
+      })
+
+  /** The live handle of a registered agent, by id — `None` if it is not in the cohort registry. */
+  private def refOf(
+      agents: List[(AgentId, ActorRef[ToAgent])],
+      agentId: AgentId
+  ): Option[ActorRef[ToAgent]] =
+    agents.collectFirst { case (id, ref) if id == agentId => ref }
 
   private def abstainReason(log: Vector[Event], roundComplete: Boolean): String =
     if !roundComplete then "round incomplete — held (attrition), never signing on a partial round"

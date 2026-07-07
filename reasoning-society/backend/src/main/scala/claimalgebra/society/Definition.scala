@@ -24,6 +24,16 @@ final case class DefinitionProvenance(agent: AgentId, questionId: QuestionId, se
   */
 final case class Definition(term: Term, meaning: String, provenance: DefinitionProvenance)
 
+object Definition:
+  /** Validate the asking agent's structured definition reply (untrusted model output, scala-llm.md
+    * / scala-security.md: re-validate every parsed field before it reaches the log): a non-blank,
+    * trimmed `meaning`, else `None`. `None` means the agent posts no definition — fail-closed,
+    * never a fabricated meaning and never a blank `DefinitionGiven` a `governing` reference could
+    * cite.
+    */
+  def meaningOf(dto: DefinitionDto): Option[String] =
+    Option(dto.meaning).map(_.trim).filter(_.nonEmpty)
+
 /** The definitions read — the society's shared vocabulary, folded PURELY from the log's
   * `DefinitionGiven` events. A separate projection from the belief fold precisely because
   * definitions are belief-inert; it feeds the frontend "definitions established this game" list and

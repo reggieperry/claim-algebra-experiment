@@ -29,8 +29,9 @@ object RunSociety extends IOApp.Simple:
   private def live: IO[Unit] =
     AnthropicLlmCall.clientResource.use { client =>
       val llm = AnthropicLlmCall(client, classOf[AgentMoveDto])
+      val definer = AnthropicLlmCall(client, classOf[DefinitionDto])
       IO.println(
-        "Live reasoning society (Haiku). Think of something; answer the questions y/n/?."
+        "Live reasoning society (Haiku). Think of something; answer y/n/? or 'define <term>'."
       ) *>
         Society
           .play(
@@ -38,7 +39,8 @@ object RunSociety extends IOApp.Simple:
             _ => llm,
             Oracle.console,
             EventSink.stdout,
-            Society.defaultConfig
+            Society.defaultConfig,
+            definerFor = _ => definer
           )
           .flatMap(report)
     }

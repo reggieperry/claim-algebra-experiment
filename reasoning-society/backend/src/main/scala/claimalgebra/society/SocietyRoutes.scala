@@ -24,15 +24,18 @@ import org.http4s.{EntityDecoder, HttpRoutes, ServerSentEvent}
   */
 object SocietyRoutes:
 
-  // The boundary decoder: JSON -> AnswerCommand, re-validated to the domain types (a bad token or a
-  // blank id is a DecodingFailure, surfaced as a 400 below).
+  // The boundary decoders: JSON -> command, re-validated to the domain types (a bad token, a blank
+  // id, or a blank term is a DecodingFailure, surfaced as a 400 below).
   private given answerEntityDecoder: EntityDecoder[IO, AnswerCommand] = jsonOf[IO, AnswerCommand]
+  private given challengeEntityDecoder: EntityDecoder[IO, ChallengeCommand] =
+    jsonOf[IO, ChallengeCommand]
 
   private val landing: String =
     """reasoning-society transport (Build 3 slice 3a)
-      |  GET  /events   text/event-stream — the live event log as JSON frames
-      |  POST /answer   {"questionId": "...", "answer": "yes|no|unknown"}
-      |  POST /start    restart the game (fresh log, one game)
+      |  GET  /events    text/event-stream — the live event log as JSON frames
+      |  POST /answer    {"questionId": "...", "answer": "yes|no|unknown"}
+      |  POST /challenge {"questionId": "...", "term": "..."}   (define a term before answering)
+      |  POST /start     restart the game (fresh log, one game)
       |""".stripMargin
 
   /** Wire the routes.
@@ -79,7 +82,23 @@ object SocietyRoutes:
             )
           case Right(command) =>
             oracle
-              .resolve(command.questionId, command.answer)
+              .resolveAnswer(command.questionId, command.answer)
+              .flatMap(resolved => Ok(Json.obj("resolved" -> resolved.asJson)))
+        }
+
+      case request @ POST -> Root / "challenge" =>
+        // The human CHALLENGES a term before answering (clarification-feature §1). Untrusted input: a
+        // malformed body (or blank id/term) is a 400, never a 500. A valid body completes the pending
+        // question with a Challenge, which PAUSES grounding and re-asks after the agent defines the
+        // term. Fail-closed on an unknown/blank id: `resolved:false`, a no-op (never a second reply).
+        request.attemptAs[ChallengeCommand].value.flatMap {
+          case Left(_) =>
+            BadRequest(
+              Json.obj("error" -> "malformed body; expected {questionId, term}".asJson)
+            )
+          case Right(command) =>
+            oracle
+              .resolveChallenge(command.questionId, command.term)
               .flatMap(resolved => Ok(Json.obj("resolved" -> resolved.asJson)))
         }
 

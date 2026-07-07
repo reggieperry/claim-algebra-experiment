@@ -174,3 +174,22 @@ object AnswerCommand:
       answer <- Wire.answerFromToken(answerRaw).leftMap(DecodingFailure(_, cursor.history))
     yield AnswerCommand(question, answer)
   }
+
+/** The `POST /challenge` command — the browser's CHALLENGE of a term on the current question
+  * ("define '<term>'", clarification-feature §1), before answering. Decoded from untrusted JSON and
+  * re-validated to the domain types at the boundary (scala-security: validate untrusted input): a
+  * blank/missing id or a blank term is a [[DecodingFailure]], surfaced as a 4xx rather than
+  * admitting a bad value. The [[Term]] constructor NORMALIZES the term (trim/collapse/case-fold),
+  * so the challenge grounds against the same key a stored definition uses.
+  */
+final case class ChallengeCommand(questionId: QuestionId, term: Term)
+
+object ChallengeCommand:
+  given decoder: Decoder[ChallengeCommand] = Decoder.instance { cursor =>
+    for
+      questionRaw <- cursor.get[String]("questionId")
+      termRaw <- cursor.get[String]("term")
+      question <- QuestionId.from(questionRaw).leftMap(DecodingFailure(_, cursor.history))
+      term <- Term.from(termRaw).leftMap(DecodingFailure(_, cursor.history))
+    yield ChallengeCommand(question, term)
+  }

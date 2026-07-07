@@ -64,7 +64,15 @@ object RunServer extends IOApp.Simple:
   private def live(sink: EventSink, oracle: Oracle): Resource[IO, IO[Outcome]] =
     AnthropicLlmCall.clientResource.map { client =>
       val llm = AnthropicLlmCall(client, classOf[AgentMoveDto])
-      Society.play(AgentStrategy.cohort, _ => llm, oracle, sink, Society.defaultConfig)
+      val definer = AnthropicLlmCall(client, classOf[DefinitionDto])
+      Society.play(
+        AgentStrategy.cohort,
+        _ => llm,
+        oracle,
+        sink,
+        Society.defaultConfig,
+        definerFor = _ => definer
+      )
     }
 
   private def hermetic(sink: EventSink, oracle: Oracle): IO[Outcome] =

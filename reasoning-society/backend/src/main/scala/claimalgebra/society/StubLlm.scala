@@ -27,3 +27,25 @@ object StubLlm:
             script.lift(i).orElse(script.lastOption).getOrElse(Right(pass))
           }
     }
+
+  /** The clarification-define carrier with the given meaning (clarification-feature §2). */
+  def define(meaning: String): DefinitionDto = new DefinitionDto(meaning)
+
+  /** A deterministic, hermetic definer [[LlmCall]] over a fixed per-call script — the ith
+    * clarification call returns the ith scripted result (a canned definition, or a [[CallError]] to
+    * exercise the agent's failure-is-silence path), repeating the last entry once exhausted. Never
+    * hits the network.
+    */
+  def scriptedDefiner(
+      script: List[Either[CallError, DefinitionDto]]
+  ): IO[LlmCall[DefinitionDto]] =
+    Ref[IO].of(0).map { cursor =>
+      new LlmCall[DefinitionDto]:
+        def call(systemPrompt: String, userMessage: String): IO[Either[CallError, DefinitionDto]] =
+          cursor.getAndUpdate(_ + 1).map { i =>
+            script
+              .lift(i)
+              .orElse(script.lastOption)
+              .getOrElse(Left(CallError.Malformed("exhausted")))
+          }
+    }

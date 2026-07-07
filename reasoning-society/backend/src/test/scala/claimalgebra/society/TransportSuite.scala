@@ -170,6 +170,40 @@ class TransportSuite extends CatsEffectSuite with SocietyFixtures:
       case Right(_) => fail("the auto-answer stream ended before the game did")
   }
 
+  test("POST /challenge completes a pending question with a Challenge move (resolved:true)") {
+    val qid = mkQuestion("q1")
+    for
+      topicAndSink <- TopicSink.make
+      (_, topic, logRef) = topicAndSink
+      oracle <- RemoteOracle.make
+      routes = SocietyRoutes(topic, logRef, oracle, IO.unit).orNotFound
+      parked <- oracle.respond(Question(qid, "is it alive?")).start
+      resolved <- postChallengeWhenRegistered(routes, qid, "Alive")
+      move <- parked.joinWithNever
+    yield
+      assertEquals(resolved, true, clue("the challenge woke the pending question"))
+      // "Alive" is normalized to the "alive" key — the challenge grounds against the stored form.
+      assertEquals(move, HumanMove.Challenge(mkTerm("alive")))
+  }
+
+  test("POST /challenge rejects a malformed body with 400, never a 500") {
+    for
+      topicAndSink <- TopicSink.make
+      (_, topic, logRef) = topicAndSink
+      oracle <- RemoteOracle.make
+      routes = SocietyRoutes(topic, logRef, oracle, IO.unit).orNotFound
+      notJson <- routes.run(
+        Request[IO](method = Method.POST, uri = uri"/challenge").withEntity("not json")
+      )
+      blankTerm <- routes.run(
+        Request[IO](method = Method.POST, uri = uri"/challenge")
+          .withEntity(Json.obj("questionId" -> "q1".asJson, "term" -> "   ".asJson))
+      )
+    yield
+      assertEquals(notJson.status, Status.BadRequest, clue("a non-JSON body is a 400"))
+      assertEquals(blankTerm.status, Status.BadRequest, clue("a blank term is a 400"))
+  }
+
   test("POST /answer rejects a malformed body with 400, never a 500") {
     for
       topicAndSink <- TopicSink.make
@@ -221,4 +255,19 @@ class TransportSuite extends CatsEffectSuite with SocietyFixtures:
       // call after emitting question_asked), so retry until resolve reports it woke a question.
       if response.hcursor.get[Boolean]("resolved").getOrElse(false) then IO.unit
       else IO.sleep(2.millis) *> postAnswer(routes, qid)
+    }
+
+  /** POST a challenge, retrying until it reports it woke a pending question — the registration is
+    * asynchronous, so the same deterministic wait-for-registration idiom as `postAnswer`.
+    */
+  private def postChallengeWhenRegistered(
+      routes: HttpApp[IO],
+      qid: QuestionId,
+      term: String
+  ): IO[Boolean] =
+    val body = Json.obj("questionId" -> qid.value.asJson, "term" -> term.asJson)
+    val request = Request[IO](method = Method.POST, uri = uri"/challenge").withEntity(body)
+    routes.run(request).flatMap(_.as[Json]).flatMap { response =>
+      if response.hcursor.get[Boolean]("resolved").getOrElse(false) then IO.pure(true)
+      else IO.sleep(2.millis) *> postChallengeWhenRegistered(routes, qid, term)
     }

@@ -87,6 +87,28 @@ class ClarificationSuite extends munit.ScalaCheckSuite with SocietyFixtures:
     assertEquals(GameCore.project(events), Nil)
   }
 
+  test(
+    "a definition whose term/meaning value-collides with a candidate stays belief-inert (no phantom backer)"
+  ) {
+    // A definition given by a2 whose TERM ("dog") and MEANING ("dog") both equal the candidate label
+    // must not become a second backer of the "dog" hypothesis — dog is still lone-backed by a1.
+    val dogTerm = mkTerm("dog")
+    val log = Vector(
+      mkAssert(1, a1, dog),
+      definitionGiven(2, a2, q1, dogTerm, "dog")
+    )
+    assertEquals(
+      GameCore.project(log).size,
+      1,
+      clue("only a1's assert projects; the definition does not")
+    )
+    assertEquals(
+      GameCore.decide(log, log.size),
+      GateDecision.Abstain(AbstainReason.Unconfirmed(1)),
+      clue("the definition does not back or corroborate 'dog' — still a lone backer")
+    )
+  }
+
   test("only the hypothesis-moving events project — the clarification pair adds nothing") {
     val mixed = Vector(
       mkAssert(1, a1, dog),
@@ -184,4 +206,17 @@ class ClarificationSuite extends munit.ScalaCheckSuite with SocietyFixtures:
     assert(Term.from("").isLeft)
     assert(Term.from("   ").isLeft)
     assertEquals(Term.from("  alive  ").map(_.value), Right("alive"))
+  }
+
+  test("Term.from normalizes for grounding — case-folds and collapses internal whitespace") {
+    // A challenge on "Alive" and a stored definition of "alive" must be the SAME key (else a
+    // governing/definition lookup misses on case), so the value is case-folded and whitespace-collapsed.
+    assertEquals(Term.from("Alive").map(_.value), Right("alive"))
+    assertEquals(Term.from("  Living   THING  ").map(_.value), Right("living thing"))
+    assertEquals(Term.from("ALIVE"), Term.from("alive"), clue("case-insensitive terms are one key"))
+    assertEquals(
+      Term.from("living  thing"),
+      Term.from("Living Thing"),
+      clue("collapsed-whitespace, case-folded terms are one key")
+    )
   }

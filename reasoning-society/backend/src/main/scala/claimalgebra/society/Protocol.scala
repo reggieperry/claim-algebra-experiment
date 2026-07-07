@@ -39,6 +39,15 @@ enum Phase:
 enum ToAgent:
   case Probe(round: RoundId, view: GameView)
 
+  /** Ask the PROPOSER of `questionId` to define the challenged `term` (clarification-feature §2):
+    * the human challenged the term, so the agent that proposed the question must state what it
+    * meant — if it cannot crisply define its own question, that is itself diagnostic. `question` is
+    * the proposed text (so the agent defines the term IN CONTEXT). The agent makes ONE bounded
+    * structured call and posts back a [[ToLog.Defined]]; a failed/malformed call posts nothing (the
+    * human re-challenges or answers ungrounded — never a wedge, never a fabricated definition).
+    */
+  case Clarify(questionId: QuestionId, question: String, term: Term)
+
 /** A message to the single-writer [[LogActor]] (the global serialization point). Every belief
   * change enters here as an actor-to-actor send — an agent's [[Post]], the oracle's [[Answered]]
   * reply (even the human's input enters as a send, actor-abstraction §8), or the round's
@@ -55,7 +64,21 @@ enum ToLog:
     */
   case RoundTimeout(round: RoundId)
 
-  /** The oracle answered the current question — logged as `AnswerGiven`, then a NEW round opens so
-    * the agents must react to the answer before the gate can sign (the forward-carry barrier, §9).
+  /** The human ANSWERED the current question — logged as `AnswerGiven` (with the `governing` terms
+    * established for this question, derived from the log), then a NEW round opens so the agents
+    * must react to the answer before the gate can sign (the forward-carry barrier, §9).
     */
   case Answered(question: QuestionId, answer: OracleAnswer)
+
+  /** The human CHALLENGED the current question's `term` (clarification-feature §1) — grounding is
+    * PAUSED: the LogActor logs `ClarificationRequested`, routes a [[ToAgent.Clarify]] to the
+    * proposer, and re-asks the same question. NO `AnswerGiven` is emitted and the round does not
+    * close on a challenge.
+    */
+  case Challenged(question: QuestionId, term: Term)
+
+  /** The asking agent SUPPLIED the `meaning` of the challenged `term` (clarification-feature §2) —
+    * the LogActor logs it as a `DefinitionGiven` claim (belief-inert), available to every agent for
+    * the rest of the game. Carries the defining `agent` (the proposer) for provenance.
+    */
+  case Defined(question: QuestionId, agent: AgentId, term: Term, meaning: String)

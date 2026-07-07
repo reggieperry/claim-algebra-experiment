@@ -24,6 +24,19 @@ object AgentStrategy:
       |- text: the note, content, or — for "propose" — the yes/no question to ask.
       |Use the EXACT same candidate label when you mean the same hypothesis, so the society can agree.""".stripMargin
 
+  /** The FIXED, trusted system prompt for a clarification-define call (clarification-feature §2).
+    * The agent that proposed a question is asked to state what it meant by a challenged term. It is
+    * a distinct rubric from the move contract (the output is a definition, not a move). The
+    * untrusted question text and term ride the USER message, never this prompt (scala-security.md).
+    */
+  val definePrompt: String =
+    """You are a member of a reasoning society playing Twenty Questions. You proposed a yes/no
+      |question, and a human has challenged one term in it — they want to know PRECISELY what you
+      |meant before they answer. State the exact meaning you intended for that term, in one crisp
+      |sentence, so it grounds every future use. If you cannot define it crisply, that itself is a
+      |signal the question was ill-formed. Reply with a single field:
+      |- meaning: your one-sentence definition of the challenged term.""".stripMargin
+
   /** The broad category-splitter — proposes bisecting yes/no questions to halve the space. */
   private val splitter: Option[AgentStrategy] = make(
     "splitter",
@@ -75,6 +88,7 @@ final class AgentActor(
     context: ActorContext[ToAgent],
     strategy: AgentStrategy,
     llm: LlmCall[AgentMoveDto],
+    definer: LlmCall[DefinitionDto],
     log: ActorRef[ToLog]
 ) extends Actor[ToAgent](context):
 
@@ -89,6 +103,20 @@ final class AgentActor(
         case Left(_) => unchanged // a raised call → recovered here, no post, actor lives
       }
 
+    case ToAgent.Clarify(questionId, question, term) =>
+      // Define the challenged term with ONE bounded structured call (clarification-feature §2). Same
+      // failure-is-silence discipline as a probe: a malformed/typed-error/raised call posts NOTHING
+      // (the human re-challenges or answers ungrounded — never a wedge, never a fabricated
+      // definition). The untrusted question text + term ride the USER message (scala-security.md).
+      definer.call(AgentStrategy.definePrompt, defineUserMessage(question, term)).attempt.flatMap {
+        case Right(Right(dto)) =>
+          Definition.meaningOf(dto) match
+            case Some(meaning) => postDefinition(questionId, term, meaning)
+            case None => unchanged // blank/malformed meaning → no post (fail-closed)
+        case Right(Left(_)) => unchanged // a typed CallError → no post
+        case Left(_) => unchanged // a raised call → recovered here, no post, actor lives
+      }
+
   /** Post the move under THIS agent's own id and the probe's round — the id and round it cannot
     * forge. The message id is caller-minted and stable per (agent, round) (the dedup key, §5); a
     * blank id is structurally impossible (non-blank agent id, positive round), so the `Left` branch
@@ -98,3 +126,22 @@ final class AgentActor(
     MessageId.from(s"${strategy.id.value}-post-r${round.value}") match
       case Right(id) => send(log, id, ToLog.Post(round, strategy.id, move)) *> unchanged
       case Left(_) => unchanged
+
+  /** Post the definition under THIS agent's own id — the proposer states what it meant.
+    * Belief-inert at the LogActor (a `DefinitionGiven` claim, never a hypothesis). A blank message
+    * id is structurally impossible (non-blank agent + question id), so the `Left` branch is a
+    * fail-closed no-op.
+    */
+  private def postDefinition(qid: QuestionId, term: Term, meaning: String): IO[Actor[ToAgent]] =
+    MessageId.from(s"${strategy.id.value}-define-${qid.value}") match
+      case Right(id) => send(log, id, ToLog.Defined(qid, strategy.id, term, meaning)) *> unchanged
+      case Left(_) => unchanged
+
+  /** The user message for the define call — the untrusted proposed question and the challenged
+    * term, kept OUT of the system prompt (scala-security.md: never splice untrusted content into
+    * the trusted rubric).
+    */
+  private def defineUserMessage(question: String, term: Term): String =
+    s"""Your question: "$question"
+       |The challenged term: "${term.value}"
+       |Define what you meant by "${term.value}".""".stripMargin

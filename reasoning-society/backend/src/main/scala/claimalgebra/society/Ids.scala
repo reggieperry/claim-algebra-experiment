@@ -58,22 +58,28 @@ object Answer:
 
 /** A term whose meaning is under negotiation — the word or phrase a human CHALLENGES on a question
   * ("what do you mean by 'alive'?", clarification-feature §1) and the asking agent DEFINES. It is
-  * the key a [[Definition]] is established under, so it carries the sound value equality a `Map`
-  * key needs (opaque over `String`, so it erases to `String` equality). Belief-inert: a term and
-  * its definition are grounding CONTEXT the society reasons WITH, never a hypothesis about the
-  * answer. Mirrors a frontend `Term` branded string (the wire form is the bare value; slice 3 adds
-  * the TS type). Opaque behind a validating constructor: a blank names no term, so it is refused.
+  * the key a [[Definition]] is established under and the key a grounded answer's `governing`
+  * reference and a definition lookup match on, so it carries the sound value equality a `Map` key
+  * needs (opaque over `String`, so it erases to `String` equality). Belief-inert: a term and its
+  * definition are grounding CONTEXT the society reasons WITH, never a hypothesis about the answer.
+  * Mirrors a frontend `Term` branded string (the wire form is the bare value; slice 3 adds the TS
+  * type). Opaque behind a validating constructor: a blank names no term, so it is refused.
   */
 opaque type Term = String
 
 object Term:
   /** The only constructor. Fail closed: a blank (or whitespace-only) label names no term, so it is
-    * refused. Insignificant surrounding whitespace is trimmed.
+    * refused. The value is NORMALIZED for grounding so the map key is stable — a challenge on
+    * "Alive" and a stored definition of "alive" are the SAME term (else a `governing`/definition
+    * lookup could miss on case): trim, collapse internal whitespace to a single space, and
+    * case-fold (locale-independent `ROOT`, so no Turkish-i surprise on a grounding key). The
+    * normalized value is both the key and the display form.
     */
   def from(raw: String): Either[String, Term] =
-    val trimmed = raw.trim
-    if trimmed.isEmpty then Left("term must be a non-blank label")
-    else Right(trimmed)
+    val normalized =
+      raw.trim.replaceAll("\\s+", " ").toLowerCase(java.util.Locale.ROOT)
+    if normalized.isEmpty then Left("term must be a non-blank label")
+    else Right(normalized)
 
   extension (t: Term) def value: String = t
 

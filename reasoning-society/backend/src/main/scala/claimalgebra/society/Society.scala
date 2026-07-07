@@ -3,7 +3,7 @@ package claimalgebra.society
 import cats.effect.std.Supervisor
 import cats.effect.{Deferred, IO}
 import cats.syntax.all.*
-import claimalgebra.extract.LlmCall
+import claimalgebra.extract.{CallError, LlmCall}
 
 import scala.util.control.NoStackTrace
 
@@ -29,6 +29,16 @@ object Society:
     import scala.concurrent.duration.*
     SocietyConfig(maxRounds = 12, roundTimeout = 30.seconds, hardDeadline = 10.minutes)
 
+  /** A fail-closed [[LlmCall]] for the define carrier used when no real definer is wired (the
+    * DEFAULT `definerFor`). It is never invoked in a game that has no challenge — only a
+    * [[ToAgent.Clarify]] calls the definer, and Clarify is sent only on a challenge — so a
+    * non-clarification game (every pre-clarification suite, the answer-only scripted oracle) never
+    * touches it. If it somehow were called it fails closed: no meaning ⇒ no definition posted.
+    */
+  private val noDefiner: LlmCall[DefinitionDto] = new LlmCall[DefinitionDto]:
+    def call(systemPrompt: String, userMessage: String): IO[Either[CallError, DefinitionDto]] =
+      IO.pure(Left(CallError.Malformed("no definer wired for this agent")))
+
   /** Play one game to a terminal outcome.
     *
     * @param strategies
@@ -43,6 +53,10 @@ object Society:
     * @param schedulerOf
     *   builds the timeout/submission scheduler from the game's supervisor; the production default
     *   supervises real fibers, tests inject deterministic doubles.
+    * @param definerFor
+    *   the clarification-define call for each agent (clarification-feature §2). Defaults to a
+    *   fail-closed [[noDefiner]] since a game with no challenge never invokes it; the live path and
+    *   the clarification suites wire a real one.
     */
   def play(
       strategies: List[AgentStrategy],
@@ -50,7 +64,8 @@ object Society:
       oracle: Oracle,
       sink: EventSink,
       config: SocietyConfig,
-      schedulerOf: Supervisor[IO] => Scheduler = Scheduler.supervised
+      schedulerOf: Supervisor[IO] => Scheduler = Scheduler.supervised,
+      definerFor: AgentId => LlmCall[DefinitionDto] = _ => noDefiner
   ): IO[Outcome] =
     val ids = strategies.map(_.id.value)
     val duplicates = ids.diff(ids.distinct).distinct
@@ -71,7 +86,13 @@ object Society:
             address(s"society/agent/${strategy.id.value}").flatMap { agentAddress =>
               system
                 .actorOf(agentAddress)(context =>
-                  new AgentActor(context, strategy, llmFor(strategy.id), logRef)
+                  new AgentActor(
+                    context,
+                    strategy,
+                    llmFor(strategy.id),
+                    definerFor(strategy.id),
+                    logRef
+                  )
                 )
                 .map(ref => (strategy.id, ref))
             }
