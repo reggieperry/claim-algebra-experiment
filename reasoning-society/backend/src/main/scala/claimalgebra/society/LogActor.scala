@@ -248,14 +248,43 @@ final class LogActor(
 
   private def closeRound(s: LogState, roundComplete: Boolean): IO[LogState] =
     val closed = s.copy(barrier = s.barrier.markClosed)
-    GameCore.nextMove(closed.log, closed.log.size, roundComplete) match
-      case Move.Sign(winner) => sign(closed, winner)
-      case Move.Abstain =>
-        val reason = abstainReason(closed.log, roundComplete)
-        appendEmit(closed.log)((seq, ts) => Event.GateAbstain(seq, ts, reason)).flatMap {
-          case (log2, _) =>
-            advance(closed.copy(log = log2))
-        }
+    // Reconcile the retirement trace BEFORE the gate read (hypothesis-lifecycle §A/§B): emit a
+    // belief-inert `Retired`/`Resurrected` marker for any candidate the recomputed predicate now
+    // defeats (or recovers). The markers move NO belief and masking is the recomputed predicate,
+    // so `nextMove` reads the same masked slot with or without them — this grows the LOG (the
+    // audit/UI trace) but never changes the sign decision.
+    reconcileRetirements(closed).flatMap { reconciled =>
+      GameCore.nextMove(reconciled.log, reconciled.log.size, roundComplete) match
+        case Move.Sign(winner) => sign(reconciled, winner)
+        case Move.Abstain =>
+          val reason = abstainReason(reconciled.log, roundComplete)
+          appendEmit(reconciled.log)((seq, ts) => Event.GateAbstain(seq, ts, reason)).flatMap {
+            case (log2, _) =>
+              advance(reconciled.copy(log = log2))
+          }
+    }
+
+  /** Bring the retirement trace in line with the recomputed predicate (hypothesis-lifecycle §A/§B),
+    * appending and emitting a `Retired`/`Resurrected` marker for each candidate whose defeat-state
+    * changed since the last reconcile. The masking AUTHORITY is [[GameCore.retiredCandidates]]
+    * (threaded through `belief`/`decide`/`GameView.from`); these markers are only its audit/UI
+    * trace ([[GameCore.project]] drops them), so appending them moves no belief and changes no sign
+    * decision. Single-writer and contiguous: [[GameCore.reconcileRetirements]] mints each marker at
+    * `seq = log.size + 1` in this actor's serialization order, and they are appended in that order,
+    * so no seq races. A round with no newly-retired/resurrected candidate returns `Nil` and emits
+    * nothing — byte-identical to the pre-lifecycle path.
+    */
+  private def reconcileRetirements(s: LogState): IO[LogState] =
+    deps.now.flatMap { ts =>
+      GameCore.reconcileRetirements(s.log, s.log.size + 1, ts) match
+        case Nil => IO.pure(s)
+        case markers =>
+          markers
+            .foldLeft(IO.pure(s.log))((accIO, marker) =>
+              accIO.flatMap(log => deps.sink.emit(marker).as(log :+ marker))
+            )
+            .map(log2 => s.copy(log = log2))
+    }
 
   private def advance(s: LogState): IO[LogState] =
     if s.roundsUsed >= deps.config.maxRounds then endInconclusive(s)

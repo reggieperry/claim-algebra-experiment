@@ -45,6 +45,14 @@ object GameView:
     * — the same distinct-agent count the no-lone-sign floor uses, read from the events, never from
     * provenance, actor-abstraction §9), and carry the established definitions ([[Definitions]]) so
     * an agent grounds to the agreed vocabulary (clarification-feature §3).
+    *
+    * RETIRED candidates are dropped from the live targets (hypothesis-lifecycle §B): a hypothesis
+    * the recomputed [[GameCore.retiredCandidates]] predicate has defeated is off the live board, so
+    * agents stop attacking it — this collapses the wasted re-refutations of an already-abandoned
+    * hypothesis. It is a DISPLAY/targets filter only: the retired candidate's events remain in the
+    * log (citable trace), and belief/the gate are untouched (they mask through the same predicate).
+    * A non-retired candidate — including a *contested* live glut, which must stay a target so the
+    * disagreement is held, not silenced — is shown.
     */
   def from(log: Vector[Event]): GameView =
     val answers: Map[String, OracleAnswer] =
@@ -64,8 +72,12 @@ object GameView:
           case _ => acc
       }
 
+    val retired: Set[Answer] = GameCore.retiredCandidates(log)
     val hypotheses: List[(Answer, Int)] =
-      backers.toList.map((c, agents) => c -> agents.size).sortBy((_, n) => -n)
+      backers.toList
+        .filterNot((c, _) => retired.contains(c))
+        .map((c, agents) => c -> agents.size)
+        .sortBy((_, n) => -n)
 
     GameView(transcript, hypotheses, Definitions.established(log))
 
