@@ -19,6 +19,7 @@ export default defineConfig({
     proxy: {
       '/events': { target: BACKEND, changeOrigin: true },
       '/answer': { target: BACKEND, changeOrigin: true },
+      '/challenge': { target: BACKEND, changeOrigin: true },
       '/start': { target: BACKEND, changeOrigin: true },
     },
   },
