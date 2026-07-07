@@ -119,5 +119,26 @@ and re-deciding the threshold), which the design gates on the grounded-refutatio
 this one, because ≥2 assumes trustworthy refutations. Address it there, through adversarial-verify — never
 as `soleView` gate-scoping.
 
-*Recorded 2026-07-07 after the independent check. The decision was not pre-empted before the check
-completed.*
+### Cross-check against the focusing note (`sec-C-pressure-test-focusing-note.md`, 2026-07-07)
+
+A focusing note (from a separate claude.ai instance) reduced the decision to one falsifiable question:
+**(B) survives iff a THIRD notion of "ignorable rival" exists** that is structural (not semantic),
+HOLD-respecting, non-redundant with slice-1's retired set, and genuinely distinct (not a threshold
+change) — passing all four of its "traps."
+
+Applied to the pressure-test's own steelman construction ("§C signs the leader iff it is the unique
+candidate any agent still stands behind" — ignore rivals with no live support regardless of refuter
+count): it passes traps 1 (structural — the metamorphic check holds), 2 (HOLD-respecting — a rival an
+agent stands behind is not ignorable), and 3 (broader than slice-1's retired set), but **fails trap 4**
+— it is slice-1's no-live-support predicate with the `≥2`-refuter requirement dropped, a parameter change
+to the masking predicate, not a distinct mechanism. Enumerating rival categories confirms no fourth
+exists: a rival has live support (→ contested → HOLD), or none with ≥2 refuters (→ already retired), or
+none with <2 (→ the lone/phantom edge, trap 4). **No third notion → (A) stands, and survives the note's
+sharper test.** The note's own stated prediction ("I expect the steelman to fail") is borne out.
+
+Honest caveat (the note raises it too): the note and the pressure-test are both Claude — correlated, not
+independent. The independent confirmation is the running system: slice 2's pipeline validation must show
+slice 1 alone (no §C) signs apple-tree on the plant-or-fungus log and HOLDS on the contested log.
+
+*Recorded 2026-07-07 after the independent check and the focusing-note cross-check. The decision was not
+pre-empted before the check completed.*
