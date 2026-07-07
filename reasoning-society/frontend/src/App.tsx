@@ -5,15 +5,17 @@ import {
   answerSeqFor,
   buildGraph,
   candidatesTouchedBy,
+  definitionsOf,
   fold,
   memoryOf,
   societyOf,
 } from './fold';
-import { postAnswer, postStart, useLiveEvents } from './live';
+import { postAnswer, postChallenge, postStart, useLiveEvents } from './live';
 import { AGENTS, agentName, MOCK_EVENTS } from './mock';
 import type { AgentId, Answer } from './model';
 import {
   BeliefStatePanel,
+  DefinitionsPanel,
   EventStreamPanel,
   HeaderBar,
   HumanActionPanel,
@@ -69,6 +71,8 @@ export function App(): ReactElement {
   );
   // A transient error from the last answer POST — surfaced beside the oracle control, cleared on success.
   const [answerError, setAnswerError] = useState<string | null>(null);
+  // A transient error from the last challenge POST — surfaced beside the challenge control.
+  const [challengeError, setChallengeError] = useState<string | null>(null);
   // The New game restart's in-flight flag (disables the button) and its transient failure. Derived UI
   // state only — the events array stays the single source of truth (ts-react: derive, don't store).
   const [newGamePending, setNewGamePending] = useState(false);
@@ -79,6 +83,7 @@ export function App(): ReactElement {
   const graph = buildGraph(events, playhead);
   const society = societyOf(events, playhead, belief, ROSTER, graph);
   const memory = memoryOf(events, playhead, belief, graph);
+  const definitions = definitionsOf(events, playhead);
   const atHead = playhead >= total;
 
   // The agent filter is a VIEW derived from the same graph — the set of claims the selected agent
@@ -184,6 +189,28 @@ export function App(): ReactElement {
     });
   };
 
+  // The human's CHALLENGE (clarification-feature §1): "define '<term>'", asked before answering. Live:
+  // POST it to the backend, which pauses grounding and re-asks after the asking agent defines the term.
+  // Offline (scripted demo) has no live clarification, so it degrades to a no-op — the challenge control
+  // is hidden there anyway (the panel gates it on `live`).
+  const handleChallenge = (challengedTerm: string): void => {
+    if (offline) {
+      return;
+    }
+    const question = belief.currentQuestion;
+    if (
+      question === undefined ||
+      question.answer !== undefined ||
+      question.pendingChallenge !== undefined
+    ) {
+      return;
+    }
+    setChallengeError(null);
+    void postChallenge(question.questionId, challengedTerm).catch(() => {
+      setChallengeError('could not send your challenge — please retry');
+    });
+  };
+
   // The New game gesture: ask the backend to restart (POST /start), and on success reconnect the SSE
   // stream so it catches up on the reset log — the fresh game only, from seq 1. The button spins while
   // in flight; a failure surfaces transiently and the operator can retry. A double-click is ignored
@@ -248,8 +275,10 @@ export function App(): ReactElement {
             question={belief.currentQuestion}
             resolveAgent={agentName}
             onAnswer={handleAnswer}
+            onChallenge={handleChallenge}
             live={!offline}
             error={answerError}
+            challengeError={challengeError}
           />
         </div>
 
@@ -272,6 +301,12 @@ export function App(): ReactElement {
       </main>
 
       <aside className="observatory__memory">
+        <DefinitionsPanel
+          definitions={definitions}
+          selectedAgent={selectedAgent}
+          onSeek={handleSeek}
+          resolveAgent={agentName}
+        />
         <MemoryPanel
           memory={memory}
           selectedAgent={selectedAgent}

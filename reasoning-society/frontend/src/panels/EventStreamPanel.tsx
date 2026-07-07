@@ -75,7 +75,9 @@ function agentOf(event: ReasoningEvent): AgentId | undefined {
     case 'strike':
     case 'question_proposed':
     case 'question_asked':
+    case 'definition_given':
       return event.agentId;
+    case 'clarification_requested':
     case 'answer_given':
     case 'gate_abstain':
     case 'gate_sign':
@@ -130,12 +132,32 @@ function describe(
         verb: 'asks',
         detail: event.content,
       };
-    case 'answer_given':
+    case 'clarification_requested':
+      // The human challenges a term before answering (clarification-feature §1) — no agent.
+      return {
+        actor: 'Human',
+        verb: 'challenges',
+        detail: `define “${event.term}”`,
+      };
+    case 'definition_given':
+      // The asking agent defines the challenged term (§2).
+      return {
+        actor: resolveAgent(event.agentId),
+        verb: `defines “${event.term}”`,
+        detail: event.meaning,
+      };
+    case 'answer_given': {
+      // A clarified answer records WHAT it was grounded to (§4) — surfaced when `governing` is present.
+      const grounded =
+        event.governing !== undefined && event.governing.length > 0
+          ? ` · grounded to ${event.governing.join(', ')}`
+          : '';
       return {
         actor: 'Oracle',
         verb: 'answers',
-        detail: event.answer.toUpperCase(),
+        detail: `${event.answer.toUpperCase()}${grounded}`,
       };
+    }
     case 'gate_abstain':
       return { actor: 'Gate', verb: 'abstains', detail: event.reason };
     case 'gate_sign':

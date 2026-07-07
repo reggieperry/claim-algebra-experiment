@@ -4,6 +4,7 @@ import {
   agentId,
   candidateId,
   questionId,
+  term,
   type Answer,
   type ReasoningEvent,
 } from '../model';
@@ -213,7 +214,174 @@ describe('fold', () => {
       content: 'Alive?',
       proposedBy: a1,
       answer: undefined,
+      definitions: [],
+      pendingChallenge: undefined,
     });
     expect(fold(events, 2).currentQuestion?.answer).toBe('yes');
+  });
+});
+
+// The clarification pair (clarification-feature §4) moves NO belief — it only decorates the current
+// question. Mirrors the Scala `GameCore.project` dropping `ClarificationRequested`/`DefinitionGiven`.
+describe('fold — clarification events are belief-inert', () => {
+  // Two well-formed inert events appended at the END of a base log (higher seqs, so the base events'
+  // seqs — and therefore their provenance — are untouched).
+  function inertTail(afterSeq: number): readonly ReasoningEvent[] {
+    return [
+      {
+        seq: afterSeq + 1,
+        timestamp: 0,
+        type: 'clarification_requested',
+        questionId: qa,
+        term: term('alive'),
+      },
+      {
+        seq: afterSeq + 2,
+        timestamp: 0,
+        type: 'definition_given',
+        agentId: a1,
+        questionId: qa,
+        term: term('alive'),
+        meaning: 'a living creature currently alive',
+      },
+    ];
+  }
+
+  it('appending the clarification pair leaves candidates, cardinality, and gate unchanged', () => {
+    fc.assert(
+      fc.property(genLog, (base) => {
+        const extended = [...base, ...inertTail(base.length)];
+        const baseState = fold(base, base.length);
+        const extendedState = fold(extended, extended.length);
+        expect(extendedState.candidates).toEqual(baseState.candidates);
+        expect(extendedState.cardinality).toBe(baseState.cardinality);
+        expect(extendedState.gate).toEqual(baseState.gate);
+      }),
+      { seed: 4242, numRuns: 200 },
+    );
+  });
+});
+
+// The ORDERING GATE derivation (clarification-feature §3): a challenge holds answering until the
+// asking agent defines the term. Everything is read from the fold — no separate flag.
+describe('fold — the current question tracks the clarification exchange', () => {
+  const asked: ReasoningEvent[] = [
+    {
+      seq: 1,
+      timestamp: 1,
+      type: 'question_asked',
+      agentId: a1,
+      questionId: qa,
+      content: 'Is it alive?',
+    },
+  ];
+
+  it('an open challenge (no definition yet) is a pending challenge that gates answering', () => {
+    const events = [
+      ...asked,
+      {
+        seq: 2,
+        timestamp: 2,
+        type: 'clarification_requested' as const,
+        questionId: qa,
+        term: term('alive'),
+      },
+    ];
+    const cq = fold(events, events.length).currentQuestion;
+    expect(cq?.pendingChallenge).toEqual({ term: term('alive') });
+    expect(cq?.definitions).toEqual([]);
+    expect(cq?.answer).toBeUndefined();
+  });
+
+  it('a definition after the challenge clears the pending state and records the claim', () => {
+    const events = [
+      ...asked,
+      {
+        seq: 2,
+        timestamp: 2,
+        type: 'clarification_requested' as const,
+        questionId: qa,
+        term: term('alive'),
+      },
+      {
+        seq: 3,
+        timestamp: 3,
+        type: 'definition_given' as const,
+        agentId: a1,
+        questionId: qa,
+        term: term('alive'),
+        meaning: 'a living creature currently alive',
+      },
+    ];
+    // Before the definition (playhead 2) the challenge is open; after it (playhead 3) it is cleared —
+    // and scrubbing re-derives each, no hidden state.
+    expect(fold(events, 2).currentQuestion?.pendingChallenge).toEqual({
+      term: term('alive'),
+    });
+    const cq = fold(events, 3).currentQuestion;
+    expect(cq?.pendingChallenge).toBeUndefined();
+    expect(cq?.definitions).toHaveLength(1);
+    expect(cq?.definitions[0]?.meaning).toBe(
+      'a living creature currently alive',
+    );
+    expect(fold(events, 2).currentQuestion?.pendingChallenge).toEqual({
+      term: term('alive'),
+    });
+  });
+
+  it('a second challenge after a definition re-opens the gate', () => {
+    const events: ReasoningEvent[] = [
+      ...asked,
+      {
+        seq: 2,
+        timestamp: 2,
+        type: 'clarification_requested',
+        questionId: qa,
+        term: term('alive'),
+      },
+      {
+        seq: 3,
+        timestamp: 3,
+        type: 'definition_given',
+        agentId: a1,
+        questionId: qa,
+        term: term('alive'),
+        meaning: 'a living creature currently alive',
+      },
+      {
+        seq: 4,
+        timestamp: 4,
+        type: 'clarification_requested',
+        questionId: qa,
+        term: term('creature'),
+      },
+    ];
+    expect(fold(events, 3).currentQuestion?.pendingChallenge).toBeUndefined();
+    expect(fold(events, 4).currentQuestion?.pendingChallenge).toEqual({
+      term: term('creature'),
+    });
+  });
+
+  it('an answer closes the exchange — no challenge stays outstanding even if undefined', () => {
+    const events: ReasoningEvent[] = [
+      ...asked,
+      {
+        seq: 2,
+        timestamp: 2,
+        type: 'clarification_requested',
+        questionId: qa,
+        term: term('alive'),
+      },
+      {
+        seq: 3,
+        timestamp: 3,
+        type: 'answer_given',
+        questionId: qa,
+        answer: 'yes',
+      },
+    ];
+    const cq = fold(events, events.length).currentQuestion;
+    expect(cq?.answer).toBe('yes');
+    expect(cq?.pendingChallenge).toBeUndefined();
   });
 });

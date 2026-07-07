@@ -42,13 +42,18 @@ export interface Society {
 // (which no agent authors). Exhaustive over the event union — a new variant breaks the build.
 function agentOf(event: ReasoningEvent): AgentId | undefined {
   switch (event.type) {
+    // The seven agent-bearing variants — including the asking agent's `definition_given` (the
+    // proposer speaks), mirroring the Scala `Event.agentId` giving `Some` on `DefinitionGiven`.
     case 'assert':
     case 'corroborate':
     case 'refute':
     case 'strike':
     case 'question_proposed':
     case 'question_asked':
+    case 'definition_given':
       return event.agentId;
+    // The human's challenge, the oracle's answer, and the gate's decisions no agent authors.
+    case 'clarification_requested':
     case 'answer_given':
     case 'gate_abstain':
     case 'gate_sign':

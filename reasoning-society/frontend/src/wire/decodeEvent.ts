@@ -1,11 +1,11 @@
-import { ANSWERS, agentId, candidateId, questionId } from '../model';
-import type { Answer, ReasoningEvent } from '../model';
+import { ANSWERS, agentId, candidateId, questionId, term } from '../model';
+import type { Answer, ReasoningEvent, Term } from '../model';
 
 // The trust boundary between the backend and the fold. Every SSE frame is UNTRUSTED input (ts-security:
 // decode + validate, never `as`-cast raw JSON into a domain type), so this decoder validates the `type`
 // discriminator and the required fields of the matching variant against the wire contract in
 // `backend/.../Wire.scala`, and fails CLOSED — a malformed, extra-typed, or short frame decodes to
-// `null` and is dropped rather than admitted as a lie about its shape. The nine accepted shapes are the
+// `null` and is dropped rather than admitted as a lie about its shape. The accepted shapes are the
 // golden examples the backend's own tests pin, so a round-trip test provably ties the two together.
 
 // A non-null object with string keys of `unknown` value — the only thing we can index. A user-defined
@@ -39,6 +39,28 @@ function isAnswer(value: unknown): value is Answer {
   return (
     typeof value === 'string' && (ANSWERS as readonly string[]).includes(value)
   );
+}
+
+// The optional `governing` reference on `answer_given` (clarification-feature §4). Three outcomes,
+// kept distinct because the field is OMITTED when empty: `undefined` in means the key is absent
+// (a non-clarified answer — valid, no `governing`); an array of non-blank strings decodes to
+// `Term[]`; anything else (a non-array, or an element that is not a non-blank string) is a lie about
+// the shape → `null`, which fails the whole frame closed.
+function governingTerms(raw: unknown): readonly Term[] | null {
+  if (!Array.isArray(raw)) {
+    return null;
+  }
+  // `Array.isArray` narrows to `any[]`; re-type as `unknown[]` so each element is validated, never
+  // trusted (ts-security: untrusted input, no unchecked `any` reaches the domain).
+  const items = raw as readonly unknown[];
+  const terms: Term[] = [];
+  for (const item of items) {
+    if (typeof item !== 'string' || item.trim().length === 0) {
+      return null;
+    }
+    terms.push(term(item));
+  }
+  return terms;
 }
 
 // The three con/pro-claim variants share the agent + candidate + note shape; validate it once.
@@ -155,18 +177,63 @@ export function decodeEvent(json: unknown): ReasoningEvent | null {
         content,
       };
     }
+    case 'clarification_requested': {
+      // The human's challenge — a questionId and the challenged term. NO agentId (the human's move).
+      const question = idField(json, 'questionId');
+      const challenged = idField(json, 'term');
+      if (question === null || challenged === null) {
+        return null;
+      }
+      return {
+        ...base,
+        type: 'clarification_requested',
+        questionId: questionId(question),
+        term: term(challenged),
+      };
+    }
+    case 'definition_given': {
+      // The asking agent's meaning — agentId (the proposer), questionId, term, and the meaning.
+      const agent = idField(json, 'agentId');
+      const question = idField(json, 'questionId');
+      const defined = idField(json, 'term');
+      const meaning = stringField(json, 'meaning');
+      if (
+        agent === null ||
+        question === null ||
+        defined === null ||
+        meaning === null
+      ) {
+        return null;
+      }
+      return {
+        ...base,
+        type: 'definition_given',
+        agentId: agentId(agent),
+        questionId: questionId(question),
+        term: term(defined),
+        meaning,
+      };
+    }
     case 'answer_given': {
       const question = idField(json, 'questionId');
       const answer = json.answer;
       if (question === null || !isAnswer(answer)) {
         return null;
       }
-      return {
+      // `governing` is optional: absent (a non-clarified answer) omits the field; present-but-malformed
+      // fails the frame closed.
+      const rawGoverning = json.governing;
+      const answered = {
         ...base,
-        type: 'answer_given',
+        type: 'answer_given' as const,
         questionId: questionId(question),
         answer,
       };
+      if (rawGoverning === undefined) {
+        return answered;
+      }
+      const governing = governingTerms(rawGoverning);
+      return governing === null ? null : { ...answered, governing };
     }
     case 'gate_abstain': {
       const reason = stringField(json, 'reason');

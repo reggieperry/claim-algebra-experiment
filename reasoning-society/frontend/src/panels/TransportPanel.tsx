@@ -160,8 +160,11 @@ function histoTone(event: ReasoningEvent): string {
       return 'answer';
     case 'gate_abstain':
       return 'missing';
+    // The clarification pair is question-lifecycle control flow — same band as the question events.
     case 'question_proposed':
     case 'question_asked':
+    case 'clarification_requested':
+    case 'definition_given':
       return 'question';
   }
 }

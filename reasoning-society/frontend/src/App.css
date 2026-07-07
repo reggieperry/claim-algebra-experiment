@@ -79,6 +79,18 @@
 .observatory__memory {
   grid-area: memory;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+/* The definitions list sizes to its content; memory takes the remaining rail. */
+.observatory__memory .panel--defs {
+  flex: 0 0 auto;
+}
+.observatory__memory .panel--memory {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 .observatory__transport {
   grid-area: transport;
@@ -483,6 +495,17 @@
   border-left-color: var(--c-resolved);
   background: rgba(63, 185, 80, 0.08);
 }
+/* The clarification pair — the human's challenge and the asking agent's definition. */
+.event--clarification_requested {
+  border-left-color: #b08cff;
+}
+.event--definition_given {
+  border-left-color: #8c7dff;
+  background: rgba(140, 125, 255, 0.06);
+}
+.event--definition_given .event__verb {
+  color: #b08cff;
+}
 
 /* Oracle / human action */
 .human {
@@ -545,6 +568,99 @@
   margin: 2px 0 0;
   font-size: 0.72rem;
   color: var(--c-conflict);
+}
+
+/* The definition(s) established for this question, rendered as CLAIMS (clarification-feature §4). */
+.human__defs {
+  list-style: none;
+  margin: 2px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.human__def {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px 8px;
+  border-left: 2px solid #8c7dff;
+  background: rgba(140, 125, 255, 0.06);
+  border-radius: 3px;
+}
+.human__def-term {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #b08cff;
+}
+.human__def-meaning {
+  font-size: 0.74rem;
+  color: var(--ink);
+  line-height: 1.3;
+}
+.human__def-by {
+  font-size: 0.64rem;
+  color: var(--ink-faint);
+}
+/* The ordering gate's held state — answering is disabled until the asking agent defines the term. */
+.human__waiting {
+  margin: 2px 0;
+  padding: 5px 8px;
+  font-size: 0.72rem;
+  color: #b08cff;
+  border-left: 2px solid #b08cff;
+  background: rgba(176, 140, 255, 0.06);
+  border-radius: 3px;
+}
+/* The Challenge control — the human types a term and asks the asking agent to define it. */
+.human__challenge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+.human__challenge-label {
+  flex-basis: 100%;
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+}
+.human__challenge-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--frame);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.78rem;
+}
+.human__challenge-input:focus {
+  outline: none;
+  border-color: #8c7dff;
+}
+.human__challenge-send {
+  padding: 6px 12px;
+  border: 1px solid #8c7dff;
+  border-radius: 5px;
+  background: rgba(140, 125, 255, 0.12);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+.human__challenge-send:hover:not(:disabled) {
+  background: rgba(140, 125, 255, 0.22);
+}
+.human__challenge-send:disabled {
+  cursor: default;
+  opacity: 0.5;
 }
 
 /* Transport */
@@ -792,6 +908,58 @@
 }
 
 /* Memory — a still, browsable three-tier accordion (build2-ui-design §3), not a second log. */
+/* Definitions established this game — a still, keyed list (clarification-feature §5). */
+.defs-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.def-row {
+  border-left: 2px solid #8c7dff;
+  padding: 3px 0 3px 8px;
+}
+.def-row.is-dimmed {
+  opacity: 0.4;
+}
+.def-row__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+.def-row__term {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #b08cff;
+}
+.def-row__by {
+  margin-left: auto;
+  font-size: 0.62rem;
+  color: var(--ink-faint);
+}
+.def-row__meaning {
+  margin: 3px 0;
+  font-size: 0.7rem;
+  line-height: 1.3;
+  color: var(--ink);
+}
+.def-row__seek {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-faint);
+  font: inherit;
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.def-row__seek:hover {
+  color: var(--c-rival);
+  text-decoration: underline;
+}
+
 .memory {
   display: flex;
   flex-direction: column;

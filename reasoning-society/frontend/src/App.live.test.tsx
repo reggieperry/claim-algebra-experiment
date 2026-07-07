@@ -19,6 +19,26 @@ const questionFrame = (): string =>
     content: 'Is it alive?',
   });
 
+const clarificationFrame = (): string =>
+  JSON.stringify({
+    seq: 2,
+    timestamp: 2,
+    type: 'clarification_requested',
+    questionId: 'q1',
+    term: 'alive',
+  });
+
+const definitionFrame = (): string =>
+  JSON.stringify({
+    seq: 3,
+    timestamp: 3,
+    type: 'definition_given',
+    agentId: 'a1',
+    questionId: 'q1',
+    term: 'alive',
+    meaning: 'a living creature currently alive',
+  });
+
 describe('App (live backend)', () => {
   beforeEach(() => {
     vi.stubGlobal('EventSource', MockEventSource);
@@ -64,6 +84,87 @@ describe('App (live backend)', () => {
       method: 'POST',
       body: JSON.stringify({ questionId: 'q1', answer: 'yes' }),
     });
+  });
+
+  it('POSTs the human CHALLENGE to /challenge with {questionId, term}', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue({ ok: true, status: 200 } as unknown as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    const source = MockEventSource.instances[0];
+    act(() => {
+      source?.emitOpen();
+    });
+    act(() => {
+      source?.emit(questionFrame());
+    });
+
+    // The human challenges the term before answering.
+    const oracle = screen.getByRole('region', { name: /oracle/i });
+    await user.type(
+      within(oracle).getByRole('textbox', { name: /challenge a term/i }),
+      'alive',
+    );
+    await user.click(
+      within(oracle).getByRole('button', { name: /^challenge$/i }),
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe('/challenge');
+    expect(init).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify({ questionId: 'q1', term: 'alive' }),
+    });
+  });
+
+  it('GATES answering on a streamed challenge, then re-opens it on the streamed definition', () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValue({ ok: true, status: 200 } as unknown as Response),
+    );
+    render(<App />);
+
+    const source = MockEventSource.instances[0];
+    act(() => {
+      source?.emitOpen();
+    });
+    act(() => {
+      source?.emit(questionFrame());
+    });
+
+    // Before any challenge, answering is open.
+    const oracle = (): HTMLElement =>
+      screen.getByRole('region', { name: /oracle/i });
+    expect(
+      within(oracle()).getByRole('button', { name: /^yes$/i }),
+    ).toBeEnabled();
+
+    // The challenge streams in → answering is HELD (the ordering gate) and the waiting state shows.
+    act(() => {
+      source?.emit(clarificationFrame());
+    });
+    expect(
+      within(oracle()).getByRole('button', { name: /^yes$/i }),
+    ).toBeDisabled();
+    expect(within(oracle()).getByRole('status')).toHaveTextContent(/waiting/i);
+
+    // The asking agent's definition streams in → answering re-opens and the definition renders.
+    act(() => {
+      source?.emit(definitionFrame());
+    });
+    expect(
+      within(oracle()).getByRole('button', { name: /^yes$/i }),
+    ).toBeEnabled();
+    expect(
+      within(oracle()).getByText(/a living creature currently alive/i),
+    ).toBeInTheDocument();
   });
 
   it('New game POSTs /start, then reconnects the stream (log cleared, a fresh EventSource)', async () => {

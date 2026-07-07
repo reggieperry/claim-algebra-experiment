@@ -6,9 +6,12 @@ import type {
   Candidate,
   CandidateId,
   CurrentQuestion,
+  DefinitionClaim,
   GateDecision,
+  PendingChallenge,
   QuestionId,
   ReasoningEvent,
+  Term,
 } from '../model';
 import { gradeOf } from './grade';
 
@@ -35,6 +38,13 @@ interface AskedQuestion {
   readonly proposedBy: AgentId;
 }
 
+// The latest challenge raised on a question — its term and the seq it was raised at, so the ordering
+// gate can tell whether a later `definition_given` has since answered it.
+interface Challenge {
+  readonly term: Term;
+  readonly seq: number;
+}
+
 function assertNever(x: never): never {
   throw new Error(`unhandled event variant: ${JSON.stringify(x)}`);
 }
@@ -49,6 +59,11 @@ export function fold(
 ): BeliefState {
   const accs = new Map<CandidateId, Acc>();
   const answers = new Map<QuestionId, Answer>();
+  // The clarification exchange, keyed by question — the latest challenge per question, and the
+  // definitions given for it (in seq order). Belief-inert: these feed only the current-question read,
+  // never a candidate (mirrors the Scala `project` dropping the clarification pair).
+  const lastChallenges = new Map<QuestionId, Challenge>();
+  const definitionsByQuestion = new Map<QuestionId, DefinitionClaim[]>();
   let gate: GateDecision = { kind: 'watching' };
   let lastAsked: AskedQuestion | undefined;
 
@@ -96,6 +111,29 @@ export function fold(
       case 'answer_given':
         answers.set(event.questionId, event.answer);
         break;
+      case 'clarification_requested':
+        // Belief-inert (clarification-feature §4): a challenge moves no hypothesis. Recorded so the
+        // ordering gate can see the OPEN challenge and hold answering until the agent defines it.
+        lastChallenges.set(event.questionId, {
+          term: event.term,
+          seq: event.seq,
+        });
+        break;
+      case 'definition_given': {
+        // Belief-inert: a definition grounds the vocabulary, it is never a hypothesis about the
+        // answer. Recorded as a claim for the current-question display and the definitions list.
+        const claim: DefinitionClaim = {
+          term: event.term,
+          meaning: event.meaning,
+          agent: event.agentId,
+          questionId: event.questionId,
+          establishedSeq: event.seq,
+        };
+        const existing = definitionsByQuestion.get(event.questionId) ?? [];
+        existing.push(claim);
+        definitionsByQuestion.set(event.questionId, existing);
+        break;
+      }
       case 'gate_abstain':
         gate = { kind: 'abstained', reason: event.reason, seq: event.seq };
         break;
@@ -121,7 +159,12 @@ export function fold(
     candidates,
     cardinality,
     gate,
-    currentQuestion: buildCurrentQuestion(lastAsked, answers),
+    currentQuestion: buildCurrentQuestion(
+      lastAsked,
+      answers,
+      lastChallenges,
+      definitionsByQuestion,
+    ),
   };
 }
 
@@ -247,14 +290,47 @@ function buildCandidates(accs: Map<CandidateId, Acc>): readonly Candidate[] {
 function buildCurrentQuestion(
   lastAsked: AskedQuestion | undefined,
   answers: Map<QuestionId, Answer>,
+  lastChallenges: Map<QuestionId, Challenge>,
+  definitionsByQuestion: Map<QuestionId, DefinitionClaim[]>,
 ): CurrentQuestion | undefined {
   if (lastAsked === undefined) {
     return undefined;
   }
+  const answer = answers.get(lastAsked.questionId);
+  const definitions = definitionsByQuestion.get(lastAsked.questionId) ?? [];
   return {
     questionId: lastAsked.questionId,
     content: lastAsked.content,
     proposedBy: lastAsked.proposedBy,
-    answer: answers.get(lastAsked.questionId),
+    answer,
+    definitions,
+    pendingChallenge: pendingChallengeOf(
+      lastChallenges.get(lastAsked.questionId),
+      definitions,
+      answer,
+    ),
   };
+}
+
+// The ordering gate's core read: is a challenge on the current question still awaiting its
+// definition? An OPEN challenge is the latest `clarification_requested` for the question with NO
+// later `definition_given` (clarification-feature §3). Once answered, the exchange is closed — no
+// challenge is outstanding — so an answer clears the gate too. Derived structurally; never stored.
+function pendingChallengeOf(
+  lastChallenge: Challenge | undefined,
+  definitions: readonly DefinitionClaim[],
+  answer: Answer | undefined,
+): PendingChallenge | undefined {
+  if (lastChallenge === undefined || answer !== undefined) {
+    return undefined;
+  }
+  const latestDefinitionSeq = definitions.reduce(
+    (max, definition) => Math.max(max, definition.establishedSeq),
+    0,
+  );
+  // A definition raised AFTER the latest challenge answers it; otherwise the challenge is still open.
+  if (latestDefinitionSeq > lastChallenge.seq) {
+    return undefined;
+  }
+  return { term: lastChallenge.term };
 }

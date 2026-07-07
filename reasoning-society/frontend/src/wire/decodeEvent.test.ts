@@ -4,6 +4,7 @@ import {
   agentId,
   candidateId,
   questionId,
+  term,
   type ReasoningEvent,
 } from '../model';
 import { decodeEvent } from './decodeEvent';
@@ -98,6 +99,42 @@ const GOLDEN: readonly {
       type: 'answer_given',
       questionId: questionId('q1'),
       answer: 'yes',
+    },
+  },
+  {
+    name: 'clarification_requested',
+    json: '{"seq":19,"timestamp":20,"type":"clarification_requested","questionId":"q1","term":"alive"}',
+    want: {
+      seq: 19,
+      timestamp: 20,
+      type: 'clarification_requested',
+      questionId: questionId('q1'),
+      term: term('alive'),
+    },
+  },
+  {
+    name: 'definition_given',
+    json: '{"seq":21,"timestamp":22,"type":"definition_given","agentId":"a2","questionId":"q1","term":"alive","meaning":"a living creature currently alive"}',
+    want: {
+      seq: 21,
+      timestamp: 22,
+      type: 'definition_given',
+      agentId: agentId('a2'),
+      questionId: questionId('q1'),
+      term: term('alive'),
+      meaning: 'a living creature currently alive',
+    },
+  },
+  {
+    name: 'answer_given with governing (a clarified answer)',
+    json: '{"seq":23,"timestamp":24,"type":"answer_given","questionId":"q1","answer":"no","governing":["alive"]}',
+    want: {
+      seq: 23,
+      timestamp: 24,
+      type: 'answer_given',
+      questionId: questionId('q1'),
+      answer: 'no',
+      governing: [term('alive')],
     },
   },
   {
@@ -205,6 +242,80 @@ describe('decodeEvent', () => {
       name: 'a gate_sign missing candidateId',
       input: { seq: 1, timestamp: 2, type: 'gate_sign' },
     },
+    {
+      name: 'a clarification_requested with a blank term',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'clarification_requested',
+        questionId: 'q1',
+        term: '  ',
+      },
+    },
+    {
+      name: 'a clarification_requested missing term',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'clarification_requested',
+        questionId: 'q1',
+      },
+    },
+    {
+      name: 'a definition_given missing meaning',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'definition_given',
+        agentId: 'a2',
+        questionId: 'q1',
+        term: 'alive',
+      },
+    },
+    {
+      name: 'a definition_given missing agentId',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'definition_given',
+        questionId: 'q1',
+        term: 'alive',
+        meaning: 'a living creature',
+      },
+    },
+    {
+      name: 'an answer_given whose governing is not an array',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'answer_given',
+        questionId: 'q1',
+        answer: 'no',
+        governing: 'alive',
+      },
+    },
+    {
+      name: 'an answer_given whose governing holds a blank term',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'answer_given',
+        questionId: 'q1',
+        answer: 'no',
+        governing: ['alive', '  '],
+      },
+    },
+    {
+      name: 'an answer_given whose governing holds a non-string',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'answer_given',
+        questionId: 'q1',
+        answer: 'no',
+        governing: [7],
+      },
+    },
   ];
 
   it.each(malformed)('rejects $name as null', ({ input }) => {
@@ -213,5 +324,35 @@ describe('decodeEvent', () => {
 
   it('rejects the string that is not JSON at all (parsed to a primitive)', () => {
     expect(decodeEvent(JSON.parse('"just a string"'))).toBeNull();
+  });
+
+  it('OMITS governing on a non-clarified answer (present ≠ absent-and-empty)', () => {
+    const decoded = decodeEvent(
+      JSON.parse(
+        '{"seq":13,"timestamp":14,"type":"answer_given","questionId":"q1","answer":"yes"}',
+      ),
+    );
+    // The field is absent, not present-and-undefined — the pre-clarification shape is byte-identical.
+    expect(decoded).not.toBeNull();
+    expect(decoded && 'governing' in decoded).toBe(false);
+  });
+
+  it('accepts an empty governing array (a vacuously valid clarified answer)', () => {
+    const decoded = decodeEvent({
+      seq: 23,
+      timestamp: 24,
+      type: 'answer_given',
+      questionId: 'q1',
+      answer: 'no',
+      governing: [],
+    });
+    expect(decoded).toEqual({
+      seq: 23,
+      timestamp: 24,
+      type: 'answer_given',
+      questionId: questionId('q1'),
+      answer: 'no',
+      governing: [],
+    });
   });
 });

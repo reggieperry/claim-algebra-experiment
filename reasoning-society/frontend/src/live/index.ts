@@ -4,5 +4,7 @@ export { useLiveEvents } from './useLiveEvents';
 export type { LiveEvents, LiveStatus } from './useLiveEvents';
 export { postAnswer } from './postAnswer';
 export type { PostAnswerOptions } from './postAnswer';
+export { postChallenge } from './postChallenge';
+export type { PostChallengeOptions } from './postChallenge';
 export { postStart } from './postStart';
 export type { PostStartOptions } from './postStart';

@@ -1,5 +1,6 @@
+import type { DefinitionClaim } from './definition';
 import type { Answer } from './event';
-import type { AgentId, CandidateId, QuestionId } from './ids';
+import type { AgentId, CandidateId, QuestionId, Term } from './ids';
 
 // The four structural corners of the four-state read, mirrored from the algebra's `Status`
 // (claimalgebra.calculus.Resolution): read STRUCTURALLY from a candidate's pro/con/struck evidence,
@@ -51,12 +52,27 @@ export type GateDecision =
     };
 
 // The question currently before the oracle: the latest asked question and its answer if one has
-// been given at or before the playhead (`undefined` while it is still open).
+// been given at or before the playhead (`undefined` while it is still open). The two clarification
+// reads below are derived from the same fold (clarification-feature §5): they surface the challenge
+// exchange and drive the client-side ORDERING GATE that enforces challenge → definition → answer.
 export interface CurrentQuestion {
   readonly questionId: QuestionId;
   readonly content: string;
   readonly proposedBy: AgentId;
   readonly answer: Answer | undefined;
+  // Definitions established for THIS question's clarification exchanges, in seq order — rendered as
+  // claims beside the question (§4). Empty when the question was never challenged.
+  readonly definitions: readonly DefinitionClaim[];
+  // An OPEN challenge: the human challenged a term and the asking agent has not defined it yet, so
+  // answering is GATED until the definition arrives (the load-bearing UX rule, §3). `undefined` when
+  // no challenge is outstanding (never challenged, the latest challenge already answered by a
+  // definition, or the question already answered). Derived, never stored.
+  readonly pendingChallenge: PendingChallenge | undefined;
+}
+
+// The outstanding challenge on the current question — the term whose definition is being awaited.
+export interface PendingChallenge {
+  readonly term: Term;
 }
 
 // The whole fold result at a playhead — what every panel reads. Nothing here is stored between

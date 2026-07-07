@@ -18,3 +18,5 @@ export type { AgentSummary, Society } from './society';
 
 export { memoryOf } from './memory';
 export type { Fact, Memory, MethodCalibration, Relationship } from './memory';
+
+export { definitionsOf } from './definitions';
