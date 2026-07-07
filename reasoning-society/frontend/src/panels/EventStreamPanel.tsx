@@ -1,6 +1,8 @@
 import type { ReactElement } from 'react';
 
+import { downloadTextFile, toJson, toTranscript } from '../export';
 import type { AgentId, ReasoningEvent } from '../model';
+import { agentOf, describeEvent } from '../view/describeEvent';
 
 interface EventStreamPanelProps {
   readonly events: readonly ReasoningEvent[];
@@ -16,7 +18,9 @@ interface EventStreamPanelProps {
 
 // The play-by-play (brief §4): the claims as posted, colour-coded by type, newest first. A pure view
 // of the log prefix at the playhead — it derives its rows from `(events, playhead)`, the same source
-// of truth the fold reads, and holds no state.
+// of truth the fold reads, and holds no state. The header carries a Download log affordance (Transcript
+// / JSON), which reads the FULL current-game log (not the playhead prefix); the download itself is an
+// event handler — the panel stays a pure reader, the effect lives in the click (ts-react).
 export function EventStreamPanel({
   events,
   playhead,
@@ -27,14 +31,54 @@ export function EventStreamPanel({
   const visible = events.filter((event) => event.seq <= playhead);
   const ordered = [...visible].reverse();
   const selected = selectedAgent ?? null;
+  const canDownload = events.length > 0;
+
+  const handleDownloadTranscript = (): void => {
+    downloadTextFile(
+      toTranscript(events, resolveAgent, new Date()),
+      'reasoning-society-log.md',
+      'text/markdown',
+    );
+  };
+
+  const handleDownloadJson = (): void => {
+    downloadTextFile(
+      toJson(events),
+      'reasoning-society-log.json',
+      'application/json',
+    );
+  };
 
   return (
     <section className="panel panel--stream" aria-label="Event stream">
       <header className="panel__head">
         <h2 className="panel__title">Event log</h2>
-        <p className="panel__sub">
-          {visible.length} / {events.length}
-        </p>
+        <div className="panel__head-right">
+          <p className="panel__sub">
+            {visible.length} / {events.length}
+          </p>
+          <div className="log-download" aria-label="Download log">
+            <span className="log-download__label">Download log</span>
+            <button
+              type="button"
+              className="log-download__btn"
+              onClick={handleDownloadTranscript}
+              disabled={!canDownload}
+              aria-label="Download log as transcript"
+            >
+              Transcript
+            </button>
+            <button
+              type="button"
+              className="log-download__btn"
+              onClick={handleDownloadJson}
+              disabled={!canDownload}
+              aria-label="Download log as JSON"
+            >
+              JSON
+            </button>
+          </div>
+        </div>
       </header>
 
       {ordered.length === 0 ? (
@@ -42,7 +86,7 @@ export function EventStreamPanel({
       ) : (
         <ol className="event-list" aria-label="Posted events, newest first">
           {ordered.map((event) => {
-            const line = describe(event, resolveAgent);
+            const line = describeEvent(event, resolveAgent);
             const agent = agentOf(event);
             const dimmed = selected !== null && agent !== selected;
             const gutter =
@@ -63,122 +107,4 @@ export function EventStreamPanel({
       )}
     </section>
   );
-}
-
-// The agent an event is attributed to, or `undefined` for the oracle's answer and the gate's
-// decisions. Exhaustive over the event union.
-function agentOf(event: ReasoningEvent): AgentId | undefined {
-  switch (event.type) {
-    case 'assert':
-    case 'corroborate':
-    case 'refute':
-    case 'strike':
-    case 'question_proposed':
-    case 'question_asked':
-    case 'definition_given':
-      return event.agentId;
-    // A recalled definition's author spoke in a prior game (its origin is provenance, not a this-game
-    // speaker), so no this-game agent authors it — like the human's challenge, the oracle, the gate.
-    case 'clarification_requested':
-    case 'definition_remembered':
-    case 'answer_given':
-    case 'gate_abstain':
-    case 'gate_sign':
-      return undefined;
-  }
-}
-
-interface EventLine {
-  readonly actor: string;
-  readonly verb: string;
-  readonly detail: string;
-}
-
-function describe(
-  event: ReasoningEvent,
-  resolveAgent: (id: AgentId) => string,
-): EventLine {
-  switch (event.type) {
-    case 'assert':
-      return {
-        actor: resolveAgent(event.agentId),
-        verb: 'asserts',
-        detail: event.content,
-      };
-    case 'corroborate':
-      return {
-        actor: resolveAgent(event.agentId),
-        verb: `corroborates ${event.candidateId}`,
-        detail: event.note,
-      };
-    case 'refute':
-      return {
-        actor: resolveAgent(event.agentId),
-        verb: `refutes ${event.candidateId}`,
-        detail: event.note,
-      };
-    case 'strike':
-      return {
-        actor: resolveAgent(event.agentId),
-        verb: `strikes ${event.candidateId}`,
-        detail: event.note,
-      };
-    case 'question_proposed':
-      return {
-        actor: resolveAgent(event.agentId),
-        verb: 'proposes',
-        detail: event.content,
-      };
-    case 'question_asked':
-      return {
-        actor: resolveAgent(event.agentId),
-        verb: 'asks',
-        detail: event.content,
-      };
-    case 'clarification_requested':
-      // The human challenges a term before answering (clarification-feature §1) — no agent.
-      return {
-        actor: 'Human',
-        verb: 'challenges',
-        detail: `define “${event.term}”`,
-      };
-    case 'definition_given':
-      // The asking agent defines the challenged term (§2).
-      return {
-        actor: resolveAgent(event.agentId),
-        verb: `defines “${event.term}”`,
-        detail: event.meaning,
-      };
-    case 'definition_remembered':
-      // A definition recalled from persistent memory (two-tier-reset-design) — carried from a prior
-      // game, no this-game author. The "recalled from game N" badge is a later slice; this line just
-      // renders the recalled meaning so the stream stays complete.
-      return {
-        actor: 'Memory',
-        verb: `recalls “${event.term}”`,
-        detail: event.meaning,
-      };
-    case 'answer_given': {
-      // A clarified answer records WHAT it was grounded to (§4) — surfaced when `governing` is present.
-      const grounded =
-        event.governing !== undefined && event.governing.length > 0
-          ? ` · grounded to ${event.governing.join(', ')}`
-          : '';
-      return {
-        actor: 'Oracle',
-        verb: 'answers',
-        detail: `${event.answer.toUpperCase()}${grounded}`,
-      };
-    }
-    case 'gate_abstain':
-      return { actor: 'Gate', verb: 'abstains', detail: event.reason };
-    case 'gate_sign':
-      return { actor: 'Gate', verb: 'signs', detail: event.candidateId };
-    default:
-      return assertNever(event);
-  }
-}
-
-function assertNever(x: never): never {
-  throw new Error(`unhandled event: ${JSON.stringify(x)}`);
 }

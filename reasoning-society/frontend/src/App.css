@@ -284,6 +284,46 @@
   font-size: 0.78rem;
   color: var(--ink-faint);
 }
+/* The event-log header's right cluster: the visible/total caption and the Download log affordance. */
+.panel__head-right {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+/* Download log — two format buttons in the event-log header, styled to match the header controls
+   (New game / Full reset). Client-side only: it exports the current game's log to a Blob download. */
+.log-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.log-download__label {
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+.log-download__btn {
+  padding: 3px 8px;
+  border: 1px solid var(--frame);
+  border-radius: 4px;
+  background: var(--panel-raise);
+  color: var(--ink-dim);
+  font: inherit;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease;
+}
+.log-download__btn:hover:not(:disabled) {
+  border-color: var(--c-resolved);
+  color: var(--ink);
+}
+.log-download__btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 
 /* Gate line */
 .gate {
