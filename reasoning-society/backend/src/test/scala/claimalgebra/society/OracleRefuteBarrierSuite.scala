@@ -46,13 +46,18 @@ class OracleRefuteBarrierSuite extends munit.FunSuite with SocietyFixtures:
       clue("incomplete round after the answer → Abstain, never Sign")
     )
 
-    // Once the agents REACT — refuting the contradicted candidate — the slot gluts. Now even a COMPLETE
-    // round is blocked: Conflict, never a signature.
+    // Once the agents REACT — refuting the contradicted candidate — dog is BOTH-asserters-withdrawn:
+    // a1 and a2 each asserted then refuted it (self-withdrawal), giving two standing refuters and no
+    // pro-author standing behind. That is a DEFEATED claim, not a live glut, so the hypothesis-
+    // lifecycle predicate RETIRES it (masks both channels) rather than jamming the gate on a false
+    // glut. The gate then abstains for the CORRECT reason — no live hypothesis (Gap) — still never a
+    // signature. (Pre-lifecycle this read Conflict; the safety, "never sign the contradicted
+    // candidate," is preserved either way.)
     val afterRefute = afterAnswer ++ Vector(refute(5, a1, dog), refute(6, a2, dog))
     assertEquals(
       GameCore.decide(afterRefute, afterRefute.size),
-      GateDecision.Abstain(AbstainReason.Blocked(BlockReason.Conflict)),
-      clue("agents' refute → glut → Conflict")
+      GateDecision.Abstain(AbstainReason.Blocked(BlockReason.Gap)),
+      clue("both asserters self-withdrew → dog retired (defeated) → Gap, never a sign")
     )
     assertEquals(
       GameCore.nextMove(afterRefute, afterRefute.size, roundComplete = true),

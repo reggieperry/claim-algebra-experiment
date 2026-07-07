@@ -221,7 +221,7 @@ class SocietyGameSuite extends CatsEffectSuite:
   }
 
   test(
-    "an answer opens a NEW round: agents react to a 'no', gluting the candidate — it never signs"
+    "an answer opens a NEW round: agents react to a 'no', retiring the abandoned candidate — it never signs"
   ) {
     val scripts = Map(
       "driller" -> List(assertOf("dog"), refuteOf("dog")),
@@ -246,11 +246,16 @@ class SocietyGameSuite extends CatsEffectSuite:
         (answerSeq, reactionSeq).mapN(_ < _).getOrElse(false),
         "the agents' refute followed the answer (they reacted in the new round)"
       )
+      // The sole asserter (driller) reacted to the 'no' by refuting its own candidate — a
+      // SELF-WITHDRAWAL — and a second refuter (splitter) stands, so dog is a DEFEATED hypothesis,
+      // not a live glut. The lifecycle predicate retires it (masks both channels), so the slot reads
+      // a clean Gap and the gate abstains for the correct reason. It still never signs — the
+      // load-bearing safety. (Pre-lifecycle this jammed as a false Glut for the rest of the game.)
       val corner = Testimony.corner(GameCore.slot(events, events.size))
       assertEquals(
         corner,
-        Belnap.Glut,
-        clue("the reacted-to 'no' gluts the candidate — a real conflict")
+        Belnap.Gap,
+        clue("both the asserter's withdrawal and a second refuter → retired to trace, a clean gap")
       )
   }
 

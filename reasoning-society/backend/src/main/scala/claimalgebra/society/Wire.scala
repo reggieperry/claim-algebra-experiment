@@ -166,6 +166,23 @@ object Wire:
         "type" -> "gate_sign".asJson,
         "candidateId" -> candidate.value.asJson
       )
+    // The lifecycle markers (hypothesis-lifecycle §A/§B) — belief-inert trace of a retirement /
+    // resurrection. Minimal frames now (the frontend `ReasoningEvent` union member lands in slice
+    // 3); shape mirrors `gate_sign` — seq, timestamp, type, candidateId.
+    case Event.Retired(seq, timestamp, candidate) =>
+      Json.obj(
+        "seq" -> seq.asJson,
+        "timestamp" -> timestamp.asJson,
+        "type" -> "retired".asJson,
+        "candidateId" -> candidate.value.asJson
+      )
+    case Event.Resurrected(seq, timestamp, candidate) =>
+      Json.obj(
+        "seq" -> seq.asJson,
+        "timestamp" -> timestamp.asJson,
+        "type" -> "resurrected".asJson,
+        "candidateId" -> candidate.value.asJson
+      )
   }
 
   /** The nested `origin` object on a `definition_remembered` frame — the provenance of a recalled

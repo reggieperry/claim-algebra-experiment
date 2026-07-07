@@ -133,6 +133,26 @@ enum Event extends EventMeta:
     */
   case GateSign(seq: Int, timestamp: Long, candidateId: Answer)
 
+  /** The librarian RETIRED a defeated hypothesis to trace (hypothesis-lifecycle §A/§B): its pro
+    * channel has no live support (every pro-author self-withdrew) and its con channel carries ≥ 2
+    * standing refutations, so it is a *defeated* claim, not a live glut. Off the live board, kept
+    * as citable trace — a marker, NOT the masking authority: masking is the recomputed
+    * [[GameCore.retiredCandidates]] predicate, and this event only mirrors it for the audit/UI
+    * trace ([[GameCore.reconcileRetirements]] keeps the two in sync). Belief-inert — no agent (the
+    * librarian reads the channel balance the agents produced; it makes no domain judgment), and it
+    * projects to nothing ([[GameCore.project]]), so it can never move a hypothesis or invent a
+    * backer.
+    */
+  case Retired(seq: Int, timestamp: Long, candidateId: Answer)
+
+  /** The librarian RESURRECTED a previously-retired hypothesis (hypothesis-lifecycle §B, recovery):
+    * fresh live support arrived above an agent's latest refutation, so the retirement predicate no
+    * longer holds and the claim returns to the live board. Retirement is to trace, never deletion,
+    * so this is a re-fold consequence, not an un-delete. Belief-inert exactly as [[Retired]] is —
+    * no agent, projects to nothing.
+    */
+  case Resurrected(seq: Int, timestamp: Long, candidateId: Answer)
+
   /** The uniform "who spoke" read — `Some` on the seven agent-bearing variants (including
     * [[DefinitionGiven]], the asking agent's move), `None` on the human's challenge, the recalled
     * definition (its author spoke in a prior game — the origin agent is provenance, not a this-game
@@ -153,3 +173,7 @@ enum Event extends EventMeta:
     case AnswerGiven(_, _, _, _, _) => None
     case GateAbstain(_, _, _) => None
     case GateSign(_, _, _) => None
+    // The librarian's lifecycle markers carry no agent — it reads the channel balance and files the
+    // consequence; the retirement is a structural fact about the log, not one agent's move.
+    case Retired(_, _, _) => None
+    case Resurrected(_, _, _) => None
