@@ -5,8 +5,10 @@ export {
   fold,
   answerSeqFor,
   signableCandidate,
+  retiredCandidates,
   SIGN_THRESHOLD,
   MIN_CORROBORATORS,
+  MIN_REFUTERS,
 } from './fold';
 export { gradeOf } from './grade';
 

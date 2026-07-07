@@ -304,6 +304,20 @@ export function decodeEvent(json: unknown): ReasoningEvent | null {
         ? null
         : { ...base, type: 'gate_sign', candidateId: candidateId(candidate) };
     }
+    case 'retired': {
+      // A lifecycle trace marker (hypothesis-lifecycle §A/§B) — shaped like gate_sign, NO agentId
+      // (the librarian emits it). A blank candidateId fails the frame closed.
+      const candidate = idField(json, 'candidateId');
+      return candidate === null
+        ? null
+        : { ...base, type: 'retired', candidateId: candidateId(candidate) };
+    }
+    case 'resurrected': {
+      const candidate = idField(json, 'candidateId');
+      return candidate === null
+        ? null
+        : { ...base, type: 'resurrected', candidateId: candidateId(candidate) };
+    }
     default:
       // An unrecognized discriminator is not a frame we understand — reject it.
       return null;

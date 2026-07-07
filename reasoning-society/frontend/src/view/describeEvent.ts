@@ -27,6 +27,11 @@ export function agentOf(event: ReasoningEvent): AgentId | undefined {
     case 'answer_given':
     case 'gate_abstain':
     case 'gate_sign':
+    case 'retired':
+    case 'resurrected':
+      // The oracle's answer, the human's challenge, a recalled definition, the gate's decisions, and
+      // the librarian's lifecycle markers carry no agent — the retirement is a structural fact about
+      // the log, not one agent's move.
       return undefined;
   }
 }
@@ -110,6 +115,14 @@ export function describeEvent(
       return { actor: 'Gate', verb: 'abstains', detail: event.reason };
     case 'gate_sign':
       return { actor: 'Gate', verb: 'signs', detail: event.candidateId };
+    case 'retired':
+      // The librarian retires a defeated hypothesis to trace (hypothesis-lifecycle §A/§B) — off the
+      // live board, kept as an audit line. Attributed to Memory, the same voice as a recalled
+      // definition (the librarian), never an agent.
+      return { actor: 'Memory', verb: 'retires', detail: event.candidateId };
+    case 'resurrected':
+      // The librarian restores a hypothesis that regained live support (§B, recovery).
+      return { actor: 'Memory', verb: 'restores', detail: event.candidateId };
     default:
       return assertNever(event);
   }

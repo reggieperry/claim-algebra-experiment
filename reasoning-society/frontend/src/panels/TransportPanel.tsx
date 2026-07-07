@@ -160,13 +160,16 @@ function histoTone(event: ReasoningEvent): string {
       return 'answer';
     case 'gate_abstain':
       return 'missing';
-    // The clarification pair and a recalled definition are vocabulary/question-lifecycle control
-    // flow — same band as the question events, belief-inert.
+    // The clarification pair, a recalled definition, and the librarian's retire/resurrect markers are
+    // vocabulary/lifecycle control flow — same band as the question events, belief-inert (never a live
+    // conflict or superseded spike on the histogram).
     case 'question_proposed':
     case 'question_asked':
     case 'clarification_requested':
     case 'definition_given':
     case 'definition_remembered':
+    case 'retired':
+    case 'resurrected':
       return 'question';
   }
 }

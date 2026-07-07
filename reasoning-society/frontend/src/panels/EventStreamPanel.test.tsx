@@ -118,3 +118,28 @@ describe('EventStreamPanel download log', () => {
     expect(screen.getByRole('button', { name: /json/i })).toBeDisabled();
   });
 });
+
+// The lifecycle markers render in the event log as the librarian's audit trace (hypothesis-lifecycle
+// §A/§B) — "Memory retires/restores <candidate>", attributed to Memory, never an agent.
+describe('EventStreamPanel lifecycle markers', () => {
+  const lifecycleEvents: readonly ReasoningEvent[] = [
+    { type: 'retired', candidateId: dog, seq: 1, timestamp: 1 },
+    { type: 'resurrected', candidateId: dog, seq: 2, timestamp: 2 },
+  ];
+
+  it('shows a retired marker as "Memory retires <candidate>"', () => {
+    render(
+      <EventStreamPanel
+        events={lifecycleEvents}
+        playhead={2}
+        resolveAgent={resolveAgent}
+      />,
+    );
+    expect(screen.getByText('retires')).toBeInTheDocument();
+    expect(screen.getByText('restores')).toBeInTheDocument();
+    // Attributed to the librarian (Memory), not an agent — one actor cell per marker row.
+    expect(screen.getAllByText('Memory')).toHaveLength(2);
+    // The candidate is named in the detail cell of each marker.
+    expect(screen.getAllByText('dog').length).toBeGreaterThanOrEqual(2);
+  });
+});

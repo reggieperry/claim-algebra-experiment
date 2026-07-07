@@ -111,6 +111,24 @@ export type ReasoningEvent =
   | (EventBase & {
       readonly type: 'gate_sign';
       readonly candidateId: CandidateId;
+    })
+  | (EventBase & {
+      readonly type: 'retired';
+      // The librarian RETIRED a defeated hypothesis to trace (hypothesis-lifecycle §A/§B): its pro
+      // channel lost all live support (every pro-author self-withdrew) and its con channel carries
+      // ≥2 standing refutations. Off the live board, kept as citable trace. NO `agentId` — the
+      // librarian, not an agent, emits it (mirrors the Scala `Event.Retired`). Belief-inert: it is
+      // the audit/UI TRACE of a retirement the recomputed predicate authoritatively decides, so it
+      // moves no belief — masking is driven by the predicate, never by this marker.
+      readonly candidateId: CandidateId;
+    })
+  | (EventBase & {
+      readonly type: 'resurrected';
+      // The librarian RESURRECTED a previously-retired hypothesis (hypothesis-lifecycle §B,
+      // recovery): fresh live support arrived above the latest refutation, so the predicate no
+      // longer defeats it and it returns to the live board. NO `agentId`, belief-inert exactly as
+      // `retired` — a re-fold consequence, never an un-delete (mirrors the Scala `Event.Resurrected`).
+      readonly candidateId: CandidateId;
     });
 
 export type EventType = ReasoningEvent['type'];

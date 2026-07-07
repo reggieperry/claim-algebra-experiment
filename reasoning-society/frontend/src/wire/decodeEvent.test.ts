@@ -169,6 +169,28 @@ const GOLDEN: readonly {
       candidateId: candidateId('dog'),
     },
   },
+  {
+    // The lifecycle trace markers (hypothesis-lifecycle §A/§B) — shaped like gate_sign, NO agentId
+    // (the librarian emits them). Byte-for-byte the backend WireSuite golden.
+    name: 'retired',
+    json: '{"seq":25,"timestamp":26,"type":"retired","candidateId":"dog"}',
+    want: {
+      seq: 25,
+      timestamp: 26,
+      type: 'retired',
+      candidateId: candidateId('dog'),
+    },
+  },
+  {
+    name: 'resurrected',
+    json: '{"seq":27,"timestamp":28,"type":"resurrected","candidateId":"dog"}',
+    want: {
+      seq: 27,
+      timestamp: 28,
+      type: 'resurrected',
+      candidateId: candidateId('dog'),
+    },
+  },
 ];
 
 describe('decodeEvent', () => {
@@ -258,6 +280,27 @@ describe('decodeEvent', () => {
     {
       name: 'a gate_sign missing candidateId',
       input: { seq: 1, timestamp: 2, type: 'gate_sign' },
+    },
+    {
+      name: 'a retired missing candidateId',
+      input: { seq: 25, timestamp: 26, type: 'retired' },
+    },
+    {
+      name: 'a retired with a blank candidateId',
+      input: { seq: 25, timestamp: 26, type: 'retired', candidateId: '  ' },
+    },
+    {
+      name: 'a resurrected missing candidateId',
+      input: { seq: 27, timestamp: 28, type: 'resurrected' },
+    },
+    {
+      name: 'a resurrected with a blank candidateId',
+      input: {
+        seq: 27,
+        timestamp: 28,
+        type: 'resurrected',
+        candidateId: '',
+      },
     },
     {
       name: 'a clarification_requested with a blank term',

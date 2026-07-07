@@ -53,13 +53,16 @@ function agentOf(event: ReasoningEvent): AgentId | undefined {
     case 'definition_given':
       return event.agentId;
     // The human's challenge, a RECALLED definition (its author spoke in a prior game — the origin
-    // agent is provenance, not a this-game speaker), the oracle's answer, and the gate's decisions no
-    // this-game agent authors.
+    // agent is provenance, not a this-game speaker), the oracle's answer, the gate's decisions, and
+    // the librarian's lifecycle markers (hypothesis-lifecycle §A/§B — it reads the channel balance
+    // the agents produced; the retirement is a structural fact) no this-game agent authors.
     case 'clarification_requested':
     case 'definition_remembered':
     case 'answer_given':
     case 'gate_abstain':
     case 'gate_sign':
+    case 'retired':
+    case 'resurrected':
       return undefined;
   }
 }

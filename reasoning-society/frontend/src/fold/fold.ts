@@ -20,6 +20,13 @@ import { gradeOf } from './grade';
 export const SIGN_THRESHOLD = 0.6;
 export const MIN_CORROBORATORS = 2;
 
+// The no-live-support retirement floor (hypothesis-lifecycle, the design of record), mirroring the
+// backend `GameCore.MinRefuters`: a hypothesis retires only when ≥ this many DISTINCT agents hold a
+// standing refutation of it. Set equal to MIN_CORROBORATORS — the two floors are symmetric: one lone
+// (possibly-hallucinated) refutation never retires a hypothesis, exactly as one lone assertion never
+// signs one. A self-withdrawing author's own refutation counts among the standing refuters.
+export const MIN_REFUTERS = MIN_CORROBORATORS;
+
 // A per-candidate accumulator, mutated only inside this pure fold and never escaping it. The
 // returned BeliefState is fully immutable; the local Map is a contained implementation detail
 // (ts-style: a mutable local as a bounded optimization).
@@ -59,6 +66,15 @@ export function fold(
 ): BeliefState {
   const accs = new Map<CandidateId, Acc>();
   const answers = new Map<QuestionId, Answer>();
+  // The channel-asymmetry retirement predicate (hypothesis-lifecycle §A), ported from the backend
+  // `GameCore`, recomputed on read from the PREFIX (every event with `seq <= playhead`) — never from
+  // the `retired`/`resurrected` markers, which are audit trace and lag the predicate by a round. A
+  // retired candidate's pro/con is masked out of the belief fold below (mirroring `maskedProject`),
+  // so the instrument's belief matches the backend at every playhead. `∅` for the common no-defeat
+  // case, so a log with no retirement folds byte-identically to before.
+  const retired = retiredCandidates(
+    events.filter((event) => event.seq <= playhead),
+  );
   // The clarification exchange, keyed by question — the latest challenge per question, and the
   // definitions given for it (in seq order). Belief-inert: these feed only the current-question read,
   // never a candidate (mirrors the Scala `project` dropping the clarification pair).
@@ -73,6 +89,11 @@ export function fold(
     }
     switch (event.type) {
       case 'assert': {
+        // Mask a retired candidate off the pro channel (mirrors `maskedProject` dropping its
+        // Assert): a defeated hypothesis leaves the live board rather than jamming it as a glut.
+        if (retired.has(event.candidateId)) {
+          break;
+        }
         const acc = ensureAcc(accs, event.candidateId, event.seq);
         if (acc.content.length === 0) {
           acc.content = event.content;
@@ -82,17 +103,28 @@ export function fold(
         break;
       }
       case 'corroborate': {
+        if (retired.has(event.candidateId)) {
+          break;
+        }
         const acc = ensureAcc(accs, event.candidateId, event.seq);
         acc.supporting.push(event.seq);
         addAgent(acc, event.agentId);
         break;
       }
       case 'refute': {
+        // Mask the retired candidate's con too — the jamming refutation that a defeated hypothesis
+        // would otherwise contribute is what held a well-supported live rival hostage.
+        if (retired.has(event.candidateId)) {
+          break;
+        }
         const acc = ensureAcc(accs, event.candidateId, event.seq);
         acc.opposing.push(event.seq);
         break;
       }
       case 'strike': {
+        // A whole-slot Strike is NOT masked (mirroring `maskedProject`, which drops only the
+        // per-candidate Assert/Corroborate/Refute) — a struck candidate reads Superseded, never a
+        // live glut, so it is safe to leave on the board.
         const acc = ensureAcc(accs, event.candidateId, event.seq);
         acc.struck = true;
         break;
@@ -150,6 +182,13 @@ export function fold(
           candidateId: event.candidateId,
           seq: event.seq,
         };
+        break;
+      case 'retired':
+      case 'resurrected':
+        // The lifecycle markers (hypothesis-lifecycle §A/§B) are belief-inert: they are the audit/UI
+        // TRACE of a retirement the recomputed predicate authoritatively decides. Masking is driven
+        // by `retiredCandidates` above, NEVER by these markers (which would lag the predicate by a
+        // round), so they move no belief beyond the masking already applied.
         break;
       default:
         assertNever(event);
@@ -217,6 +256,128 @@ export function answerSeqFor(
     }
   }
   return undefined;
+}
+
+// --- The channel-asymmetry retirement predicate (hypothesis-lifecycle §A) ---
+//
+// Ported from the backend `GameCore` — purely STRUCTURAL, reading only `seq`, `agentId`, and
+// `candidateId`, never a note/content string, so retirement makes no generative judgment. A
+// hypothesis retires when its pro channel has NO live support (SELF-WITHDRAWAL: every agent that
+// asserted it has since refuted it — its latest stance on it is against) AND its con channel carries
+// ≥ MIN_REFUTERS distinct standing refutations. Self-withdrawal is chosen over channel-recency (which
+// would over-fire and mask a live glut's con, letting a wrong rival sign) — a live backer HOLDS the
+// candidate as a real glut; over-retirement enables a wrong sign, under-retirement is merely cautious.
+
+// One candidate's stance summary: the latest `seq` at which each agent took a pro (assert/corroborate)
+// or con (refute) stance on it. The Maps are mutated only inside `stances`; treated read-only after.
+interface Stance {
+  readonly lastPro: Map<AgentId, number>;
+  readonly lastCon: Map<AgentId, number>;
+}
+
+// Per candidate, the latest pro/con `seq` per agent — the fold the self-withdrawal predicate reads.
+// Only the three per-candidate stance events move it; every other event (strike, the oracle reply,
+// the gate/question/clarification/definition events, and the lifecycle markers) is inert here,
+// mirroring the Scala `GameCore.stances` `case _ => acc`.
+function stances(events: readonly ReasoningEvent[]): Map<CandidateId, Stance> {
+  const byCandidate = new Map<CandidateId, Stance>();
+  for (const event of events) {
+    if (event.type === 'assert' || event.type === 'corroborate') {
+      recordLatest(
+        ensureStance(byCandidate, event.candidateId).lastPro,
+        event.agentId,
+        event.seq,
+      );
+    } else if (event.type === 'refute') {
+      recordLatest(
+        ensureStance(byCandidate, event.candidateId).lastCon,
+        event.agentId,
+        event.seq,
+      );
+    }
+  }
+  return byCandidate;
+}
+
+function ensureStance(
+  byCandidate: Map<CandidateId, Stance>,
+  id: CandidateId,
+): Stance {
+  const existing = byCandidate.get(id);
+  if (existing !== undefined) {
+    return existing;
+  }
+  const created: Stance = { lastPro: new Map(), lastCon: new Map() };
+  byCandidate.set(id, created);
+  return created;
+}
+
+// `math.max` guards order — the latest stance wins even on an out-of-order log (mirrors the backend
+// `recordLatest`), so one event is one stance and a pro and a con by one agent never share a `seq`.
+function recordLatest(
+  m: Map<AgentId, number>,
+  agent: AgentId,
+  seq: number,
+): void {
+  const prev = m.get(agent);
+  m.set(agent, prev === undefined ? seq : Math.max(prev, seq));
+}
+
+// `agent`'s latest stance on the candidate is PRO — still supporting it (a pro entry not preceded by
+// a later con). An agent with no pro entry never stands behind.
+function standsBehind(stance: Stance, agent: AgentId): boolean {
+  const pro = stance.lastPro.get(agent);
+  if (pro === undefined) {
+    return false;
+  }
+  const con = stance.lastCon.get(agent);
+  return con === undefined || pro > con;
+}
+
+// `agent`'s latest stance on the candidate is CON — a standing refuter (a con entry not preceded by a
+// later pro). Mutually exclusive with `standsBehind` (one event is one stance).
+function standsAgainst(stance: Stance, agent: AgentId): boolean {
+  const con = stance.lastCon.get(agent);
+  if (con === undefined) {
+    return false;
+  }
+  const pro = stance.lastPro.get(agent);
+  return pro === undefined || con > pro;
+}
+
+// The channel-asymmetry predicate for one candidate's stance: retire iff it has pro-authors, EVERY
+// pro-author self-withdrew (none stands behind), and ≥ MIN_REFUTERS distinct standing refuters. A
+// single live backer HOLDS it — that is a real glut, not a defeat.
+function defeated(stance: Stance): boolean {
+  const authors = [...stance.lastPro.keys()];
+  if (authors.length === 0) {
+    return false;
+  }
+  const everyAuthorWithdrew = authors.every(
+    (author) => !standsBehind(stance, author),
+  );
+  const standingRefuters = [...stance.lastCon.keys()].filter((refuter) =>
+    standsAgainst(stance, refuter),
+  ).length;
+  return everyAuthorWithdrew && standingRefuters >= MIN_REFUTERS;
+}
+
+// The candidates the channel-asymmetry predicate retires at a prefix — a pure fold over the events,
+// recomputed on every read so there is no stored status to drift. `∅` for a log with no defeated
+// hypothesis, so the no-retirement path folds byte-identically to before. The caller passes the
+// PREFIX (the events through the playhead); the masking authority is this predicate, never the
+// `retired`/`resurrected` trace markers. Exported so it can be pinned directly, mirroring the
+// backend's testable `GameCore.retiredCandidates`.
+export function retiredCandidates(
+  events: readonly ReasoningEvent[],
+): ReadonlySet<CandidateId> {
+  const result = new Set<CandidateId>();
+  for (const [candidate, stance] of stances(events)) {
+    if (defeated(stance)) {
+      result.add(candidate);
+    }
+  }
+  return result;
 }
 
 function ensureAcc(
