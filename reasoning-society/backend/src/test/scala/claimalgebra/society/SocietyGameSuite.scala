@@ -232,7 +232,7 @@ class SocietyGameSuite extends CatsEffectSuite:
       val (outcome, events) = result
       assertEquals(outcome, Outcome.Inconclusive, clue("the refuted candidate never signs"))
       assertEquals(gateSigns(events), Vector.empty)
-      val answerSeq = events.collectFirst { case Event.AnswerGiven(seq, _, _, OracleAnswer.No) =>
+      val answerSeq = events.collectFirst { case Event.AnswerGiven(seq, _, _, OracleAnswer.No, _) =>
         seq
       }
       val reactionSeq = events.collectFirst {

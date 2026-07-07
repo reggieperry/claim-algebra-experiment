@@ -13,20 +13,25 @@ import io.circe.{Decoder, DecodingFailure, Encoder, Json}
   * discriminator, then that variant's payload — matching the TS union member for member:
   *
   * {{{
-  *   assert            {seq, timestamp, type:"assert",            agentId, candidateId, content}
-  *   corroborate       {seq, timestamp, type:"corroborate",       agentId, candidateId, note}
-  *   refute            {seq, timestamp, type:"refute",            agentId, candidateId, note}
-  *   strike            {seq, timestamp, type:"strike",            agentId, candidateId, note}
-  *   question_proposed {seq, timestamp, type:"question_proposed", agentId, questionId,  content}
-  *   question_asked    {seq, timestamp, type:"question_asked",    agentId, questionId,  content}
-  *   answer_given      {seq, timestamp, type:"answer_given",      questionId, answer}
-  *   gate_abstain      {seq, timestamp, type:"gate_abstain",      reason}
-  *   gate_sign         {seq, timestamp, type:"gate_sign",         candidateId}
+  *   assert                  {seq, timestamp, type:"assert",            agentId, candidateId, content}
+  *   corroborate             {seq, timestamp, type:"corroborate",       agentId, candidateId, note}
+  *   refute                  {seq, timestamp, type:"refute",            agentId, candidateId, note}
+  *   strike                  {seq, timestamp, type:"strike",            agentId, candidateId, note}
+  *   question_proposed       {seq, timestamp, type:"question_proposed", agentId, questionId,  content}
+  *   question_asked          {seq, timestamp, type:"question_asked",    agentId, questionId,  content}
+  *   clarification_requested {seq, timestamp, type:"clarification_requested", questionId, term}
+  *   definition_given        {seq, timestamp, type:"definition_given",  agentId, questionId, term, meaning}
+  *   answer_given            {seq, timestamp, type:"answer_given",      questionId, answer, governing?}
+  *   gate_abstain            {seq, timestamp, type:"gate_abstain",      reason}
+  *   gate_sign               {seq, timestamp, type:"gate_sign",         candidateId}
   * }}}
   *
-  * The opaque id types serialize as their bare string value; `answer` is the lowercase oracle token
-  * `yes` / `no` / `unknown` (the TS `Answer` set). Hand-written (no derivation) so the field names
-  * and order are pinned by the golden tests rather than inferred from the case-class shape.
+  * The opaque id types (and `term`) serialize as their bare string value; `answer` is the lowercase
+  * oracle token `yes` / `no` / `unknown` (the TS `Answer` set). `governing` is an ARRAY of term
+  * strings, OMITTED when empty (a non-clarified answer keeps the pre-clarification `answer_given`
+  * shape byte-identical). `clarification_requested` carries NO `agentId` (the human's move);
+  * `definition_given` does (the asking agent). Hand-written (no derivation) so the field names and
+  * order are pinned by the golden tests rather than inferred from the case-class shape.
   */
 object Wire:
 
@@ -102,14 +107,38 @@ object Wire:
         "questionId" -> question.value.asJson,
         "content" -> content.asJson
       )
-    case Event.AnswerGiven(seq, timestamp, question, answer) =>
+    case Event.ClarificationRequested(seq, timestamp, question, term) =>
       Json.obj(
+        "seq" -> seq.asJson,
+        "timestamp" -> timestamp.asJson,
+        "type" -> "clarification_requested".asJson,
+        "questionId" -> question.value.asJson,
+        "term" -> term.value.asJson
+      )
+    case Event.DefinitionGiven(seq, timestamp, agent, question, term, meaning) =>
+      Json.obj(
+        "seq" -> seq.asJson,
+        "timestamp" -> timestamp.asJson,
+        "type" -> "definition_given".asJson,
+        "agentId" -> agent.value.asJson,
+        "questionId" -> question.value.asJson,
+        "term" -> term.value.asJson,
+        "meaning" -> meaning.asJson
+      )
+    case Event.AnswerGiven(seq, timestamp, question, answer, governing) =>
+      // `governing` is OMITTED when empty, so a non-clarified answer's wire shape is byte-identical
+      // to the pre-clarification contract (additive, backward-compatible).
+      val fields = List(
         "seq" -> seq.asJson,
         "timestamp" -> timestamp.asJson,
         "type" -> "answer_given".asJson,
         "questionId" -> question.value.asJson,
         "answer" -> answerToken(answer).asJson
       )
+      val withGoverning =
+        if governing.isEmpty then fields
+        else fields :+ ("governing" -> governing.map(_.value).asJson)
+      Json.obj(withGoverning*)
     case Event.GateAbstain(seq, timestamp, reason) =>
       Json.obj(
         "seq" -> seq.asJson,

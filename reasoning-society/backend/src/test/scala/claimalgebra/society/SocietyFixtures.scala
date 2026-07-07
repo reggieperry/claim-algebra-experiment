@@ -17,9 +17,13 @@ trait SocietyFixtures:
   val candidatePool: List[Answer] = List("dog", "cat", "bird").map(mkAnswer)
   val questionPool: List[QuestionId] = List("q1", "q2").map(mkQuestion)
 
+  // A small term pool for the clarification events — a couple of challengeable terms.
+  val termPool: List[Term] = List("alive", "animal").map(mkTerm)
+
   def mkAgent(raw: String): AgentId = AgentId.from(raw).fold(fail(_), identity)
   def mkAnswer(raw: String): Answer = Answer.from(raw).fold(fail(_), identity)
   def mkQuestion(raw: String): QuestionId = QuestionId.from(raw).fold(fail(_), identity)
+  def mkTerm(raw: String): Term = Term.from(raw).fold(fail(_), identity)
   def mkLineage(raw: String): Lineage =
     Lineage.from(raw).fold(fail(s"blank lineage: $raw"))(identity)
 
@@ -34,13 +38,46 @@ trait SocietyFixtures:
     Event.Strike(seq, seq.toLong, agent, candidate, "struck")
   def questionAsked(seq: Int, agent: AgentId, question: QuestionId): Event =
     Event.QuestionAsked(seq, seq.toLong, agent, question, "is it an animal?")
-  def answerGiven(seq: Int, question: QuestionId, oracle: OracleAnswer): Event =
-    Event.AnswerGiven(seq, seq.toLong, question, oracle)
+  def answerGiven(
+      seq: Int,
+      question: QuestionId,
+      oracle: OracleAnswer,
+      governing: List[Term] = Nil
+  ): Event =
+    Event.AnswerGiven(seq, seq.toLong, question, oracle, governing)
+  def clarificationRequested(seq: Int, question: QuestionId, term: Term): Event =
+    Event.ClarificationRequested(seq, seq.toLong, question, term)
+  def definitionGiven(
+      seq: Int,
+      agent: AgentId,
+      question: QuestionId,
+      term: Term,
+      meaning: String = "the agreed meaning"
+  ): Event =
+    Event.DefinitionGiven(seq, seq.toLong, agent, question, term, meaning)
 
   val genAgent: Gen[AgentId] = Gen.oneOf(agentPool)
   val genCandidate: Gen[Answer] = Gen.oneOf(candidatePool)
   val genQuestion: Gen[QuestionId] = Gen.oneOf(questionPool)
+  val genTerm: Gen[Term] = Gen.oneOf(termPool)
   val genOracle: Gen[OracleAnswer] = Gen.oneOf(OracleAnswer.values.toList)
+
+  /** A belief-inert clarification event (a challenge or a definition) at an arbitrary high `seq` —
+    * its `seq` is irrelevant to belief (it projects to nothing), so it never collides with a base
+    * log's contiguous `seq`s in a meaningful way. Meanings include the empty string: an agent that
+    * cannot crisply define its term is itself diagnostic (clarification-feature §2).
+    */
+  val genInertClarification: Gen[Event] =
+    for
+      question <- genQuestion
+      term <- genTerm
+      agent <- genAgent
+      meaning <- Gen.oneOf("living creature currently alive", "any living tissue", "")
+      seq <- Gen.choose(1000, 9999)
+      isChallenge <- Gen.oneOf(true, false)
+    yield
+      if isChallenge then clarificationRequested(seq, question, term)
+      else definitionGiven(seq, agent, question, term, meaning)
 
   /** One event at a given `seq`, weighted toward the belief-moving variants so most logs reach a
     * decision, with the belief-inert control events mixed in.

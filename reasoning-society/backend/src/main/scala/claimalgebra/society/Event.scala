@@ -9,18 +9,20 @@ sealed trait EventMeta:
   def timestamp: Long
 
 /** The single ordered stream the fold folds — the Scala mirror of the frontend `ReasoningEvent`
-  * union (model/event.ts), the same nine variants with the same payloads so the log serializes to
+  * union (model/event.ts), the same variants with the same payloads so the log serializes to
   * matching JSON in a later slice. A closed `enum`, so a `match` over it is exhaustively checked
   * and an impossible combination (a [[GateSign]] with a `questionId`) cannot be constructed
   * (scala-types.md: make illegal states unrepresentable — stronger than a uniform
   * `agentId: Option`).
   *
   * Two layers of claim (brief §2): [[AnswerGiven]] is the ORACLE (ground truth), while [[Assert]] /
-  * [[Corroborate]] / [[Refute]] / [[Strike]] move HYPOTHESES (what the answer is). The question and
-  * gate events are the society's control flow, logged so replay and the graph stay rich but
-  * projecting to no belief.
+  * [[Corroborate]] / [[Refute]] / [[Strike]] move HYPOTHESES (what the answer is). The question,
+  * gate, and clarification events are the society's control flow, logged so replay and the graph
+  * stay rich but projecting to no belief. The clarification pair — [[ClarificationRequested]] and
+  * [[DefinitionGiven]] — negotiates the shared vocabulary a grounded answer is grounded to
+  * (clarification-feature): also belief-inert, definitions being grounding context, not hypotheses.
   *
-  * `agentId` is present on exactly the six variants that carry one (matching the frontend), NOT a
+  * `agentId` is present on exactly the variants that carry one (matching the frontend), NOT a
   * uniform optional field; the enum makes that structural. The [[agentId]] read below gives the
   * uniform `Option[AgentId]` view a caller wants, over the precise per-variant fields.
   */
@@ -62,11 +64,47 @@ enum Event extends EventMeta:
       content: String
   )
 
+  /** The human CHALLENGED a question's `term` before answering — "what do you mean by `term`?"
+    * (clarification-feature §1) — pausing grounding until the asking agent defines it. The HUMAN's
+    * move, so NO agent: the human/oracle seam sits outside the actor graph, exactly like
+    * [[AnswerGiven]] (actor-abstraction §3). Belief-inert: a challenge moves no hypothesis; it is
+    * logged so replay reconstructs the negotiation at the playhead (§4).
+    */
+  case ClarificationRequested(seq: Int, timestamp: Long, questionId: QuestionId, term: Term)
+
+  /** The ASKING agent supplied the `meaning` of a challenged `term` (clarification-feature §2): the
+    * proposing agent must state what it meant, and if it cannot crisply define its own question
+    * that is itself diagnostic. Belief-inert: a definition is grounding context/audit, NEVER a
+    * hypothesis about the answer — it enters the ledger as a [[Definition]] CLAIM (read by
+    * [[Definitions]]), available to every agent, not as evidence for the answer-slot. Carries an
+    * `agent` (unlike the human's challenge).
+    */
+  case DefinitionGiven(
+      seq: Int,
+      timestamp: Long,
+      agent: AgentId,
+      questionId: QuestionId,
+      term: Term,
+      meaning: String
+  )
+
   /** The oracle answers a question (`yes`/`no`/`unknown`). No agent — the oracle is outside the
     * actor graph (actor-abstraction §3: the observer gets no vote). Belief-inert: the raw reply
     * moves no candidate (the contradiction it implies enters as a [[Refute]]).
+    *
+    * `governing` is the ADDITIVE clarification reference (clarification-feature §4): the term(s)
+    * whose established [[Definition]] the grounded answer was grounded to, so the answer records
+    * WHAT it was grounded to. Empty on a non-clarified answer — which omits the field on the wire,
+    * keeping the pre-clarification `answer_given` shape byte-identical. Belief-inert either way:
+    * the reference decorates the record, it never moves a candidate.
     */
-  case AnswerGiven(seq: Int, timestamp: Long, questionId: QuestionId, answer: OracleAnswer)
+  case AnswerGiven(
+      seq: Int,
+      timestamp: Long,
+      questionId: QuestionId,
+      answer: OracleAnswer,
+      governing: List[Term] = Nil
+  )
 
   /** The gate abstained, with a human-readable reason — logged control flow; belief-inert. */
   case GateAbstain(seq: Int, timestamp: Long, reason: String)
@@ -76,9 +114,10 @@ enum Event extends EventMeta:
     */
   case GateSign(seq: Int, timestamp: Long, candidateId: Answer)
 
-  /** The uniform "who spoke" read — `Some` on the six agent-bearing variants, `None` on the oracle
-    * and gate events. The floor and any router consult this; it is deliberately a READING, so the
-    * per-variant fields stay precise (an [[AnswerGiven]] structurally cannot carry an agent).
+  /** The uniform "who spoke" read — `Some` on the seven agent-bearing variants (including
+    * [[DefinitionGiven]], the asking agent's move), `None` on the human's challenge, the oracle,
+    * and the gate events. The floor and any router consult this; it is deliberately a READING, so
+    * the per-variant fields stay precise (an [[AnswerGiven]] structurally cannot carry an agent).
     */
   def agentId: Option[AgentId] = this match
     case Assert(_, _, a, _, _) => Some(a)
@@ -87,6 +126,8 @@ enum Event extends EventMeta:
     case Strike(_, _, a, _, _) => Some(a)
     case QuestionProposed(_, _, a, _, _) => Some(a)
     case QuestionAsked(_, _, a, _, _) => Some(a)
-    case AnswerGiven(_, _, _, _) => None
+    case DefinitionGiven(_, _, a, _, _, _) => Some(a)
+    case ClarificationRequested(_, _, _, _) => None
+    case AnswerGiven(_, _, _, _, _) => None
     case GateAbstain(_, _, _) => None
     case GateSign(_, _, _) => None

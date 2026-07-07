@@ -86,6 +86,12 @@ object GameCore:
       case _: Event.QuestionProposed => Nil
       case _: Event.QuestionAsked => Nil
       case _: Event.AnswerGiven => Nil
+      // The clarification pair is belief-inert (clarification-feature §4): a challenge and a
+      // definition negotiate the shared vocabulary a grounded answer is grounded to — grounding
+      // context, never a hypothesis — so neither moves the answer-slot. The fail-closed sign path
+      // (Gate ∧ no-lone-sign floor ∧ glut-on-contradiction) is unchanged: definitions cannot sign.
+      case _: Event.ClarificationRequested => Nil
+      case _: Event.DefinitionGiven => Nil
       case _: Event.GateAbstain => Nil
       case _: Event.GateSign => Nil
     }

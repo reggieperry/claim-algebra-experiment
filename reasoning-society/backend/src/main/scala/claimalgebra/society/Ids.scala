@@ -56,6 +56,27 @@ object Answer:
 
   extension (a: Answer) def value: String = a
 
+/** A term whose meaning is under negotiation — the word or phrase a human CHALLENGES on a question
+  * ("what do you mean by 'alive'?", clarification-feature §1) and the asking agent DEFINES. It is
+  * the key a [[Definition]] is established under, so it carries the sound value equality a `Map`
+  * key needs (opaque over `String`, so it erases to `String` equality). Belief-inert: a term and
+  * its definition are grounding CONTEXT the society reasons WITH, never a hypothesis about the
+  * answer. Mirrors a frontend `Term` branded string (the wire form is the bare value; slice 3 adds
+  * the TS type). Opaque behind a validating constructor: a blank names no term, so it is refused.
+  */
+opaque type Term = String
+
+object Term:
+  /** The only constructor. Fail closed: a blank (or whitespace-only) label names no term, so it is
+    * refused. Insignificant surrounding whitespace is trimmed.
+    */
+  def from(raw: String): Either[String, Term] =
+    val trimmed = raw.trim
+    if trimmed.isEmpty then Left("term must be a non-blank label")
+    else Right(trimmed)
+
+  extension (t: Term) def value: String = t
+
 /** The oracle's verdict on a question — the frontend `Answer` (model/event.ts). `Unknown` is a
   * real, distinct reply (the human may not know), NEVER a stand-in for "unanswered"; an unanswered
   * question simply has no [[Event.AnswerGiven]] yet. Belief-inert on the wire: the raw yes/no/

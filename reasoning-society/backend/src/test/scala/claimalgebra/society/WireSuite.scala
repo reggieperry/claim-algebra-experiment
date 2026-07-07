@@ -13,6 +13,7 @@ class WireSuite extends munit.FunSuite with SocietyFixtures:
   private val a3 = mkAgent("a3")
   private val dog = mkAnswer("dog")
   private val q1 = mkQuestion("q1")
+  private val alive = mkTerm("alive")
 
   private def json(event: Event): String = Wire.encode(event).noSpaces
 
@@ -59,9 +60,32 @@ class WireSuite extends munit.FunSuite with SocietyFixtures:
   }
 
   test("answer_given encodes to its exact wire JSON (lowercase oracle token, no agentId)") {
+    // The empty-governing case: a non-clarified answer OMITS the governing field, so its wire shape
+    // is byte-identical to the pre-clarification contract (backward-compatible, additive).
     assertEquals(
       json(Event.AnswerGiven(13, 14L, q1, OracleAnswer.Yes)),
       """{"seq":13,"timestamp":14,"type":"answer_given","questionId":"q1","answer":"yes"}"""
+    )
+  }
+
+  test("clarification_requested encodes to its exact wire JSON (no agentId — the human's move)") {
+    assertEquals(
+      json(Event.ClarificationRequested(19, 20L, q1, alive)),
+      """{"seq":19,"timestamp":20,"type":"clarification_requested","questionId":"q1","term":"alive"}"""
+    )
+  }
+
+  test("definition_given encodes to its exact wire JSON (the asking agent + term + meaning)") {
+    assertEquals(
+      json(Event.DefinitionGiven(21, 22L, a2, q1, alive, "a living creature currently alive")),
+      """{"seq":21,"timestamp":22,"type":"definition_given","agentId":"a2","questionId":"q1","term":"alive","meaning":"a living creature currently alive"}"""
+    )
+  }
+
+  test("answer_given with a governing definition encodes the governing array (a clarified answer)") {
+    assertEquals(
+      json(Event.AnswerGiven(23, 24L, q1, OracleAnswer.No, List(alive))),
+      """{"seq":23,"timestamp":24,"type":"answer_given","questionId":"q1","answer":"no","governing":["alive"]}"""
     )
   }
 

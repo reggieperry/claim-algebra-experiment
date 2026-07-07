@@ -9,10 +9,14 @@ package claimalgebra.society
   */
 final case class GameView(
     transcript: List[(String, OracleAnswer)],
-    hypotheses: List[(Answer, Int)]
+    hypotheses: List[(Answer, Int)],
+    definitions: List[Definition]
 ):
 
-  /** Render the state as a plain, readable brief for the model. */
+  /** Render the state as a plain, readable brief for the model. The established definitions are
+    * surfaced so an agent grounds every future use of a challenged term to the agreed meaning
+    * (clarification-feature §3), rather than re-inventing it.
+    */
   def render: String =
     val qa =
       if transcript.isEmpty then "No questions answered yet."
@@ -26,18 +30,25 @@ final case class GameView(
         hypotheses
           .map((h, n) => s"- \"${h.value}\" (backed by $n)")
           .mkString("Current hypotheses:\n", "\n", "")
-    s"$qa\n\n$hs"
+    val ds =
+      if definitions.isEmpty then "No definitions established yet."
+      else
+        definitions
+          .map(d => s"- \"${d.term.value}\" means: ${d.meaning}")
+          .mkString("Definitions established this game:\n", "\n", "")
+    s"$qa\n\n$hs\n\n$ds"
 
 object GameView:
 
   /** Project the ordered log into the agent's read: match each asked question with its oracle
-    * answer, and tally each hypothesis's DISTINCT backers (assert + corroborate, deduplicated by
-    * agent — the same distinct-agent count the no-lone-sign floor uses, read from the events, never
-    * from provenance, actor-abstraction §9).
+    * answer, tally each hypothesis's DISTINCT backers (assert + corroborate, deduplicated by agent
+    * — the same distinct-agent count the no-lone-sign floor uses, read from the events, never from
+    * provenance, actor-abstraction §9), and carry the established definitions ([[Definitions]]) so
+    * an agent grounds to the agreed vocabulary (clarification-feature §3).
     */
   def from(log: Vector[Event]): GameView =
     val answers: Map[String, OracleAnswer] =
-      log.collect { case Event.AnswerGiven(_, _, qid, ans) => qid.value -> ans }.toMap
+      log.collect { case Event.AnswerGiven(_, _, qid, ans, _) => qid.value -> ans }.toMap
 
     val transcript: List[(String, OracleAnswer)] =
       log.toList.collect {
@@ -56,7 +67,7 @@ object GameView:
     val hypotheses: List[(Answer, Int)] =
       backers.toList.map((c, agents) => c -> agents.size).sortBy((_, n) => -n)
 
-    GameView(transcript, hypotheses)
+    GameView(transcript, hypotheses, Definitions.established(log))
 
   private def add(
       acc: Map[Answer, Set[AgentId]],
