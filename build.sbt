@@ -167,6 +167,27 @@ lazy val workbench = (project in file("workbench"))
     )
   )
 
+// The reasoning-society backend — the Scala side of the "Auditable Society of Minds"
+// (docs/reasoning-society/). Runs the cheap, diverse LLM agent society and emits an ordered event
+// log; belief state is a pure fold over it (the calculus `Ledger`). Depends on the library
+// (Ledger/Testimony/Gate) and the shared `extract` infra (the `LlmCall` agents); the React viewer
+// in reasoning-society/frontend is a pure reader of the emitted log. Actors are lightly implemented
+// on cats.effect Queue (docs/actors/mailbox-abstraction.md) — no Akka/Pekko. Independent of the
+// experiment and the workbench. `test->test` reuses the library's generators for the fold suites.
+lazy val reasoningSociety = (project in file("reasoning-society/backend"))
+  .dependsOn(claimAlgebra % "compile->compile;test->test", extract)
+  .settings(
+    name := "reasoning-society",
+    libraryDependencies ++= Seq(
+      catsCore,
+      catsEffect,
+      munit,
+      munitScalacheck,
+      scalacheck,
+      munitCatsEffect
+    )
+  )
+
 // The lab: the falsification experiment and its credit `pipeline` (experiment-private). Aggregates
 // the whole build so `sbt check` / `test` fan out; depends on the library + extract and reuses the
 // library's test helpers via `test->test`. Does NOT depend on the workbench — the experiment never
@@ -175,7 +196,7 @@ lazy val libraryNeutrality =
   taskKey[Unit]("Fail if claim-algebra/src carries domain vocabulary (the portability gate)")
 
 lazy val root = (project in file("."))
-  .aggregate(claimAlgebra, extract, credit, workbench, gate)
+  .aggregate(claimAlgebra, extract, credit, workbench, reasoningSociety, gate)
   .dependsOn(claimAlgebra % "compile->compile;test->test", extract)
   .settings(
     name := "claim-algebra-lab",
