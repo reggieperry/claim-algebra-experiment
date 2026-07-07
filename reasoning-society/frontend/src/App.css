@@ -136,13 +136,44 @@
 .legend__item--missing .legend__glyph {
   color: var(--c-missing);
 }
-.header-live {
+/* Backend connection state (live SSE vs the offline scripted demo). Distinct from the transport's
+   at-head/replay marker. */
+.header-conn {
   font-size: 0.72rem;
   letter-spacing: 0.05em;
   color: var(--ink-faint);
 }
-.header-live--on {
+.header-conn--live {
   color: var(--c-resolved);
+}
+.header-conn--disconnected {
+  color: var(--c-missing);
+}
+/* The New game restart control — a fresh game and a reconnected stream, sat by the connection state. */
+.header-newgame {
+  padding: 4px 10px;
+  border: 1px solid var(--frame);
+  border-radius: 4px;
+  background: var(--panel-raise);
+  color: var(--ink-dim);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease;
+}
+.header-newgame:hover:not(:disabled) {
+  border-color: var(--c-resolved);
+  color: var(--ink);
+}
+.header-newgame:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.header-newgame-error {
+  font-size: 0.7rem;
+  color: var(--c-missing);
 }
 .header-gate {
   font-size: 0.72rem;
@@ -508,6 +539,12 @@
   font-size: 0.72rem;
   color: var(--c-resolved);
   font-variant-numeric: tabular-nums;
+}
+/* A transient answer-send failure (live mode) — surfaced beside the control so the operator can retry. */
+.human__error {
+  margin: 2px 0 0;
+  font-size: 0.72rem;
+  color: var(--c-conflict);
 }
 
 /* Transport */

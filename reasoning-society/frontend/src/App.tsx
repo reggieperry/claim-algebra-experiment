@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from 'react';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
 
 import './App.css';
 import {
@@ -9,8 +9,9 @@ import {
   memoryOf,
   societyOf,
 } from './fold';
+import { postAnswer, postStart, useLiveEvents } from './live';
 import { AGENTS, agentName, MOCK_EVENTS } from './mock';
-import type { AgentId } from './model';
+import type { AgentId, Answer } from './model';
 import {
   BeliefStatePanel,
   EventStreamPanel,
@@ -46,12 +47,19 @@ function clamp(value: number, lo: number, hi: number): number {
 
 // The observatory root. It owns the single UI state — the `playhead` (WHEN) and the `selectedAgent`
 // (WHO), the two global selectors (build2-ui-design §0), plus the transport controls and the memory
-// accordion's expand set. Every panel is a pure reader of `fold(MOCK_EVENTS, playhead)` and its
-// sibling projections; nothing below mirrors the belief state (brief §1). Crucially the belief fold
-// runs over the FULL log — the selected agent scopes only what the panels DISPLAY, never what is
-// computed (the load-bearing safety rule). Live mode is replay with the playhead pinned to the head.
+// accordion's expand set. The event log is now the LIVE stream from the backend (`useLiveEvents`); when
+// that stream is down the App falls back to the scripted `MOCK_EVENTS` demo, so the UI never breaks with
+// the backend off. Every panel is a pure reader of `fold(events, playhead)` and its sibling projections;
+// nothing below mirrors the belief state (brief §1). Crucially the belief fold runs over the FULL log —
+// the selected agent scopes only what the panels DISPLAY, never what is computed (the load-bearing safety
+// rule). Live mode is the playhead pinned to the head of the growing log.
 export function App(): ReactElement {
-  const total = MOCK_EVENTS.length;
+  const live = useLiveEvents();
+  const offline = live.status === 'disconnected';
+  // The single source of truth: the live log, or the scripted demo when the backend is unreachable.
+  const events = offline ? MOCK_EVENTS : live.events;
+  const total = events.length;
+
   const [playhead, setPlayhead] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -59,12 +67,18 @@ export function App(): ReactElement {
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(
     new Set(['facts']),
   );
+  // A transient error from the last answer POST — surfaced beside the oracle control, cleared on success.
+  const [answerError, setAnswerError] = useState<string | null>(null);
+  // The New game restart's in-flight flag (disables the button) and its transient failure. Derived UI
+  // state only — the events array stays the single source of truth (ts-react: derive, don't store).
+  const [newGamePending, setNewGamePending] = useState(false);
+  const [newGameError, setNewGameError] = useState<string | null>(null);
 
   // The single source of truth and its pure projections — recomputed every render, stored nowhere.
-  const belief = fold(MOCK_EVENTS, playhead);
-  const graph = buildGraph(MOCK_EVENTS, playhead);
-  const society = societyOf(MOCK_EVENTS, playhead, belief, ROSTER, graph);
-  const memory = memoryOf(MOCK_EVENTS, playhead, belief, graph);
+  const belief = fold(events, playhead);
+  const graph = buildGraph(events, playhead);
+  const society = societyOf(events, playhead, belief, ROSTER, graph);
+  const memory = memoryOf(events, playhead, belief, graph);
   const atHead = playhead >= total;
 
   // The agent filter is a VIEW derived from the same graph — the set of claims the selected agent
@@ -72,8 +86,21 @@ export function App(): ReactElement {
   const scopedCandidates =
     selectedAgent === null ? null : candidatesTouchedBy(graph, selectedAgent);
 
+  // Live mode pins the playhead to the head of the growing log. As events stream in, follow the head so
+  // long as the viewer was already there; if they scrubbed back to review, hold their position until they
+  // return to the head. Offline (scripted demo) does not auto-advance — the transport drives it.
+  const followedTotal = useRef(0);
+  useEffect(() => {
+    const previous = followedTotal.current;
+    followedTotal.current = total;
+    if (offline) {
+      return;
+    }
+    setPlayhead((current) => (current >= previous ? total : current));
+  }, [total, offline]);
+
   // The only wall-clock effect: advance the playhead while playing. At the head the interval tears
-  // down (LIVE, waiting for events that never come in Build 1); scrub back and it resumes.
+  // down (LIVE, pinned to head); scrub back and it resumes.
   useEffect(() => {
     if (!playing || atHead) {
       return undefined;
@@ -125,19 +152,58 @@ export function App(): ReactElement {
     setPlayhead((current) => Math.max(current - 1, 0));
   };
 
-  // Advance the log to reveal the scripted oracle answer for the open question (brief §4: the Build 1
-  // control advances the log, it does not author the answer).
+  // Offline (scripted demo): advance the log to reveal the recorded oracle answer for the open question
+  // (brief §4: the control advances the log, it does not author the answer).
   const handleReveal = (): void => {
     const question = belief.currentQuestion;
     if (question === undefined || question.answer !== undefined) {
       return;
     }
-    const seq = answerSeqFor(MOCK_EVENTS, question.questionId);
+    const seq = answerSeqFor(events, question.questionId);
     if (seq === undefined) {
       return;
     }
     setPlaying(false);
     setPlayhead(seq);
+  };
+
+  // The oracle's verdict. Live: POST it to the backend, which resolves the pending question and streams
+  // the resulting events back. Offline: reveal the scripted answer instead (the observer gets no vote).
+  const handleAnswer = (answer: Answer): void => {
+    if (offline) {
+      handleReveal();
+      return;
+    }
+    const question = belief.currentQuestion;
+    if (question === undefined || question.answer !== undefined) {
+      return;
+    }
+    setAnswerError(null);
+    void postAnswer(question.questionId, answer).catch(() => {
+      setAnswerError('could not send your answer — please retry');
+    });
+  };
+
+  // The New game gesture: ask the backend to restart (POST /start), and on success reconnect the SSE
+  // stream so it catches up on the reset log — the fresh game only, from seq 1. The button spins while
+  // in flight; a failure surfaces transiently and the operator can retry. A double-click is ignored
+  // (the backend also serializes restarts, so a race cannot stack games).
+  const handleNewGame = (): void => {
+    if (newGamePending) {
+      return;
+    }
+    setNewGameError(null);
+    setNewGamePending(true);
+    void postStart()
+      .then(() => {
+        live.reconnect();
+      })
+      .catch(() => {
+        setNewGameError('could not start a new game — please retry');
+      })
+      .finally(() => {
+        setNewGamePending(false);
+      });
   };
 
   const handleToggleTier = (key: string): void => {
@@ -159,7 +225,10 @@ export function App(): ReactElement {
         candidates={belief.candidates}
         playhead={playhead}
         total={total}
-        atHead={atHead}
+        connection={live.status}
+        onNewGame={handleNewGame}
+        newGamePending={newGamePending}
+        newGameError={newGameError}
       />
 
       <aside className="observatory__nav">
@@ -178,7 +247,9 @@ export function App(): ReactElement {
           <HumanActionPanel
             question={belief.currentQuestion}
             resolveAgent={agentName}
-            onReveal={handleReveal}
+            onAnswer={handleAnswer}
+            live={!offline}
+            error={answerError}
           />
         </div>
 
@@ -191,7 +262,7 @@ export function App(): ReactElement {
 
         <div className="observatory__stream">
           <EventStreamPanel
-            events={MOCK_EVENTS}
+            events={events}
             playhead={playhead}
             resolveAgent={agentName}
             selectedAgent={selectedAgent}
@@ -223,7 +294,7 @@ export function App(): ReactElement {
           onStep={handleStep}
           onStepBack={handleStepBack}
           onSpeed={setSpeed}
-          events={MOCK_EVENTS}
+          events={events}
         />
       </footer>
     </div>

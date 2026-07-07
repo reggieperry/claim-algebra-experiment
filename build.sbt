@@ -81,6 +81,19 @@ lazy val algebraLaws = "org.typelevel" %% "algebra-laws" % "2.12.0" % Test
 lazy val disciplineMunit = "org.typelevel" %% "discipline-munit" % "2.0.0" % Test
 lazy val munitCatsEffect = "org.typelevel" %% "munit-cats-effect" % "2.0.0" % Test
 
+// The reasoning-society SSE transport (Build 3 slice 3a): http4s (ember server + dsl + circe) for the
+// HTTP surface and the JSON wire format, plus fs2 for the `Topic` that decouples the SSE subscribers
+// from the single-writer LogActor. Versions are aligned to the pinned cats-effect 3.5.4 / cats-core
+// 2.12.0 so nothing evicts: http4s 0.23.30 -> fs2 3.11.0 -> cats-effect 3.5.4, and circe 0.14.x ->
+// cats-core 2.12.0. All cats-effect-native, so the one-effect-system rule holds. A hand-written
+// `Encoder[Event]` (circe-core only, no derivation macro) owns the wire contract the frontend matches.
+lazy val http4sVersion = "0.23.30"
+lazy val http4sEmberServer = "org.http4s" %% "http4s-ember-server" % http4sVersion
+lazy val http4sDsl = "org.http4s" %% "http4s-dsl" % http4sVersion
+lazy val http4sCirce = "org.http4s" %% "http4s-circe" % http4sVersion
+lazy val circeCore = "io.circe" %% "circe-core" % "0.14.10"
+lazy val fs2Core = "co.fs2" %% "fs2-core" % "3.11.0"
+
 // The pure claim algebra — the library. Dependency-minimal (cats-kernel via cats-core, and the
 // `algebra` ring hierarchy for ℕ[X]); NO cats-effect and NO SDK, so the pure-vs-effectful seam is
 // structural rather than aspirational. Everything else depends on it. Its test scope carries the
@@ -182,6 +195,11 @@ lazy val reasoningSociety = (project in file("reasoning-society/backend"))
       catsCore,
       catsEffect,
       jacksonAnnotations, // the AgentMoveDto structured-output carrier (Java) annotates with Jackson
+      http4sEmberServer, // the SSE transport: ember server + dsl + circe (slice 3a)
+      http4sDsl,
+      http4sCirce,
+      circeCore,
+      fs2Core, // the Topic that decouples the SSE subscribers from the single-writer LogActor
       munit,
       munitScalacheck,
       scalacheck,
