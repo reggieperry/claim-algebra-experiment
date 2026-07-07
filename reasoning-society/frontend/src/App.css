@@ -1,0 +1,37 @@
+.observatory {
+  min-height: 100vh;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.observatory__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  border-bottom: 1px solid #1c2430;
+  padding-bottom: 0.75rem;
+}
+
+.observatory__head h1 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #e6edf3;
+}
+
+.observatory__tag {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #5c6b7a;
+}
+
+.observatory__note {
+  max-width: 62ch;
+  line-height: 1.55;
+  font-size: 0.85rem;
+  color: #8b98a5;
+}

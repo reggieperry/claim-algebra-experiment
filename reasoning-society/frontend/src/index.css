@@ -1,0 +1,16 @@
+:root {
+  color-scheme: dark;
+  font-family:
+    ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+  font-size: 15px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #0a0e14;
+  color: #c7d0d9;
+}
