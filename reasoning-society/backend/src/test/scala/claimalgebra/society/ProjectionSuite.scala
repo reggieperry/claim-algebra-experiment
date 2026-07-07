@@ -42,13 +42,16 @@ class ProjectionSuite extends munit.ScalaCheckSuite with SocietyFixtures:
     assertEquals(Testimony.corner(GameCore.slot(log, 3)), Belnap.False)
   }
 
-  test("the non-claim events (question / answer / gate) project to nothing") {
+  test("the non-claim events (question / answer / gate / convergence flag) project to nothing") {
     val inert = List(
       Event.QuestionProposed(1, 1L, a1, mkQuestion("q1"), "?"),
       questionAsked(2, a1, mkQuestion("q1")),
       answerGiven(3, mkQuestion("q1"), OracleAnswer.Yes),
       Event.GateAbstain(4, 4L, "watching"),
-      Event.GateSign(5, 5L, dog)
+      Event.GateSign(5, 5L, dog),
+      // The convergence flag is belief-inert — it MUST project to nothing (else the monitor could
+      // move its own input and the flag could change the gate).
+      Event.ConvergenceWarning(6, 6L, 5, 4)
     )
     assertEquals(GameCore.project(inert), Nil)
   }

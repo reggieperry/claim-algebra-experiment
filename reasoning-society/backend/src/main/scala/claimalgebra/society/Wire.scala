@@ -25,6 +25,7 @@ import io.circe.{Decoder, DecodingFailure, Encoder, Json}
   *   answer_given            {seq, timestamp, type:"answer_given",      questionId, answer, governing?}
   *   gate_abstain            {seq, timestamp, type:"gate_abstain",      reason}
   *   gate_sign               {seq, timestamp, type:"gate_sign",         candidateId}
+  *   convergence_warning     {seq, timestamp, type:"convergence_warning", roundsWithoutConsolidation, glutPersistence}
   * }}}
   *
   * The opaque id types (and `term`) serialize as their bare string value; `answer` is the lowercase
@@ -182,6 +183,18 @@ object Wire:
         "timestamp" -> timestamp.asJson,
         "type" -> "resurrected".asJson,
         "candidateId" -> candidate.value.asJson
+      )
+    // The convergence flag (librarian-convergence-monitor) — belief-inert; carries the STRUCTURAL
+    // evidence (rounds-without-consolidation, glut-persistence) and NO semantic diagnosis (no
+    // candidateId, no reason string). Minimal frame now (the frontend `ReasoningEvent` union member
+    // lands in a later slice, as it did for the lifecycle markers).
+    case Event.ConvergenceWarning(seq, timestamp, roundsWithoutConsolidation, glutPersistence) =>
+      Json.obj(
+        "seq" -> seq.asJson,
+        "timestamp" -> timestamp.asJson,
+        "type" -> "convergence_warning".asJson,
+        "roundsWithoutConsolidation" -> roundsWithoutConsolidation.asJson,
+        "glutPersistence" -> glutPersistence.asJson
       )
   }
 

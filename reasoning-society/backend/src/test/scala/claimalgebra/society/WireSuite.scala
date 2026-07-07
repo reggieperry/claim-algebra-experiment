@@ -135,6 +135,17 @@ class WireSuite extends munit.FunSuite with SocietyFixtures:
     )
   }
 
+  test(
+    "convergence_warning encodes to its exact wire JSON (structural counts, NO candidate/reason)"
+  ) {
+    // The non-convergence flag carries the structural evidence ONLY — no candidateId, no reason
+    // string — so the wire shape cannot leak a semantic diagnosis.
+    assertEquals(
+      json(Event.ConvergenceWarning(29, 30L, 5, 4)),
+      """{"seq":29,"timestamp":30,"type":"convergence_warning","roundsWithoutConsolidation":5,"glutPersistence":4}"""
+    )
+  }
+
   test("the oracle token is the lowercase yes/no/unknown of the TS Answer set") {
     assertEquals(Wire.answerToken(OracleAnswer.Yes), "yes")
     assertEquals(Wire.answerToken(OracleAnswer.No), "no")

@@ -254,14 +254,22 @@ final class LogActor(
     // so `nextMove` reads the same masked slot with or without them — this grows the LOG (the
     // audit/UI trace) but never changes the sign decision.
     reconcileRetirements(closed).flatMap { reconciled =>
-      GameCore.nextMove(reconciled.log, reconciled.log.size, roundComplete) match
-        case Move.Sign(winner) => sign(reconciled, winner)
-        case Move.Abstain =>
-          val reason = abstainReason(reconciled.log, roundComplete)
-          appendEmit(reconciled.log)((seq, ts) => Event.GateAbstain(seq, ts, reason)).flatMap {
-            case (log2, _) =>
-              advance(reconciled.copy(log = log2))
-          }
+      // Raise a NON-CONVERGENCE flag if the belief-state history shows the search is clearly stuck
+      // (librarian-convergence-monitor). This is a belief-inert `ConvergenceWarning` — it projects
+      // to nothing, so `nextMove` below reads the SAME masked slot with or without it and the sign
+      // decision is byte-identical. It is a request for help, never a gate change; it grows the LOG
+      // (the audit/UI trace) but never drives a signature. Idempotent — at most once per stuck
+      // episode ([[Convergence.warningToEmit]]).
+      maybeWarnNonConvergence(reconciled).flatMap { flagged =>
+        GameCore.nextMove(flagged.log, flagged.log.size, roundComplete) match
+          case Move.Sign(winner) => sign(flagged, winner)
+          case Move.Abstain =>
+            val reason = abstainReason(flagged.log, roundComplete)
+            appendEmit(flagged.log)((seq, ts) => Event.GateAbstain(seq, ts, reason)).flatMap {
+              case (log2, _) =>
+                advance(flagged.copy(log = log2))
+            }
+      }
     }
 
   /** Bring the retirement trace in line with the recomputed predicate (hypothesis-lifecycle §A/§B),
@@ -285,6 +293,27 @@ final class LogActor(
             )
             .map(log2 => s.copy(log = log2))
     }
+
+  /** Raise the librarian's non-convergence flag if the belief-state history shows the search is
+    * clearly stuck (librarian-convergence-monitor) and no flag is already standing for this stuck
+    * episode. Appends and emits ONE belief-inert [[Event.ConvergenceWarning]] carrying the
+    * structural evidence (rounds-without-consolidation, glut-persistence) — no candidate name, no
+    * diagnosis. Belief-inert by construction ([[GameCore.project]] drops it), so it moves no belief
+    * and changes no sign decision; a round with a clearly-converging (or already-flagged) search
+    * returns `s` unchanged — byte-identical to the pre-monitor path.
+    */
+  private def maybeWarnNonConvergence(s: LogState): IO[LogState] =
+    Convergence.warningToEmit(s.log, deps.config) match
+      case None => IO.pure(s)
+      case Some(warning) =>
+        appendEmit(s.log)((seq, ts) =>
+          Event.ConvergenceWarning(
+            seq,
+            ts,
+            warning.roundsWithoutConsolidation,
+            warning.glutPersistence
+          )
+        ).map { case (log2, _) => s.copy(log = log2) }
 
   private def advance(s: LogState): IO[LogState] =
     if s.roundsUsed >= deps.config.maxRounds then endInconclusive(s)

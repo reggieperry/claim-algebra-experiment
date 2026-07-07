@@ -153,6 +153,25 @@ enum Event extends EventMeta:
     */
   case Resurrected(seq: Int, timestamp: Long, candidateId: Answer)
 
+  /** The librarian raised a NON-CONVERGENCE flag (librarian-convergence-monitor): the search is not
+    * converging — a purely STRUCTURAL fact about the belief-state history ([[Convergence]]), read
+    * with zero understanding of what any claim means. It carries only the structural evidence —
+    * `roundsWithoutConsolidation` (how many recent rounds passed with no candidate accumulating
+    * durable, signable support) and `glutPersistence` (the longest run of rounds one live glut sat
+    * unresolved) — and NO semantic diagnosis: no candidate name, no "the answer is wrong". The
+    * detect/diagnose split (§C, retirement): the librarian detects THAT the search is stuck; the
+    * human or the agents diagnose WHAT is wrong. Belief-inert exactly as the lifecycle markers are
+    * — no agent (the librarian counts structure, it makes no domain judgment), and it projects to
+    * nothing ([[GameCore.project]]), so it can never move a hypothesis, invent a backer, or change
+    * the gate/sign decision. It is a request for help, never permission to guess.
+    */
+  case ConvergenceWarning(
+      seq: Int,
+      timestamp: Long,
+      roundsWithoutConsolidation: Int,
+      glutPersistence: Int
+  )
+
   /** The uniform "who spoke" read — `Some` on the seven agent-bearing variants (including
     * [[DefinitionGiven]], the asking agent's move), `None` on the human's challenge, the recalled
     * definition (its author spoke in a prior game — the origin agent is provenance, not a this-game
@@ -177,3 +196,6 @@ enum Event extends EventMeta:
     // consequence; the retirement is a structural fact about the log, not one agent's move.
     case Retired(_, _, _) => None
     case Resurrected(_, _, _) => None
+    // The convergence flag likewise carries no agent — it counts structural evidence over the
+    // belief-state history, a fact about the log, not any agent's move.
+    case ConvergenceWarning(_, _, _, _) => None

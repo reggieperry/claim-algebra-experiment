@@ -118,6 +118,12 @@ object GameCore:
       // byte-identical to HEAD.
       case _: Event.Retired => Nil
       case _: Event.Resurrected => Nil
+      // The convergence flag (librarian-convergence-monitor) is belief-inert by construction: it
+      // records that the search is not converging (structural evidence), never a hypothesis. It
+      // MUST project to nothing so the monitor cannot change belief/decide/nextMove or the gate —
+      // the flag is a request for help, not a sign. `Convergence.flag` reads this same fold; a
+      // ConvergenceWarning contributing evidence would let the monitor move its own input.
+      case _: Event.ConvergenceWarning => Nil
     }
 
   /** The folded answer-slot at a prefix — the single `Testimony[Answer]` whose candidate values are

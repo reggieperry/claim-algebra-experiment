@@ -43,6 +43,10 @@ class EventModelSuite extends munit.FunSuite with SocietyFixtures:
     assertEquals(Event.GateSign(1, 0L, c).agentId, None)
   }
 
+  test("agentId is None on the convergence flag — it counts structure, it is no agent's move") {
+    assertEquals(Event.ConvergenceWarning(1, 0L, 5, 4).agentId, None)
+  }
+
   test("EventMeta exposes seq and timestamp uniformly over the abstract Event type") {
     val events: List[Event] = List(
       mkAssert(3, mkAgent("a1"), mkAnswer("dog")),
