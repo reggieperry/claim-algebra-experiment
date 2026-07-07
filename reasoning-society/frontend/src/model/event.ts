@@ -12,6 +12,18 @@ interface EventBase {
   readonly timestamp: number;
 }
 
+// The provenance of a RECALLED definition (two-tier-reset-design) — which game / agent / question
+// first established the meaning, mirroring the Scala `DefinitionProvenance` nested in the wire's
+// `origin` object. `gameId` is OPTIONAL: absent when the provenance is not yet stamped (the current,
+// not-yet-persisted game); present as the game the meaning was first established in. It is the audit
+// surface's "recalled from game N" — read from `origin`, never the recalled event's own `seq`.
+export interface DefinitionOrigin {
+  readonly gameId?: number;
+  readonly agentId: AgentId;
+  readonly questionId: QuestionId;
+  readonly seq: number;
+}
+
 // The single ordered stream the fold folds. A discriminated union on `type`: each variant carries
 // exactly its own payload, so an impossible combination (a `gate_sign` with a `questionId`) cannot
 // be constructed and a `switch` over `type` is exhaustively checked (ts-types).
@@ -73,6 +85,18 @@ export type ReasoningEvent =
       readonly questionId: QuestionId;
       readonly term: Term;
       readonly meaning: string;
+    })
+  | (EventBase & {
+      readonly type: 'definition_remembered';
+      // A definition RECALLED from persistent memory into a fresh game (two-tier-reset-design): the
+      // session's established vocabulary, replayed at the head of the log. Belief-inert like the
+      // clarification pair — a DISTINCT variant, NOT a re-emitted `definition_given`, because the
+      // cross-game questionId collision is guaranteed (both games mint `q1`), so it must be
+      // structurally excluded from the current-question / ordering-gate read. It carries NO top-level
+      // `agentId` (its author spoke in a prior game); its provenance is the nested `origin`.
+      readonly term: Term;
+      readonly meaning: string;
+      readonly origin: DefinitionOrigin;
     })
   | (EventBase & {
       readonly type: 'answer_given';

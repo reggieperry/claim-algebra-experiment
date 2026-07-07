@@ -30,6 +30,8 @@ trait SocietyFixtures:
   def mkAnswer(raw: String): Answer = Answer.from(raw).fold(fail(_), identity)
   def mkQuestion(raw: String): QuestionId = QuestionId.from(raw).fold(fail(_), identity)
   def mkTerm(raw: String): Term = Term.from(raw).fold(fail(_), identity)
+  // The nth game of a session (n ≥ 1) — `first` then `n-1` `next` bumps.
+  def mkGame(n: Int): GameId = (1 until math.max(n, 1)).foldLeft(GameId.first)((g, _) => g.next)
   def mkLineage(raw: String): Lineage =
     Lineage.from(raw).fold(fail(s"blank lineage: $raw"))(identity)
 
@@ -61,6 +63,13 @@ trait SocietyFixtures:
       meaning: String = "the agreed meaning"
   ): Event =
     Event.DefinitionGiven(seq, seq.toLong, agent, question, term, meaning)
+  def definitionRemembered(
+      seq: Int,
+      term: Term,
+      origin: DefinitionProvenance,
+      meaning: String = "the agreed meaning"
+  ): Event =
+    Event.DefinitionRemembered(seq, seq.toLong, term, meaning, origin)
 
   val genAgent: Gen[AgentId] = Gen.oneOf(agentPool)
   val genCandidate: Gen[Answer] = Gen.oneOf(candidatePool)
@@ -68,10 +77,14 @@ trait SocietyFixtures:
   val genTerm: Gen[Term] = Gen.oneOf(termPool)
   val genOracle: Gen[OracleAnswer] = Gen.oneOf(OracleAnswer.values.toList)
 
-  /** A belief-inert clarification event (a challenge or a definition) at an arbitrary high `seq` —
-    * its `seq` is irrelevant to belief (it projects to nothing), so it never collides with a base
-    * log's contiguous `seq`s in a meaningful way. Meanings include the empty string: an agent that
-    * cannot crisply define its term is itself diagnostic (clarification-feature §2).
+  /** A belief-inert vocabulary event at an arbitrary high `seq` — a challenge, a this-game
+    * definition, OR a RECALLED definition (persistent memory seeded into a fresh game,
+    * two-tier-reset-design). Its `seq` is irrelevant to belief (each projects to nothing), so it
+    * never collides with a base log's contiguous `seq`s in a meaningful way. Meanings include the
+    * empty string: an agent that cannot crisply define its term is itself diagnostic
+    * (clarification-feature §2). The recalled variant draws an `origin` provenance with a `None` /
+    * `Some(game)` gameId, so the belief-inertness property covers a recalled definition regardless
+    * of its stamped origin.
     */
   val genInertClarification: Gen[Event] =
     for
@@ -84,10 +97,19 @@ trait SocietyFixtures:
       // cannot crisply define its term is itself diagnostic (clarification-feature §2).
       meaning <- Gen.oneOf("living creature currently alive", "any living tissue", "dog", "")
       seq <- Gen.choose(1000, 9999)
-      isChallenge <- Gen.oneOf(true, false)
-    yield
-      if isChallenge then clarificationRequested(seq, question, term)
-      else definitionGiven(seq, agent, question, term, meaning)
+      originSeq <- Gen.choose(1, 60)
+      gameId <- Gen.oneOf(None, Some(GameId.first), Some(GameId.first.next))
+      variant <- Gen.oneOf("challenge", "given", "remembered")
+    yield variant match
+      case "challenge" => clarificationRequested(seq, question, term)
+      case "given" => definitionGiven(seq, agent, question, term, meaning)
+      case _ =>
+        definitionRemembered(
+          seq,
+          term,
+          DefinitionProvenance(agent, question, originSeq, gameId),
+          meaning
+        )
 
   /** One event at a given `seq`, weighted toward the belief-moving variants so most logs reach a
     * decision, with the belief-inert control events mixed in.

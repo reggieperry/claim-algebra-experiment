@@ -134,6 +134,13 @@ export function fold(
         definitionsByQuestion.set(event.questionId, existing);
         break;
       }
+      case 'definition_remembered':
+        // Belief-inert (two-tier-reset-design, invariant 1): a recalled definition is grounding
+        // vocabulary carried across games, never a hypothesis. It belongs to NO this-game question,
+        // so — unlike `definition_given` — it must NOT touch `definitionsByQuestion`: doing so would
+        // perturb the ordering gate (`pendingChallengeOf`) on a colliding qid. The definitions panel
+        // reads it via a separate projection (`definitionsOf`). Mirrors the Scala `project` drop.
+        break;
       case 'gate_abstain':
         gate = { kind: 'abstained', reason: event.reason, seq: event.seq };
         break;

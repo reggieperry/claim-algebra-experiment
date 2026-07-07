@@ -4,6 +4,7 @@ import {
   agentId,
   candidateId,
   questionId,
+  term,
   type AgentId,
   type ReasoningEvent,
 } from '../model';
@@ -51,6 +52,26 @@ describe('societyOf', () => {
     const silent = result.agents.find((agent) => agent.id === a3);
     expect(silent?.lastSpokeSeq).toBeUndefined();
     expect(silent?.dominantCorner).toBeUndefined();
+  });
+
+  it('does not attribute a recalled definition to any this-game agent', () => {
+    // a2 authored the ORIGIN of the recalled definition, but that was a PRIOR game — this game a2 is
+    // silent, so the recalled def sets no lastSpokeSeq for it (agentOf → undefined).
+    const events = log([
+      { type: 'assert', agentId: a1, candidateId: c1, content: 'dog' },
+      {
+        type: 'definition_remembered',
+        term: term('alive'),
+        meaning: 'a living creature currently alive',
+        origin: { gameId: 1, agentId: a2, questionId: qa, seq: 9 },
+      },
+    ]);
+    const result = society(events, events.length);
+    const a2Summary = result.agents.find((agent) => agent.id === a2);
+    expect(a2Summary?.lastSpokeSeq).toBeUndefined();
+    // And the a1 assert's seq is a1's last-spoke — the recalled def (a later seq) did not shift it.
+    const a1Summary = result.agents.find((agent) => agent.id === a1);
+    expect(a1Summary?.lastSpokeSeq).toBe(1);
   });
 
   it('counts asserts, refutes, and strikes per agent and its last-spoke seq', () => {

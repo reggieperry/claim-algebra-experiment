@@ -82,6 +82,24 @@ class WireSuite extends munit.FunSuite with SocietyFixtures:
     )
   }
 
+  test(
+    "definition_remembered encodes to its exact wire JSON (nested origin with a stamped gameId)"
+  ) {
+    val origin = DefinitionProvenance(a2, q1, 21, Some(GameId.first))
+    assertEquals(
+      json(Event.DefinitionRemembered(1, 2L, alive, "a living creature currently alive", origin)),
+      """{"seq":1,"timestamp":2,"type":"definition_remembered","term":"alive","meaning":"a living creature currently alive","origin":{"gameId":1,"agentId":"a2","questionId":"q1","seq":21}}"""
+    )
+  }
+
+  test("definition_remembered OMITS origin.gameId when it is not yet stamped (None)") {
+    val origin = DefinitionProvenance(a2, q1, 21, None)
+    assertEquals(
+      json(Event.DefinitionRemembered(1, 2L, alive, "a living creature currently alive", origin)),
+      """{"seq":1,"timestamp":2,"type":"definition_remembered","term":"alive","meaning":"a living creature currently alive","origin":{"agentId":"a2","questionId":"q1","seq":21}}"""
+    )
+  }
+
   test("answer_given with a governing definition encodes the governing array (a clarified answer)") {
     assertEquals(
       json(Event.AnswerGiven(23, 24L, q1, OracleAnswer.No, List(alive))),

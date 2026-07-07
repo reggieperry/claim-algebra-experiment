@@ -1,5 +1,6 @@
 package claimalgebra.society
 
+import claimalgebra.BlockReason
 import org.scalacheck.Gen
 import org.scalacheck.Prop.forAll
 
@@ -118,6 +119,94 @@ class ClarificationSuite extends munit.ScalaCheckSuite with SocietyFixtures:
       answerGiven(5, q1, OracleAnswer.Yes, List(alive))
     )
     assertEquals(GameCore.project(mixed).size, 2, clue("assert + corroborate only"))
+  }
+
+  // --- two-tier reset: recalled definitions are belief-inert (invariants 1-2) ---
+
+  test("a recalled definition projects to nothing (belief-inert at the projection)") {
+    val origin = DefinitionProvenance(a1, q1, 9, Some(mkGame(1)))
+    assertEquals(GameCore.project(List(definitionRemembered(1, alive, origin))), Nil)
+  }
+
+  test("seed-invariance: a game seeded with K recalled definitions begins at gap, K=0-identical") {
+    // Two definitions recalled from game 1, seeded at the HEAD of game 2's log (seq 1..2).
+    val seed = Vector(
+      definitionRemembered(
+        1,
+        alive,
+        DefinitionProvenance(a1, q1, 21, Some(mkGame(1))),
+        "any living tissue"
+      ),
+      definitionRemembered(
+        2,
+        animal,
+        DefinitionProvenance(a2, q1, 22, Some(mkGame(1))),
+        "of the animal kingdom"
+      )
+    )
+    val empty = Vector.empty[Event]
+
+    // Belief-inertness: the seeds add NO evidence, so belief begins EXACTLY where an unseeded game does.
+    assertEquals(GameCore.project(seed), Nil, clue("seeds project to nothing"))
+    assertEquals(
+      GameCore.belief(seed, seed.size),
+      GameCore.belief(empty, 0),
+      clue("belief begins at gap regardless of how many definitions are seeded")
+    )
+    assertEquals(GameCore.decide(seed, seed.size), GameCore.decide(empty, 0))
+    assertEquals(
+      GameCore.nextMove(seed, seed.size, roundComplete = true),
+      GameCore.nextMove(empty, empty.size, roundComplete = true)
+    )
+    assertEquals(
+      GameCore.decide(seed, seed.size),
+      GateDecision.Abstain(AbstainReason.Blocked(BlockReason.Gap)),
+      clue("a gap — no hypothesis on the table")
+    )
+
+    // Seed-visibility (invariant 2): the K definitions are established vocabulary from question one.
+    assertEquals(Definitions.established(seed).map(_.term.value), List("alive", "animal"))
+    assertEquals(GameView.from(seed).definitions.map(_.term.value), List("alive", "animal"))
+    assertEquals(
+      GameView.from(seed).definitions.map(_.meaning),
+      List("any living tissue", "of the animal kingdom")
+    )
+  }
+
+  test("this-game-wins: a this-game redefinition supersedes a recalled definition in the read") {
+    // "alive" recalled from game 1, then CHALLENGED and redefined this game → the this-game meaning
+    // wins in `established` (latest-wins at the recalled term's first-seen position), the recalled
+    // meaning retained as a challengeable trace in `from`.
+    val log = Vector(
+      definitionRemembered(
+        1,
+        alive,
+        DefinitionProvenance(a1, q1, 9, Some(mkGame(1))),
+        "recalled: any living tissue"
+      ),
+      clarificationRequested(2, q1, alive),
+      definitionGiven(3, a2, q1, alive, "this game: a living creature currently alive")
+    )
+    val established = Definitions.established(log)
+    assertEquals(
+      established.map(_.term.value),
+      List("alive"),
+      clue("first-seen (recalled) position")
+    )
+    assertEquals(
+      established.find(_.term == alive).map(_.meaning),
+      Some("this game: a living creature currently alive"),
+      clue("the this-game redefinition supersedes the recalled meaning")
+    )
+    // The recalled meaning is still recoverable from the raw chain, and its origin gameId is retained.
+    assertEquals(Definitions.from(log).count(_.term == alive), 2)
+    assertEquals(
+      Definitions.from(log).headOption.flatMap(_.provenance.gameId.map(_.value)),
+      Some(1),
+      clue("the recalled definition keeps its origin game")
+    )
+    // Belief is untouched — a redefinition never routes through refute/strike.
+    assertEquals(GameCore.project(log), Nil)
   }
 
   test("a full challenge→definition→grounded-answer exchange does not change the signed outcome") {

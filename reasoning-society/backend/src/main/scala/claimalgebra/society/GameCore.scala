@@ -92,6 +92,11 @@ object GameCore:
       // (Gate ∧ no-lone-sign floor ∧ glut-on-contradiction) is unchanged: definitions cannot sign.
       case _: Event.ClarificationRequested => Nil
       case _: Event.DefinitionGiven => Nil
+      // A recalled definition (persistent memory seeded into a fresh game, two-tier-reset-design) is
+      // belief-inert exactly as the clarification pair is: it grounds the vocabulary, never a
+      // hypothesis. Dropping it here is invariant 1 (belief-inertness / seed-invariance) — a game
+      // begins at `gap` regardless of how many definitions are seeded.
+      case _: Event.DefinitionRemembered => Nil
       case _: Event.GateAbstain => Nil
       case _: Event.GateSign => Nil
     }

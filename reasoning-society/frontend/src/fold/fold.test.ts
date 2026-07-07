@@ -385,3 +385,78 @@ describe('fold — the current question tracks the clarification exchange', () =
     expect(cq?.pendingChallenge).toBeUndefined();
   });
 });
+
+// A RECALLED definition (persistent memory seeded into a fresh game, two-tier-reset-design) is
+// belief-inert like the clarification pair AND must not perturb the ordering gate on a colliding qid
+// (invariant 7). Mirrors the Scala `GameCore.project` dropping `DefinitionRemembered`.
+describe('fold — a recalled definition is belief-inert', () => {
+  function rememberedTail(afterSeq: number): readonly ReasoningEvent[] {
+    return [
+      {
+        seq: afterSeq + 1,
+        timestamp: 0,
+        type: 'definition_remembered',
+        term: term('alive'),
+        meaning: 'a living creature currently alive',
+        // The origin's questionId is `qa` — a qid that can COLLIDE with a base-log question, exactly
+        // the cross-game collision the distinct variant exists to survive.
+        origin: { gameId: 1, agentId: a1, questionId: qa, seq: 9 },
+      },
+    ];
+  }
+
+  it('appending a recalled definition leaves candidates, cardinality, gate, and the question unchanged', () => {
+    fc.assert(
+      fc.property(genLog, (base) => {
+        const extended = [...base, ...rememberedTail(base.length)];
+        const baseState = fold(base, base.length);
+        const extendedState = fold(extended, extended.length);
+        expect(extendedState.candidates).toEqual(baseState.candidates);
+        expect(extendedState.cardinality).toBe(baseState.cardinality);
+        expect(extendedState.gate).toEqual(baseState.gate);
+        // The current-question read (and its ordering gate) is untouched — the recalled definition
+        // belongs to no this-game question.
+        expect(extendedState.currentQuestion).toEqual(
+          baseState.currentQuestion,
+        );
+      }),
+      { seed: 4242, numRuns: 200 },
+    );
+  });
+
+  it('a recalled definition on a COLLIDING qid does NOT clear an open challenge (invariant 7)', () => {
+    const events: ReasoningEvent[] = [
+      {
+        seq: 1,
+        timestamp: 1,
+        type: 'question_asked',
+        agentId: a1,
+        questionId: qa,
+        content: 'Is it alive?',
+      },
+      {
+        seq: 2,
+        timestamp: 2,
+        type: 'clarification_requested',
+        questionId: qa,
+        term: term('alive'),
+      },
+      {
+        seq: 3,
+        timestamp: 3,
+        type: 'definition_remembered',
+        term: term('alive'),
+        meaning: 'a living creature currently alive',
+        // origin.questionId === qa — the SAME qid the open challenge is on.
+        origin: { gameId: 1, agentId: a1, questionId: qa, seq: 9 },
+      },
+    ];
+    // A this-game `definition_given` on qa WOULD clear the challenge; a recalled one must NOT — it
+    // never writes `definitionsByQuestion`, so the ordering gate stays open.
+    expect(fold(events, 3).currentQuestion?.pendingChallenge).toEqual({
+      term: term('alive'),
+    });
+    // And it records no definition against this-game's question.
+    expect(fold(events, 3).currentQuestion?.definitions).toEqual([]);
+  });
+});

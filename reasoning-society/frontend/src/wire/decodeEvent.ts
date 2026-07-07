@@ -1,5 +1,5 @@
 import { ANSWERS, agentId, candidateId, questionId, term } from '../model';
-import type { Answer, ReasoningEvent, Term } from '../model';
+import type { Answer, DefinitionOrigin, ReasoningEvent, Term } from '../model';
 
 // The trust boundary between the backend and the fold. Every SSE frame is UNTRUSTED input (ts-security:
 // decode + validate, never `as`-cast raw JSON into a domain type), so this decoder validates the `type`
@@ -61,6 +61,34 @@ function governingTerms(raw: unknown): readonly Term[] | null {
     terms.push(term(item));
   }
   return terms;
+}
+
+// The nested `origin` of a `definition_remembered` frame (two-tier-reset-design) — untrusted, so
+// every field is validated. `agentId` / `questionId` are non-blank ids, `seq` a finite number, and
+// `gameId` is OPTIONAL: absent (a not-yet-stamped provenance) omits the key; present must be a finite
+// number, else the whole frame fails closed. Mirrors the backend `Wire.originJson` shape.
+function originOf(raw: unknown): DefinitionOrigin | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  const agent = idField(raw, 'agentId');
+  const question = idField(raw, 'questionId');
+  const seq = numberField(raw, 'seq');
+  if (agent === null || question === null || seq === null) {
+    return null;
+  }
+  const base: DefinitionOrigin = {
+    agentId: agentId(agent),
+    questionId: questionId(question),
+    seq,
+  };
+  const rawGame = raw.gameId;
+  if (rawGame === undefined) {
+    return base;
+  }
+  return typeof rawGame === 'number' && Number.isFinite(rawGame)
+    ? { ...base, gameId: rawGame }
+    : null;
 }
 
 // The three con/pro-claim variants share the agent + candidate + note shape; validate it once.
@@ -212,6 +240,23 @@ export function decodeEvent(json: unknown): ReasoningEvent | null {
         questionId: questionId(question),
         term: term(defined),
         meaning,
+      };
+    }
+    case 'definition_remembered': {
+      // A recalled definition — a term, its meaning, and the nested `origin` provenance. NO top-level
+      // agentId (its author spoke in a prior game).
+      const recalledTerm = idField(json, 'term');
+      const meaning = stringField(json, 'meaning');
+      const origin = originOf(json.origin);
+      if (recalledTerm === null || meaning === null || origin === null) {
+        return null;
+      }
+      return {
+        ...base,
+        type: 'definition_remembered',
+        term: term(recalledTerm),
+        meaning,
+        origin,
       };
     }
     case 'answer_given': {

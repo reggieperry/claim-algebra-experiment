@@ -57,6 +57,12 @@ object Society:
     *   the clarification-define call for each agent (clarification-feature §2). Defaults to a
     *   fail-closed [[noDefiner]] since a game with no challenge never invokes it; the live path and
     *   the clarification suites wire a real one.
+    * @param seed
+    *   the persistent memory replayed into this game (two-tier-reset-design): established
+    *   definitions recalled from prior games, emitted as belief-inert
+    *   [[Event.DefinitionRemembered]] events at the head of the log before round one. Defaults to
+    *   `Nil` (the empty-memory path); the reset mechanics that supply a non-empty seed are a later
+    *   slice, so no caller passes one yet.
     */
   def play(
       strategies: List[AgentStrategy],
@@ -65,7 +71,8 @@ object Society:
       sink: EventSink,
       config: SocietyConfig,
       schedulerOf: Supervisor[IO] => Scheduler = Scheduler.supervised,
-      definerFor: AgentId => LlmCall[DefinitionDto] = _ => noDefiner
+      definerFor: AgentId => LlmCall[DefinitionDto] = _ => noDefiner,
+      seed: List[Definition] = Nil
   ): IO[Outcome] =
     val ids = strategies.map(_.id.value)
     val duplicates = ids.diff(ids.distinct).distinct
@@ -78,7 +85,7 @@ object Society:
           logAddress <- address("society/log")
           beginId <- messageId("begin")
           done <- Deferred[IO, Outcome]
-          deps = LogDeps(oracle, scheduler, sink, now, o => done.complete(o).void, config)
+          deps = LogDeps(oracle, scheduler, sink, now, o => done.complete(o).void, config, seed)
           logRef <- system.actorOf(logAddress)(context =>
             new LogActor(context, deps, LogState.initial)
           )

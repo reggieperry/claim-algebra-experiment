@@ -46,14 +46,20 @@ object Scheduler:
     def arm(delay: FiniteDuration)(action: IO[Unit]): IO[Unit] =
       supervisor.supervise(IO.sleep(delay) *> action).void
 
-/** The LogActor's fixed collaborators — everything but the evolving game [[LogState]]. */
+/** The LogActor's fixed collaborators — everything but the evolving game [[LogState]]. `seed` is
+  * the persistent memory replayed into this game (two-tier-reset-design): the established
+  * definitions recalled from prior games, emitted as belief-inert [[Event.DefinitionRemembered]]
+  * events at the head of the log before round one. Defaults to `Nil` — the empty-memory path — so
+  * every existing construction is unchanged and byte-identical.
+  */
 final case class LogDeps(
     oracle: Oracle,
     scheduler: Scheduler,
     sink: EventSink,
     now: IO[Long],
     onDone: Outcome => IO[Unit],
-    config: SocietyConfig
+    config: SocietyConfig,
+    seed: List[Definition] = Nil
 )
 
 /** One round's barrier — the DISTINCT current-round agents probed (`cohort`), who has reported
@@ -133,7 +139,34 @@ final class LogActor(
 
   private def onBegin(agents: List[(AgentId, ActorRef[ToAgent])]): IO[LogState] =
     if agents.isEmpty then endInconclusive(state)
-    else open(state.copy(agents = agents), RoundId.first)
+    else
+      val withAgents = state.copy(agents = agents)
+      // Empty memory is the common path — guard it so it is BYTE-IDENTICAL to the pre-persistence
+      // `open(withAgents, first)` (invariant 6: no seed emit, no extra IO step). A non-empty seed
+      // replays the recalled definitions at seq 1..K BEFORE round one opens.
+      if deps.seed.isEmpty then open(withAgents, RoundId.first)
+      else seedDefinitions(withAgents).flatMap(open(_, RoundId.first))
+
+  /** Emit one belief-inert [[Event.DefinitionRemembered]] per seeded definition, at the head of the
+    * log (seq 1..K), flowing to the sink/Topic like any event. Belief-inert by construction
+    * ([[GameCore.project]] drops it), so belief still begins at `gap` (invariant 1). Each recalled
+    * definition carries its `origin` provenance verbatim — the audit surface's "recalled from game
+    * N".
+    */
+  private def seedDefinitions(s: LogState): IO[LogState] =
+    deps.seed.foldLeft(IO.pure(s)) { (accIO, definition) =>
+      accIO.flatMap { acc =>
+        appendEmit(acc.log)((seq, ts) =>
+          Event.DefinitionRemembered(
+            seq,
+            ts,
+            definition.term,
+            definition.meaning,
+            definition.provenance
+          )
+        ).map { case (log2, _) => acc.copy(log = log2) }
+      }
+    }
 
   private def onPost(round: RoundId, agent: AgentId, move: AgentMove): IO[LogState] =
     if state.phase == Phase.Ended then IO.pure(state)

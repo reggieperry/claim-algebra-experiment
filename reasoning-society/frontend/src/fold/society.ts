@@ -52,8 +52,11 @@ function agentOf(event: ReasoningEvent): AgentId | undefined {
     case 'question_asked':
     case 'definition_given':
       return event.agentId;
-    // The human's challenge, the oracle's answer, and the gate's decisions no agent authors.
+    // The human's challenge, a RECALLED definition (its author spoke in a prior game — the origin
+    // agent is provenance, not a this-game speaker), the oracle's answer, and the gate's decisions no
+    // this-game agent authors.
     case 'clarification_requested':
+    case 'definition_remembered':
     case 'answer_given':
     case 'gate_abstain':
     case 'gate_sign':

@@ -6,11 +6,19 @@ package claimalgebra.society
   * definition a CLAIM rather than a key-value entry: the meaning is attributable, so a later slice
   * can challenge and supersede it, the trace retained.
   *
-  * NOTE: provenance gains a `game_id` when cross-game persistence lands (the NEXT pass) —
-  * definitions live only in the current game for now (clarification-feature §6). Adding it here is
-  * the one field this record is designed to grow.
+  * `gameId` is the cross-game persistence tag (two-tier-reset-design §Types): `None` means the
+  * CURRENT, not-yet-persisted game; it is filled `Some(g)` at the persistence boundary
+  * ([[DefinitionMemory.remember]]) and, once carried, never drifts across generations. It is the
+  * LAST field and defaults to `None` so every existing construction (`DefinitionProvenance(agent,
+  * questionId, seq)`) is unchanged — the empty-memory path and every pre-persistence test stay
+  * byte-identical.
   */
-final case class DefinitionProvenance(agent: AgentId, questionId: QuestionId, seq: Int)
+final case class DefinitionProvenance(
+    agent: AgentId,
+    questionId: QuestionId,
+    seq: Int,
+    gameId: Option[GameId] = None
+)
 
 /** A definition claim established in the game: a `term`, its agreed `meaning`, and its
   * [[DefinitionProvenance]]. It is a CLAIM, not a dictionary entry — it carries who said it and
@@ -47,8 +55,15 @@ object Definitions:
     * Replay reconstructs each claim at the playhead where its event sits.
     */
   def from(log: Vector[Event]): List[Definition] =
-    log.toList.collect { case Event.DefinitionGiven(seq, _, agent, questionId, term, meaning) =>
-      Definition(term, meaning, DefinitionProvenance(agent, questionId, seq))
+    log.toList.collect {
+      case Event.DefinitionGiven(seq, _, agent, questionId, term, meaning) =>
+        Definition(term, meaning, DefinitionProvenance(agent, questionId, seq))
+      // A recalled definition (persistent memory replayed into a fresh game) carries its ORIGIN
+      // provenance verbatim (which game/agent/question first established it) — a claim, not a
+      // re-derivation. It reads into the same vocabulary projection as a this-game definition; the
+      // belief fold drops it ([[GameCore.project]]), so it never moves a hypothesis.
+      case Event.DefinitionRemembered(_, _, term, meaning, origin) =>
+        Definition(term, meaning, origin)
     }
 
   /** The ESTABLISHED meaning per term — the latest definition of each term wins, in first-seen term
@@ -56,6 +71,13 @@ object Definitions:
     * this read (`toMap` retains the last value for a duplicate key). True
     * supersession-as-recorded-chain — the prior struck and retained as a challengeable trace — is a
     * later slice; until then the full chain stays recoverable from [[from]].
+    *
+    * Because a recalled definition (`DefinitionRemembered`) is seeded at the HEAD of a fresh game's
+    * log and a this-game challenge redefines a term LATER, latest-wins makes the merge
+    * this-game-wins: the recalled meaning holds from question one, and a this-game redefinition
+    * supersedes it at the recalled term's (first-seen) position — the two-tier-reset supersession
+    * path, kept at the definitions-read level (never routed through refute/strike, so definitions
+    * stay belief-inert).
     */
   def established(log: Vector[Event]): List[Definition] =
     val all = from(log)

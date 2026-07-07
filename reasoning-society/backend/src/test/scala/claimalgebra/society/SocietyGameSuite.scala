@@ -22,6 +22,9 @@ class SocietyGameSuite extends CatsEffectSuite:
 
   private def mkAnswer(raw: String): Answer = Answer.from(raw).fold(e => fail(e), identity)
   private def mkAgentId(raw: String): AgentId = AgentId.from(raw).fold(e => fail(e), identity)
+  private def mkTermId(raw: String): Term = Term.from(raw).fold(e => fail(e), identity)
+  private def mkQuestionId(raw: String): QuestionId =
+    QuestionId.from(raw).fold(e => fail(e), identity)
   private val apple = mkAnswer("apple")
   private val dog = mkAnswer("dog")
 
@@ -248,6 +251,83 @@ class SocietyGameSuite extends CatsEffectSuite:
         corner,
         Belnap.Glut,
         clue("the reacted-to 'no' gluts the candidate — a real conflict")
+      )
+  }
+
+  test(
+    "a seeded game emits the recalled definitions at the head (seq 1..K) and begins at gap"
+  ) {
+    // Persistent memory recalled into a fresh game (two-tier-reset-design): two established
+    // definitions seeded at the head. They are emitted as belief-inert DefinitionRemembered events
+    // BEFORE round one; belief still begins at gap and nothing signs on them. A passing cohort adds
+    // no evidence, so the game ends Inconclusive — exactly as an unseeded one does.
+    val q1 = mkQuestionId("q1")
+    val seedDefs = List(
+      Definition(
+        mkTermId("alive"),
+        "a living creature currently alive",
+        DefinitionProvenance(mkAgentId("driller"), q1, 21, Some(GameId.first))
+      ),
+      Definition(
+        mkTermId("animal"),
+        "of the animal kingdom",
+        DefinitionProvenance(mkAgentId("splitter"), q1, 22, Some(GameId.first))
+      )
+    )
+    for
+      oracle <- Oracle.scripted(Nil)
+      sinkAndGet <- collectingSink
+      seededOutcome <- Society.play(
+        AgentStrategy.cohort,
+        _ => passStub,
+        oracle,
+        sinkAndGet._1,
+        fast,
+        noTimeout,
+        seed = seedDefs
+      )
+      events <- sinkAndGet._2
+      // The unseeded control: same cohort, empty seed.
+      oracle2 <- Oracle.scripted(Nil)
+      plainSinkAndGet <- collectingSink
+      plainOutcome <- Society.play(
+        AgentStrategy.cohort,
+        _ => passStub,
+        oracle2,
+        plainSinkAndGet._1,
+        fast,
+        noTimeout
+      )
+      plainEvents <- plainSinkAndGet._2
+    yield
+      val remembered = events.take(2).collect { case e: Event.DefinitionRemembered => e }.toList
+      assertEquals(remembered.map(_.seq), List(1, 2), clue("the seeds occupy seq 1..K at the head"))
+      assertEquals(remembered.map(_.term.value), List("alive", "animal"))
+      assertEquals(
+        remembered.map(_.origin.gameId),
+        List(Some(GameId.first), Some(GameId.first)),
+        clue("each recalled definition carries its origin game verbatim")
+      )
+      assertEquals(
+        GameCore.project(events.take(2)),
+        Nil,
+        clue("the seeds project to nothing — belief begins at gap")
+      )
+      assertEquals(gateSigns(events), Vector.empty, clue("a seed can never sign"))
+      assertEquals(
+        Definitions.established(events).map(_.term.value),
+        List("alive", "animal"),
+        clue("the recalled vocabulary is established from question one")
+      )
+      // Seed-invariance at the outcome level: seeding changes nothing but the definition prefix.
+      assertEquals(seededOutcome, Outcome.Inconclusive)
+      assertEquals(seededOutcome, plainOutcome)
+      assert(
+        !plainEvents.exists {
+          case _: Event.DefinitionRemembered => true
+          case _ => false
+        },
+        "the unseeded control emits no DefinitionRemembered events"
       )
   }
 

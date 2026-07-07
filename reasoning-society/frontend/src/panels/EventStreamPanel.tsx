@@ -77,7 +77,10 @@ function agentOf(event: ReasoningEvent): AgentId | undefined {
     case 'question_asked':
     case 'definition_given':
       return event.agentId;
+    // A recalled definition's author spoke in a prior game (its origin is provenance, not a this-game
+    // speaker), so no this-game agent authors it — like the human's challenge, the oracle, the gate.
     case 'clarification_requested':
+    case 'definition_remembered':
     case 'answer_given':
     case 'gate_abstain':
     case 'gate_sign':
@@ -144,6 +147,15 @@ function describe(
       return {
         actor: resolveAgent(event.agentId),
         verb: `defines “${event.term}”`,
+        detail: event.meaning,
+      };
+    case 'definition_remembered':
+      // A definition recalled from persistent memory (two-tier-reset-design) — carried from a prior
+      // game, no this-game author. The "recalled from game N" badge is a later slice; this line just
+      // renders the recalled meaning so the stream stays complete.
+      return {
+        actor: 'Memory',
+        verb: `recalls “${event.term}”`,
         detail: event.meaning,
       };
     case 'answer_given': {

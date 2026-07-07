@@ -107,4 +107,55 @@ describe('definitionsOf', () => {
       establishedSeq: 3,
     });
   });
+
+  it('folds a RECALLED definition into the read, using its origin provenance', () => {
+    const events = log([
+      {
+        type: 'definition_remembered',
+        term: term('alive'),
+        meaning: 'a living creature currently alive',
+        origin: { gameId: 1, agentId: a1, questionId: qa, seq: 9 },
+      },
+    ]);
+    // A recalled definition (persistent memory) shows in the definitions list; its provenance is the
+    // ORIGIN (the agent/question that first established it), its seek target its birth index here.
+    expect(definitionsOf(events, events.length)).toEqual([
+      {
+        term: term('alive'),
+        meaning: 'a living creature currently alive',
+        agent: a1,
+        questionId: qa,
+        establishedSeq: 1,
+      },
+    ]);
+  });
+
+  it('this-game-wins: a this-game redefinition supersedes a recalled definition in place', () => {
+    const events = log([
+      {
+        type: 'definition_remembered',
+        term: term('alive'),
+        meaning: 'recalled: any living tissue',
+        origin: { gameId: 1, agentId: a1, questionId: qa, seq: 9 },
+      },
+      {
+        type: 'definition_given',
+        agentId: a2,
+        questionId: qa,
+        term: term('alive'),
+        meaning: 'this game: a living creature currently alive',
+      },
+    ]);
+    const derived = definitionsOf(events, events.length);
+    // One row, at the recalled term's first-seen position, carrying the THIS-GAME meaning + provenance.
+    expect(derived).toEqual([
+      {
+        term: term('alive'),
+        meaning: 'this game: a living creature currently alive',
+        agent: a2,
+        questionId: qa,
+        establishedSeq: 2,
+      },
+    ]);
+  });
 });

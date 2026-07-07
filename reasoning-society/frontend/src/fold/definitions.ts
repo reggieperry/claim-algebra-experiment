@@ -28,6 +28,18 @@ export function definitionsOf(
         questionId: event.questionId,
         establishedSeq: event.seq,
       });
+    } else if (event.type === 'definition_remembered') {
+      // A recalled definition (persistent memory, two-tier-reset-design) folds into the SAME
+      // latest-wins read: its provenance is the ORIGIN (the agent / question that first established
+      // the meaning), and its seek target is its birth index in THIS log. A this-game redefinition
+      // of the same term appears later in the log and supersedes it in place — this-game-wins.
+      latest.set(event.term, {
+        term: event.term,
+        meaning: event.meaning,
+        agent: event.origin.agentId,
+        questionId: event.origin.questionId,
+        establishedSeq: event.seq,
+      });
     }
   }
   return [...latest.values()];

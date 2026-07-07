@@ -106,6 +106,25 @@ enum Event extends EventMeta:
       governing: List[Term] = Nil
   )
 
+  /** A definition RECALLED from persistent memory into a fresh game (two-tier-reset-design): the
+    * session's established vocabulary, replayed at the HEAD of the new game's log so agents ground
+    * to it from question one without re-litigating what a term means. It carries `origin`
+    * provenance — which game, agent, and question first established the meaning — NEVER a
+    * current-game exchange, and has NO agent in the who-spoke read (its author spoke in a prior
+    * game). Belief-inert like the clarification pair, and a DISTINCT variant, not a re-emitted
+    * [[DefinitionGiven]]: the cross-game question-id collision is guaranteed (both games mint
+    * `q1`), so a recalled definition must be structurally excluded from the governing-term read and
+    * the ordering gate. It projects to nothing ([[GameCore.project]]); it enters the vocabulary
+    * read as a [[Definition]] claim ([[Definitions.from]]).
+    */
+  case DefinitionRemembered(
+      seq: Int,
+      timestamp: Long,
+      term: Term,
+      meaning: String,
+      origin: DefinitionProvenance
+  )
+
   /** The gate abstained, with a human-readable reason — logged control flow; belief-inert. */
   case GateAbstain(seq: Int, timestamp: Long, reason: String)
 
@@ -115,9 +134,11 @@ enum Event extends EventMeta:
   case GateSign(seq: Int, timestamp: Long, candidateId: Answer)
 
   /** The uniform "who spoke" read — `Some` on the seven agent-bearing variants (including
-    * [[DefinitionGiven]], the asking agent's move), `None` on the human's challenge, the oracle,
-    * and the gate events. The floor and any router consult this; it is deliberately a READING, so
-    * the per-variant fields stay precise (an [[AnswerGiven]] structurally cannot carry an agent).
+    * [[DefinitionGiven]], the asking agent's move), `None` on the human's challenge, the recalled
+    * definition (its author spoke in a prior game — the origin agent is provenance, not a this-game
+    * speaker), the oracle, and the gate events. The floor and any router consult this; it is
+    * deliberately a READING, so the per-variant fields stay precise (an [[AnswerGiven]]
+    * structurally cannot carry an agent).
     */
   def agentId: Option[AgentId] = this match
     case Assert(_, _, a, _, _) => Some(a)
@@ -128,6 +149,7 @@ enum Event extends EventMeta:
     case QuestionAsked(_, _, a, _, _) => Some(a)
     case DefinitionGiven(_, _, a, _, _, _) => Some(a)
     case ClarificationRequested(_, _, _, _) => None
+    case DefinitionRemembered(_, _, _, _, _) => None
     case AnswerGiven(_, _, _, _, _) => None
     case GateAbstain(_, _, _) => None
     case GateSign(_, _, _) => None

@@ -126,6 +126,23 @@ const GOLDEN: readonly {
     },
   },
   {
+    name: 'definition_remembered (nested origin, stamped gameId)',
+    json: '{"seq":1,"timestamp":2,"type":"definition_remembered","term":"alive","meaning":"a living creature currently alive","origin":{"gameId":1,"agentId":"a2","questionId":"q1","seq":21}}',
+    want: {
+      seq: 1,
+      timestamp: 2,
+      type: 'definition_remembered',
+      term: term('alive'),
+      meaning: 'a living creature currently alive',
+      origin: {
+        gameId: 1,
+        agentId: agentId('a2'),
+        questionId: questionId('q1'),
+        seq: 21,
+      },
+    },
+  },
+  {
     name: 'answer_given with governing (a clarified answer)',
     json: '{"seq":23,"timestamp":24,"type":"answer_given","questionId":"q1","answer":"no","governing":["alive"]}',
     want: {
@@ -316,6 +333,91 @@ describe('decodeEvent', () => {
         governing: [7],
       },
     },
+    {
+      name: 'a definition_remembered missing term',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'definition_remembered',
+        meaning: 'm',
+        origin: { agentId: 'a2', questionId: 'q1', seq: 21 },
+      },
+    },
+    {
+      name: 'a definition_remembered missing meaning',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'definition_remembered',
+        term: 'alive',
+        origin: { agentId: 'a2', questionId: 'q1', seq: 21 },
+      },
+    },
+    {
+      name: 'a definition_remembered missing origin',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'definition_remembered',
+        term: 'alive',
+        meaning: 'm',
+      },
+    },
+    {
+      name: 'a definition_remembered whose origin is not an object',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'definition_remembered',
+        term: 'alive',
+        meaning: 'm',
+        origin: 'a2',
+      },
+    },
+    {
+      name: 'a definition_remembered whose origin misses agentId',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'definition_remembered',
+        term: 'alive',
+        meaning: 'm',
+        origin: { questionId: 'q1', seq: 21 },
+      },
+    },
+    {
+      name: 'a definition_remembered whose origin misses seq',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'definition_remembered',
+        term: 'alive',
+        meaning: 'm',
+        origin: { agentId: 'a2', questionId: 'q1' },
+      },
+    },
+    {
+      name: 'a definition_remembered whose origin gameId is not a number',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'definition_remembered',
+        term: 'alive',
+        meaning: 'm',
+        origin: { gameId: '1', agentId: 'a2', questionId: 'q1', seq: 21 },
+      },
+    },
+    {
+      name: 'a definition_remembered whose origin seq is non-finite',
+      input: {
+        seq: 1,
+        timestamp: 2,
+        type: 'definition_remembered',
+        term: 'alive',
+        meaning: 'm',
+        origin: { agentId: 'a2', questionId: 'q1', seq: Number.NaN },
+      },
+    },
   ];
 
   it.each(malformed)('rejects $name as null', ({ input }) => {
@@ -335,6 +437,27 @@ describe('decodeEvent', () => {
     // The field is absent, not present-and-undefined — the pre-clarification shape is byte-identical.
     expect(decoded).not.toBeNull();
     expect(decoded && 'governing' in decoded).toBe(false);
+  });
+
+  it('decodes a recalled definition whose origin OMITS gameId (not yet stamped)', () => {
+    const decoded = decodeEvent(
+      JSON.parse(
+        '{"seq":1,"timestamp":2,"type":"definition_remembered","term":"alive","meaning":"m","origin":{"agentId":"a2","questionId":"q1","seq":21}}',
+      ),
+    );
+    // gameId absent, not present-and-undefined — mirrors the backend omitting it for a None origin.
+    expect(decoded).toEqual({
+      seq: 1,
+      timestamp: 2,
+      type: 'definition_remembered',
+      term: term('alive'),
+      meaning: 'm',
+      origin: {
+        agentId: agentId('a2'),
+        questionId: questionId('q1'),
+        seq: 21,
+      },
+    });
   });
 
   it('accepts an empty governing array (a vacuously valid clarified answer)', () => {

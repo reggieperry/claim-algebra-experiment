@@ -160,11 +160,13 @@ function histoTone(event: ReasoningEvent): string {
       return 'answer';
     case 'gate_abstain':
       return 'missing';
-    // The clarification pair is question-lifecycle control flow — same band as the question events.
+    // The clarification pair and a recalled definition are vocabulary/question-lifecycle control
+    // flow — same band as the question events, belief-inert.
     case 'question_proposed':
     case 'question_asked':
     case 'clarification_requested':
     case 'definition_given':
+    case 'definition_remembered':
       return 'question';
   }
 }

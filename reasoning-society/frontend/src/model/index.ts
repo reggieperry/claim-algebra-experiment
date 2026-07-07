@@ -3,7 +3,12 @@
 export type { AgentId, CandidateId, QuestionId, Term } from './ids';
 export { agentId, candidateId, questionId, term } from './ids';
 
-export type { Answer, EventType, ReasoningEvent } from './event';
+export type {
+  Answer,
+  DefinitionOrigin,
+  EventType,
+  ReasoningEvent,
+} from './event';
 export { ANSWERS } from './event';
 
 export type { DefinitionClaim } from './definition';

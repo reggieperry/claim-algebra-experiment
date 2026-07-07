@@ -21,6 +21,7 @@ import io.circe.{Decoder, DecodingFailure, Encoder, Json}
   *   question_asked          {seq, timestamp, type:"question_asked",    agentId, questionId,  content}
   *   clarification_requested {seq, timestamp, type:"clarification_requested", questionId, term}
   *   definition_given        {seq, timestamp, type:"definition_given",  agentId, questionId, term, meaning}
+  *   definition_remembered   {seq, timestamp, type:"definition_remembered", term, meaning, origin}
   *   answer_given            {seq, timestamp, type:"answer_given",      questionId, answer, governing?}
   *   gate_abstain            {seq, timestamp, type:"gate_abstain",      reason}
   *   gate_sign               {seq, timestamp, type:"gate_sign",         candidateId}
@@ -30,8 +31,11 @@ import io.circe.{Decoder, DecodingFailure, Encoder, Json}
   * oracle token `yes` / `no` / `unknown` (the TS `Answer` set). `governing` is an ARRAY of term
   * strings, OMITTED when empty (a non-clarified answer keeps the pre-clarification `answer_given`
   * shape byte-identical). `clarification_requested` carries NO `agentId` (the human's move);
-  * `definition_given` does (the asking agent). Hand-written (no derivation) so the field names and
-  * order are pinned by the golden tests rather than inferred from the case-class shape.
+  * `definition_given` does (the asking agent). `definition_remembered` carries NO top-level
+  * `agentId` (its author spoke in a prior game); instead `origin` is a nested object `{gameId?,
+  * agentId, questionId, seq}` — the provenance of the meaning, with `gameId` OMITTED when it is not
+  * yet stamped (`None`). Hand-written (no derivation) so the field names and order are pinned by
+  * the golden tests rather than inferred from the case-class shape.
   */
 object Wire:
 
@@ -125,6 +129,15 @@ object Wire:
         "term" -> term.value.asJson,
         "meaning" -> meaning.asJson
       )
+    case Event.DefinitionRemembered(seq, timestamp, term, meaning, origin) =>
+      Json.obj(
+        "seq" -> seq.asJson,
+        "timestamp" -> timestamp.asJson,
+        "type" -> "definition_remembered".asJson,
+        "term" -> term.value.asJson,
+        "meaning" -> meaning.asJson,
+        "origin" -> originJson(origin)
+      )
     case Event.AnswerGiven(seq, timestamp, question, answer, governing) =>
       // `governing` is OMITTED when empty, so a non-clarified answer's wire shape is byte-identical
       // to the pre-clarification contract (additive, backward-compatible).
@@ -154,6 +167,23 @@ object Wire:
         "candidateId" -> candidate.value.asJson
       )
   }
+
+  /** The nested `origin` object on a `definition_remembered` frame — the provenance of a recalled
+    * meaning. `gameId` is OMITTED when the provenance is not yet stamped (`None`, the current
+    * not-yet-persisted game); when present it leads, then `agentId`, `questionId`, `seq`. Fields in
+    * this fixed order so the golden test pins the shape the slice-3 decoder matches.
+    */
+  private def originJson(origin: DefinitionProvenance): Json =
+    val stamped =
+      List(
+        "agentId" -> origin.agent.value.asJson,
+        "questionId" -> origin.questionId.value.asJson,
+        "seq" -> origin.seq.asJson
+      )
+    val fields = origin.gameId match
+      case Some(g) => ("gameId" -> g.value.asJson) :: stamped
+      case None => stamped
+    Json.obj(fields*)
 
   /** Encode one event to its wire JSON. */
   def encode(event: Event): Json = event.asJson

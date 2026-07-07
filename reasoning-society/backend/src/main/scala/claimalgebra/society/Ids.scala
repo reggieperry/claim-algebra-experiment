@@ -93,3 +93,25 @@ object Term:
   */
 enum OracleAnswer:
   case Yes, No, Unknown
+
+/** The session-scoped game counter — which game of a session a persisted definition was first
+  * established in (two-tier-reset-design §Types). Belief-inert: it tags a [[DefinitionProvenance]]
+  * for the audit surface (the "recalled from game N" badge), never a hypothesis. Opaque over an
+  * `Int`; a monotone counter has NO illegal state — every generation is `first` then repeated
+  * `next` — so it takes NO validating constructor (scala-types: a type with no illegal state needs
+  * none). The first game of a session is [[first]]; each New Game is `.next` of the last.
+  */
+opaque type GameId = Int
+
+object GameId:
+  /** The first game of a session. */
+  val first: GameId = 1
+
+  extension (g: GameId)
+    /** The next game — a New Game bumps the counter. Monotone, so no wrap-guard is needed at the
+      * session scale.
+      */
+    def next: GameId = g + 1
+
+    /** The underlying counter, for the wire and for display. */
+    def value: Int = g
