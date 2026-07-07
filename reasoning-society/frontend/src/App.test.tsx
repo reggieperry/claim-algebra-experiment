@@ -12,6 +12,10 @@ function oracle(): HTMLElement {
   return screen.getByRole('region', { name: /oracle/i });
 }
 
+function belief(): HTMLElement {
+  return screen.getByRole('region', { name: /belief state/i });
+}
+
 describe('App', () => {
   it('renders the Reasoning Society heading and an empty opening board', () => {
     render(<App />);
@@ -73,5 +77,55 @@ describe('App', () => {
       { timeout: 3_000 },
     );
     expect(screen.getByRole('button', { name: /pause/i })).toBeInTheDocument();
+  });
+
+  // Advance the playhead to a frame with a live field (dog + cat resolved, eagle + wolf struck).
+  async function stepTo(user: ReturnType<typeof userEvent.setup>, n: number) {
+    for (let i = 0; i < n; i += 1) {
+      await user.click(screen.getByRole('button', { name: /next/i }));
+    }
+  }
+
+  it('scopes the view when an agent is selected — a filter, never a re-fold', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await stepTo(user, 18);
+
+    // Before selection: the full belief field is on the board ("It's a dog." also appears in the
+    // event log, so scope the query to the belief region).
+    expect(within(belief()).getByText("It's a dog.")).toBeInTheDocument();
+    expect(screen.getByText(/2 live hypotheses/i)).toBeInTheDocument();
+
+    // Select the Skeptic (who backed cat/eagle, not dog).
+    await user.click(screen.getByRole('button', { name: /^skeptic/i }));
+    expect(screen.getByText(/scoped to:\s*skeptic/i)).toBeInTheDocument();
+
+    // The load-bearing safety rule: the belief fold ran over the FULL log, so the candidate the
+    // Skeptic never touched is still on the board (dimmed, not deleted) and the cardinality is
+    // unchanged. Muting an agent changes display, never the computed beliefs.
+    expect(within(belief()).getByText("It's a dog.")).toBeInTheDocument();
+    expect(screen.getByText(/2 live hypotheses/i)).toBeInTheDocument();
+
+    // Dims the other agents in the navigator.
+    expect(screen.getByRole('button', { name: /^cartographer/i })).toHaveClass(
+      'is-dimmed',
+    );
+  });
+
+  it('keeps the agent selection across a scrub and clears it on Escape', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await stepTo(user, 18);
+
+    await user.click(screen.getByRole('button', { name: /^skeptic/i }));
+    expect(screen.getByText(/scoped to:\s*skeptic/i)).toBeInTheDocument();
+
+    // Selection survives scrubbing (WHO ⊥ WHEN).
+    await user.click(screen.getByRole('button', { name: /prev/i }));
+    expect(screen.getByText(/scoped to:\s*skeptic/i)).toBeInTheDocument();
+
+    // Esc clears the filter.
+    await user.keyboard('{Escape}');
+    expect(screen.queryByText(/scoped to:/i)).not.toBeInTheDocument();
   });
 });

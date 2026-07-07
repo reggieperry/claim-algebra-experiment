@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import type { ReasoningEvent } from '../model';
+import { agentId, candidateId } from '../model';
 import { TransportPanel } from './TransportPanel';
 
 function handlers() {
@@ -122,5 +124,42 @@ describe('TransportPanel', () => {
     const slider = screen.getByRole('slider', { name: /timeline/i });
     expect(slider).toHaveValue('5');
     expect(slider).toHaveAttribute('max', '33');
+  });
+
+  it('seeks when a corner-coloured histogram tick is clicked', async () => {
+    const user = userEvent.setup();
+    const h = handlers();
+    const events: readonly ReasoningEvent[] = [
+      {
+        type: 'assert',
+        agentId: agentId('a1'),
+        candidateId: candidateId('c1'),
+        content: 'dog',
+        seq: 1,
+        timestamp: 1_000,
+      },
+      {
+        type: 'refute',
+        agentId: agentId('a2'),
+        candidateId: candidateId('c1'),
+        note: 'no',
+        seq: 2,
+        timestamp: 2_000,
+      },
+    ];
+    render(
+      <TransportPanel
+        playhead={0}
+        total={2}
+        playing={false}
+        speed={1}
+        atHead={false}
+        events={events}
+        {...h}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /seek to event 2/i }));
+    expect(h.onSeek).toHaveBeenCalledWith(2);
   });
 });

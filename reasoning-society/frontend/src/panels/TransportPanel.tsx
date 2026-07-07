@@ -1,5 +1,7 @@
 import type { ChangeEvent, ReactElement } from 'react';
 
+import type { ReasoningEvent } from '../model';
+
 // The speed multipliers the transport offers. Derived-from-`as const` so the option list and the
 // values never drift (ts-types).
 const SPEEDS = [0.5, 1, 2, 4] as const;
@@ -15,6 +17,9 @@ interface TransportPanelProps {
   readonly onStep: () => void;
   readonly onStepBack: () => void;
   readonly onSpeed: (speed: number) => void;
+  // The timeline histogram, stacked by epistemic corner (build2-ui-design §4): one tick per event,
+  // coloured by the corner it moves, click to seek. Omitted = no histogram (the control still works).
+  readonly events?: readonly ReasoningEvent[];
 }
 
 // The DVR (brief §4): scrub, play/pause, step one event, speed, playhead readout. It holds NO belief
@@ -31,6 +36,7 @@ export function TransportPanel({
   onStep,
   onStepBack,
   onSpeed,
+  events,
 }: TransportPanelProps): ReactElement {
   const onScrub = (event: ChangeEvent<HTMLInputElement>): void => {
     onSeek(Number(event.currentTarget.value));
@@ -93,6 +99,34 @@ export function TransportPanel({
         </span>
       </div>
 
+      {events !== undefined ? (
+        <div className="histo" aria-label="Event timeline by corner">
+          {events.map((event) => {
+            const future = event.seq > playhead;
+            const here = event.seq === playhead;
+            const barClass = [
+              'histo__bar',
+              `histo__bar--${histoTone(event)}`,
+              future ? 'histo__bar--future' : '',
+              here ? 'histo__bar--here' : '',
+            ]
+              .filter((part) => part.length > 0)
+              .join(' ');
+            return (
+              <button
+                key={event.seq}
+                type="button"
+                className={barClass}
+                aria-label={`Seek to event ${event.seq.toString()}`}
+                onClick={() => {
+                  onSeek(event.seq);
+                }}
+              />
+            );
+          })}
+        </div>
+      ) : null}
+
       <label className="transport__scrub-label" htmlFor="transport-scrub">
         Timeline
       </label>
@@ -108,4 +142,26 @@ export function TransportPanel({
       />
     </section>
   );
+}
+
+// The epistemic corner an event moves, mapped to the histogram's colour band — Conflict bursts and
+// gate-abstains become coloured spikes (build2-ui-design §4). Exhaustive over the event union.
+function histoTone(event: ReasoningEvent): string {
+  switch (event.type) {
+    case 'assert':
+    case 'corroborate':
+    case 'gate_sign':
+      return 'resolved';
+    case 'refute':
+      return 'conflict';
+    case 'strike':
+      return 'superseded';
+    case 'answer_given':
+      return 'answer';
+    case 'gate_abstain':
+      return 'missing';
+    case 'question_proposed':
+    case 'question_asked':
+      return 'question';
+  }
 }

@@ -25,6 +25,26 @@ export function toneOf(candidate: Candidate, cardinality: number): Tone {
   }
 }
 
+// The tone as a pre-attentive glyph — the redundant, colourblind-safe encoding beside the hue
+// (build2-ui-design §5 DO). A rivalled resolved candidate gets its own mark, distinct from the lone
+// leader, so the narrowing-vs-glut distinction survives without colour.
+export function toneGlyph(tone: Tone): string {
+  switch (tone) {
+    case 'resolved':
+      return '⊞';
+    case 'rival':
+      return '⊡';
+    case 'conflict':
+      return '⊟';
+    case 'superseded':
+      return '⊘';
+    case 'missing':
+      return '▫';
+    default:
+      return assertNever(tone);
+  }
+}
+
 // A short, screen-reader-friendly label for a tone.
 export function toneLabel(tone: Tone): string {
   switch (tone) {

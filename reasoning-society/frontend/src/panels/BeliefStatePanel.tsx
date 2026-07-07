@@ -1,10 +1,26 @@
 import type { ReactElement } from 'react';
 
-import type { BeliefState, Candidate, GateDecision } from '../model';
-import { formatPercent, toneLabel, toneOf, type Tone } from '../view/tone';
+import type {
+  BeliefState,
+  Candidate,
+  CandidateId,
+  GateDecision,
+} from '../model';
+import {
+  formatPercent,
+  toneGlyph,
+  toneLabel,
+  toneOf,
+  type Tone,
+} from '../view/tone';
 
 interface BeliefStatePanelProps {
   readonly state: BeliefState;
+  // The agent filter, applied as a VIEW only (build2-ui-design §4): when an agent is selected, the
+  // candidates it did not touch dim (highlight-over-hide) — but every candidate is still rendered, and
+  // `state` is the full unfiltered fold. `null`/omitted = nothing scoped. The belief fold NEVER sees
+  // this; muting an agent changes display, never the computed beliefs (the load-bearing safety rule).
+  readonly scopedCandidates?: ReadonlySet<CandidateId> | null;
 }
 
 // The centerpiece (brief §4): the live candidate hypotheses, each a row with an SVG grade bar and a
@@ -13,9 +29,11 @@ interface BeliefStatePanelProps {
 // re-fold at a new playhead animates the change.
 export function BeliefStatePanel({
   state,
+  scopedCandidates,
 }: BeliefStatePanelProps): ReactElement {
   const signedId =
     state.gate.kind === 'signed' ? state.gate.candidateId : undefined;
+  const scope = scopedCandidates ?? null;
 
   return (
     <section className="panel panel--belief" aria-label="Belief state">
@@ -41,6 +59,7 @@ export function BeliefStatePanel({
               candidate={candidate}
               cardinality={state.cardinality}
               signed={candidate.id === signedId}
+              dimmed={scope !== null && !scope.has(candidate.id)}
             />
           ))}
         </ul>
@@ -53,20 +72,30 @@ interface CandidateRowProps {
   readonly candidate: Candidate;
   readonly cardinality: number;
   readonly signed: boolean;
+  readonly dimmed: boolean;
 }
 
 function CandidateRow({
   candidate,
   cardinality,
   signed,
+  dimmed,
 }: CandidateRowProps): ReactElement {
   const tone = toneOf(candidate, cardinality);
   const percent = formatPercent(candidate.grade);
+  const rowClass = [
+    `belief-row belief-row--${tone}`,
+    signed ? 'belief-row--signed' : '',
+    dimmed ? 'is-dimmed' : '',
+  ]
+    .filter((part) => part.length > 0)
+    .join(' ');
   return (
-    <li
-      className={`belief-row belief-row--${tone}${signed ? ' belief-row--signed' : ''}`}
-    >
+    <li className={rowClass}>
       <div className="belief-row__head">
+        <span className="belief-row__glyph" aria-hidden="true">
+          {toneGlyph(tone)}
+        </span>
         <span className="belief-row__name">{candidate.content}</span>
         <span className="belief-row__badge">{toneLabel(tone)}</span>
       </div>

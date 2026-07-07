@@ -6,6 +6,12 @@ interface EventStreamPanelProps {
   readonly events: readonly ReasoningEvent[];
   readonly playhead: number;
   readonly resolveAgent: (id: AgentId) => string;
+  // The agent filter (build2-ui-design §4): when an agent is selected, rows not attributed to it dim
+  // (highlight-over-hide) — no row is removed, and this scopes DISPLAY only, never the fold.
+  readonly selectedAgent?: AgentId | null;
+  // Binds an agent's scattered utterances by a SECONDARY channel — a left-gutter texture, not hue
+  // (hue is reserved for the corner, §2). Omitted = no gutter.
+  readonly gutterOf?: (id: AgentId) => number;
 }
 
 // The play-by-play (brief §4): the claims as posted, colour-coded by type, newest first. A pure view
@@ -15,14 +21,17 @@ export function EventStreamPanel({
   events,
   playhead,
   resolveAgent,
+  selectedAgent,
+  gutterOf,
 }: EventStreamPanelProps): ReactElement {
   const visible = events.filter((event) => event.seq <= playhead);
   const ordered = [...visible].reverse();
+  const selected = selectedAgent ?? null;
 
   return (
     <section className="panel panel--stream" aria-label="Event stream">
       <header className="panel__head">
-        <h2 className="panel__title">Event stream</h2>
+        <h2 className="panel__title">Event log</h2>
         <p className="panel__sub">
           {visible.length} / {events.length}
         </p>
@@ -34,8 +43,15 @@ export function EventStreamPanel({
         <ol className="event-list" aria-label="Posted events, newest first">
           {ordered.map((event) => {
             const line = describe(event, resolveAgent);
+            const agent = agentOf(event);
+            const dimmed = selected !== null && agent !== selected;
+            const gutter =
+              agent !== undefined && gutterOf !== undefined
+                ? gutterOf(agent)
+                : undefined;
+            const rowClass = `event event--${event.type}${dimmed ? ' is-dimmed' : ''}`;
             return (
-              <li key={event.seq} className={`event event--${event.type}`}>
+              <li key={event.seq} className={rowClass} data-gutter={gutter}>
                 <span className="event__seq">{event.seq}</span>
                 <span className="event__actor">{line.actor}</span>
                 <span className="event__verb">{line.verb}</span>
@@ -47,6 +63,24 @@ export function EventStreamPanel({
       )}
     </section>
   );
+}
+
+// The agent an event is attributed to, or `undefined` for the oracle's answer and the gate's
+// decisions. Exhaustive over the event union.
+function agentOf(event: ReasoningEvent): AgentId | undefined {
+  switch (event.type) {
+    case 'assert':
+    case 'corroborate':
+    case 'refute':
+    case 'strike':
+    case 'question_proposed':
+    case 'question_asked':
+      return event.agentId;
+    case 'answer_given':
+    case 'gate_abstain':
+    case 'gate_sign':
+      return undefined;
+  }
 }
 
 interface EventLine {
