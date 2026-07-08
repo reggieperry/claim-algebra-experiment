@@ -44,6 +44,8 @@ The toy has **no** batch runner today — only `RunServer` (SSE) and `RunSociety
 
 ### Slice 4 — redundancy / correlation study — ⚠️ THE ONE CORE-TOUCHING SLICE
 
+**BUILT + adversarially-verified MERGE_SAFE (2026-07-08, commit `8d40993`, 231 tests).** Byte-identical at k=1; k>1 reaches nothing shipped. The one-line summary: `decide`'s floor disjunct became `oracleConfirmations >= k`, the LogActor pose guard became a per-candidate budget (re-pose via the existing give-up ladder), `CorrelatedConfirmations` realizes ρ, guess-truth is structural, and `SweepCell(k,ρ)`/`GameRecord.signPath` carry the study. The full billed sweep is a separate trigger-gated run.
+
 The only part that modifies the fail-closed sign path. **Committee-reviewed 2026-07-08 → PROCEED WITH CHANGES; the three load-bearing code-facts were then verified directly against source.** Design of record (revised from the seam-map sketch, which was wrong on two points):
 
 - **(A) GameCore — pure, one line + a fold.** Add `oracleConfirmations(log, c): Int` (count of `GuessAnswered(c, Yes)`); thread `k: Int` **from `SocietyConfig`, DEFAULT 1** (a global `K=2` constant would break `GuessGateSuite`/`SocietyGameSuite` *and* silently change the shipped live game — at k=2 the once-per-candidate live guess would never sign a lone candidate). Change the disjunct at `GameCore.scala:184` to `backers >= MinCorroboration || oracleConfirmations(prefix, winner) >= k`. **k gates ONLY the oracle-confirmed disjunct** (Q4); the 2-distinct-backer path is untouched. Recomputed-on-read (no stored counter → B2-rewind-safe: a resumed prefix has `oracleConfirmations = 0`).
