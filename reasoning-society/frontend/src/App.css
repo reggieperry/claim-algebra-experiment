@@ -107,6 +107,13 @@
 .observatory__human {
   flex: 0 0 auto;
 }
+/* The rewind panel gets its OWN slot between the oracle and the belief state — a call-to-action that
+   appears only when the search is flagged as stuck (B2). Natural height, capped by .rewind__list's
+   internal scroll, so it never balloons the column or pushes itself below the fold. Empty (0 height)
+   when the RewindPanel renders null (not flagged). */
+.observatory__rewind {
+  flex: 0 0 auto;
+}
 .observatory__belief {
   flex: 1 1 58%;
   min-height: 0;
@@ -687,6 +694,11 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  /* Cap the height so a long answer history stays a compact, scrollable block rather than an
+     unbounded tower that overflows the center column and pushes the panel below the fold (B2). */
+  max-height: 184px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 .rewind__item {
   display: flex;

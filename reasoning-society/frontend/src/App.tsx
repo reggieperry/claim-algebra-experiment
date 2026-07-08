@@ -339,6 +339,9 @@ export function App(): ReactElement {
             error={answerError}
             challengeError={challengeError}
           />
+        </div>
+
+        <div className="observatory__rewind">
           <RewindPanel
             answers={answered}
             flagged={belief.convergence !== undefined}
