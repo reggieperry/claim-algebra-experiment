@@ -178,7 +178,9 @@ describe('EventStreamPanel convergence flag', () => {
     expect(screen.getByText('flags')).toBeInTheDocument();
     // The detail is the two structural counts — and never a candidate name.
     const detail = screen.getByText(/search not converging/i);
-    expect(detail).toHaveTextContent(/5 rounds, glut persisting 4/i);
+    expect(detail).toHaveTextContent(
+      /5 rounds without a consolidating candidate, one contested candidate held for 4 rounds/i,
+    );
     expect(detail).not.toHaveTextContent(/dog/i);
   });
 });

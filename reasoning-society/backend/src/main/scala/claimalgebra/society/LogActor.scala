@@ -386,9 +386,7 @@ final class LogActor(
     }
 
   private def endInconclusive(s: LogState): IO[LogState] =
-    appendEmit(s.log)((seq, ts) =>
-      Event.GateAbstain(seq, ts, "inconclusive — no signature within the round budget")
-    )
+    appendEmit(s.log)((seq, ts) => Event.GateAbstain(seq, ts, LogActor.inconclusiveReason(s.log)))
       .flatMap { case (log2, _) =>
         deps.onDone(Outcome.Inconclusive).as(s.copy(log = log2, phase = Phase.Ended))
       }
@@ -502,3 +500,17 @@ object LogActor:
   /** A proposed-but-unasked question and who proposed it (the asker on the `QuestionAsked` event).
     */
   final private case class Pending(asker: AgentId, id: QuestionId, text: String)
+
+  /** The abstain reason at budget exhaustion (A2, recovery-and-endgame). When a leading live
+    * candidate exists it is appended as a clearly-labelled TENTATIVE read — display only, never a
+    * signature: the game still ends `Outcome.Inconclusive` and the event stays a `GateAbstain`, so
+    * no value is signed; the candidate is one an agent asserted (read from `GameView.hypotheses`,
+    * which is retirement-filtered), so non-fabrication holds. A game with no live hypothesis
+    * abstains plainly, exactly as before.
+    */
+  private[society] def inconclusiveReason(log: Vector[Event]): String =
+    val base = "inconclusive — no signature within the round budget"
+    GameView.from(log).hypotheses.headOption match
+      case Some((candidate, backers)) =>
+        s"""$base; leading guess: "${candidate.value}" (backed by $backers) — unconfirmed, not signed"""
+      case None => base

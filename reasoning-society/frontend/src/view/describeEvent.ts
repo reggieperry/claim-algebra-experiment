@@ -124,15 +124,20 @@ export function describeEvent(
     case 'resurrected':
       // The librarian restores a hypothesis that regained live support (§B, recovery).
       return { actor: 'Memory', verb: 'restores', detail: event.candidateId };
-    case 'convergence_warning':
+    case 'convergence_warning': {
       // The librarian's non-convergence flag (librarian-convergence-monitor) — rendered STRUCTURALLY
       // from the two counts, NEVER a candidate name or a diagnosis of which answer is wrong. Attributed
       // to the Librarian, which DETECTS that the search is stuck without judging WHY (the human does).
-      return {
-        actor: 'Librarian',
-        verb: 'flags',
-        detail: `search not converging — ${event.roundsWithoutConsolidation.toString()} rounds, glut persisting ${event.glutPersistence.toString()}`,
-      };
+      // A1 (recovery-and-endgame): plain structural prose, and the glut clause appears ONLY when the
+      // count is positive — the churn/budget signals fire with glutPersistence = 0, so "glut persisting
+      // 0" was a meaningless raw-counter leak. Mirrors the header hand-off's "no candidate consolidating".
+      const base = `search not converging — ${event.roundsWithoutConsolidation.toString()} rounds without a consolidating candidate`;
+      const detail =
+        event.glutPersistence > 0
+          ? `${base}, one contested candidate held for ${event.glutPersistence.toString()} rounds`
+          : base;
+      return { actor: 'Librarian', verb: 'flags', detail };
+    }
     default:
       return assertNever(event);
   }
