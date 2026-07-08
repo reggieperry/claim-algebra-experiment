@@ -4,6 +4,7 @@ package experiment
 import cats.effect.{IO, IOApp}
 import cats.syntax.all.*
 import claimalgebra.extract.{AnthropicLlmCall, CallError, LlmCall}
+import com.anthropic.models.messages.Model
 
 import scala.concurrent.duration.*
 
@@ -18,7 +19,57 @@ import scala.concurrent.duration.*
 object RunOracleSweep extends IOApp.Simple:
 
   def run: IO[Unit] =
-    if sys.env.contains("RUN_LIVE_ORACLE_SWEEP") then live else correlationSweep
+    if sys.env.contains("RUN_PRIMARY_SWEEP") then primarySweep
+    else if sys.env.contains("RUN_LIVE_ORACLE_SWEEP") then live
+    else correlationSweep
+
+  // The primary arm runs LIVE (the search degradation as the checker fails is the whole point, and it
+  // cannot be faithfully scripted), with the bigger budget the diagnostic found necessary to reach a
+  // guess at all.
+  private val primaryConfig =
+    SocietyConfig(maxRounds = 12, roundTimeout = 30.seconds, hardDeadline = 4.minutes)
+
+  /** Arm 1, the primary curves (fallible-oracle-experiment-design §Analysis: the three-rate curves
+    * against reliability + the operating envelope). Sweeps oracle reliability `p` under the
+    * SYSTEMATIC error model (the honest adversary — wrong in the same places every time), over a
+    * difficulty-mixed target set, at k=1. The society runs live on Haiku (the agent under test);
+    * the experimenter's ground truth is a held-fixed Sonnet call so the p=1.0 baseline is clean.
+    * This is a BOUNDED run — small N, honestly wide intervals — enough to place the architecture on
+    * the H_graceful ↔ H_catastrophic axis (does falling reliability go to abstention or to
+    * fail-open), not to draw tight curves.
+    */
+  private def primarySweep: IO[Unit] =
+    AnthropicLlmCall.clientResource.use { client =>
+      val societyLlm: AgentId => LlmCall[AgentMoveDto] =
+        _ => AnthropicLlmCall(client, classOf[AgentMoveDto])
+      val definer = AnthropicLlmCall(client, classOf[DefinitionDto])
+      val truth =
+        ModelTruthOracle(AnthropicLlmCall(client, classOf[TruthDto], model = Model.CLAUDE_SONNET_5))
+      val n = 6
+      val cells = List(1.0, 0.7, 0.5).map(p => SweepCell(p, "systematic", "mixed", k = 1))
+      for
+        targets <- List("apple", "dog").traverse(answer)
+        pairs = targets.map(t => (t, truth))
+        _ <- IO.println(
+          "=== fallible-oracle PRIMARY p-sweep — LIVE (Haiku society, Sonnet truth) — systematic," +
+            s" targets={apple,dog}, N=$n/target/cell, maxRounds=12 ==="
+        )
+        _ <- IO.println(
+          "H_graceful: fail-open stays ~0, abstention absorbs the loss." +
+            " H_catastrophic: fail-open tracks 1-p. (fail-open split by sign path.)\n"
+        )
+        records <- OracleSweep.sweep(
+          IO.pure(societyLlm),
+          primaryConfig,
+          cells,
+          pairs,
+          gamesPerCell = n,
+          concurrency = 5,
+          definerFor = _ => definer
+        )
+        _ <- IO.println(OracleSweep.renderPrimary(records))
+      yield ()
+    }
 
   // A tight budget: the lone cohort asserts once then passes, so a game reaches the give-up GUESS in
   // a few rounds. Rounds close on full-cohort report (every agent posts each round), so the timers

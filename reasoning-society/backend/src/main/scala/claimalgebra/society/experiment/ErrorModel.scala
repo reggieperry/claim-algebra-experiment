@@ -90,6 +90,21 @@ object ErrorModel:
         scala.util.hashing.MurmurHash3.stringHash(s"$seed:common:${question.text}") & 0x7fffffff
       h.toDouble / Int.MaxValue.toDouble
 
+  /** A GAP injector (fallible-oracle Arm 2 — the Theorem 6.7 partial-oracle arm). Instead of
+    * flipping an answer, the oracle returns a genuine `Unknown` (Belnap's gap, the N corner) on a
+    * chosen class of question: guess-confirmations (`gapGuesses`), property questions
+    * (`gapProperties`), or both. A guess is recognized by its `guess-` qid (minted by
+    * `LogActor.submitGuess`); anything else is a property question. This is the ONLY model that
+    * manufactures a gap, exactly to exercise 6.7's gap-only, path-local fail-closed propagation: an
+    * `Unknown` on the guess (on-path) must force abstention, an `Unknown` on a property answer
+    * (off-path, belief-inert) must not block the sign.
+    */
+  final case class GapAt(gapGuesses: Boolean, gapProperties: Boolean) extends ErrorModel:
+    def corrupt(question: Question, truthful: OracleAnswer, draw: Double): OracleAnswer =
+      val isGuess = question.id.value.startsWith("guess-")
+      if (isGuess && gapGuesses) || (!isGuess && gapProperties) then OracleAnswer.Unknown
+      else truthful
+
   /** Flip yes↔no; a gap stays a gap (a corruption does not manufacture knowledge). */
   def flip(a: OracleAnswer): OracleAnswer = a match
     case OracleAnswer.Yes => OracleAnswer.No

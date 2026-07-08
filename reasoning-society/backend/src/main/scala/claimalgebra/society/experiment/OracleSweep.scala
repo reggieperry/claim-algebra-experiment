@@ -50,6 +50,8 @@ object OracleSweep:
     case "independent-uniform" => ErrorModel.IndependentUniform(cell.reliability)
     case "systematic" => ErrorModel.SystematicPerQuestion(cell.reliability, seed)
     case "correlated" => ErrorModel.CorrelatedConfirmations(cell.reliability, cell.rho, seed)
+    case "gap-guess" => ErrorModel.GapAt(gapGuesses = true, gapProperties = false)
+    case "gap-property" => ErrorModel.GapAt(gapGuesses = false, gapProperties = true)
     case _ => ErrorModel.perfect
 
   private def collectingSink: IO[(EventSink, IO[Vector[Event]])] =
@@ -235,3 +237,32 @@ object OracleSweep:
           s"!! WARNING: $bogus BackerQuorum sign(s) — the cohort is no longer lone; curve polluted"
         )
     (header :: rows ++ note).mkString("\n")
+
+  /** Arm 1's three-rate report, with the fail-open SPLIT BY SIGN PATH (fallible-oracle Arm 1). The
+    * split is the finding: a fail-open via the 2-distinct-backer floor (`BackerQuorum`) is an
+    * AGENT-agreement error the oracle never checks — present even at a perfect oracle — while a
+    * fail-open via the oracle-confirmed path (`OracleConfirmed`) is a corrupted guess-confirmation,
+    * the increment oracle degradation can add. Reporting them apart separates the agent-level
+    * fail-open floor from the oracle-driven part.
+    */
+  def renderPrimary(records: List[GameRecord]): String =
+    def ci(count: Int, n: Int): String =
+      val r = Rate(count, n)
+      val (lo, hi) = r.ci95
+      f"${r.point}%.2f[$lo%.2f-$hi%.2f]"
+    val header =
+      f"${"p"}%5s ${"N"}%4s ${"FAIL-OPEN"}%16s ${"backer"}%7s ${"oracle"}%7s ${"abstain"}%16s ${"correct"}%16s"
+    val rows = records.groupBy(_.cell).toList.sortBy((c, _) => -c.reliability).map { (cell, rs) =>
+      val n = rs.size
+      val fo = rs.count(_.outcome == PrimaryOutcome.SignWrong)
+      val foBacker = rs.count(r =>
+        r.outcome == PrimaryOutcome.SignWrong && r.signPath.contains(SignPath.BackerQuorum)
+      )
+      val foOracle = rs.count(r =>
+        r.outcome == PrimaryOutcome.SignWrong && r.signPath.contains(SignPath.OracleConfirmed)
+      )
+      val ab = rs.count(_.outcome == PrimaryOutcome.Abstain)
+      val cor = rs.count(_.outcome == PrimaryOutcome.SignCorrect)
+      f"${cell.reliability}%5.2f ${n}%4d ${ci(fo, n)}%16s ${foBacker}%7d ${foOracle}%7d ${ci(ab, n)}%16s ${ci(cor, n)}%16s"
+    }
+    (header :: rows).mkString("\n")
