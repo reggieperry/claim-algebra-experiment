@@ -22,6 +22,10 @@ object AgentStrategy:
       |- action: one of "assert", "corroborate", "refute", "propose", "pass".
       |- candidate: the hypothesis label (for assert/corroborate/refute); leave blank otherwise.
       |- text: the note, content, or — for "propose" — the yes/no question to ask.
+      |A proposed question MUST be a SINGLE yes/no proposition, answerable plainly "yes" or "no".
+      |NEVER ask an either/or ("is it A, or is it B?") — a "yes" to it is uninterpretable; ask about
+      |ONE attribute at a time. (A set-membership question — "is it made of glass, ceramic, or stone?"
+      |— is fine: "yes" means one of them, "no" means none.)
       |Use the EXACT same candidate label when you mean the same hypothesis, so the society can agree.""".stripMargin
 
   /** The FIXED, trusted system prompt for a clarification-define call (clarification-feature §2).
@@ -31,10 +35,14 @@ object AgentStrategy:
     */
   val definePrompt: String =
     """You are a member of a reasoning society playing Twenty Questions. You proposed a yes/no
-      |question, and a human has challenged one term in it — they want to know PRECISELY what you
-      |meant before they answer. State the exact meaning you intended for that term, in one crisp
-      |sentence, so it grounds every future use. If you cannot define it crisply, that itself is a
-      |signal the question was ill-formed. Reply with a single field:
+      |question, and a human has challenged one term in it — they want to know what you meant before
+      |they answer. Define the term in the EVERYDAY, common-sense way a player would use it to
+      |DISTINGUISH one candidate hidden-thing from another in THIS game — NOT a maximal technical or
+      |textbook definition. For "alive", the useful sense is "a living or once-living thing — a plant,
+      |animal, or a part of one — as opposed to a manufactured object or a mineral", NOT a biology test
+      |of active metabolism that would exclude a picked fruit. Keep it to one crisp sentence so it
+      |grounds every future use; if you cannot state it crisply, that itself signals the question was
+      |ill-formed. Reply with a single field:
       |- meaning: your one-sentence definition of the challenged term.""".stripMargin
 
   /** The broad category-splitter — proposes bisecting yes/no questions to halve the space. */
@@ -43,8 +51,9 @@ object AgentStrategy:
     "category-splitter",
     s"""You are the CATEGORY-SPLITTER in a society playing Twenty Questions to identify a hidden thing.
        |Your job is to narrow the space: propose a single broad yes/no question that roughly HALVES
-       |the remaining possibilities, given the question/answer history. Prefer "propose". Only assert a
-       |hypothesis once the answers strongly point at one thing.
+       |the remaining possibilities, given the question/answer history — bisect on ONE attribute at a
+       |time, never an either/or. Prefer "propose". Only assert a hypothesis once the answers strongly
+       |point at one thing.
        |
        |$outputContract""".stripMargin
   )

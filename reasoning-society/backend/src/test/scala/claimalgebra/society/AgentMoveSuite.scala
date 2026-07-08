@@ -61,6 +61,38 @@ class AgentMoveSuite extends munit.FunSuite:
     assertEquals(parsed(move("propose", "", "   ")), None)
   }
 
+  // A3 (recovery-and-endgame): a structural, fail-closed either/or guard. A question that joins a
+  // second interrogative clause with "or" ("… or is it …") is dropped, because a plain "yes" to it is
+  // uninterpretable — the apple-log failure. Dropping is fail-closed (no post, never a wrong sign).
+  test("propose of an EITHER/OR question is dropped → None (the apple-log ambiguity)") {
+    assertEquals(
+      parsed(
+        move("propose", "", "Is it a single piece of food, or is it a mixture of components?")
+      ),
+      None
+    )
+  }
+
+  test("propose of an 'or are they' either/or is dropped → None") {
+    assertEquals(parsed(move("propose", "", "Is it one object, or are they several?")), None)
+  }
+
+  // The guard is deliberately CONSERVATIVE: a SET-MEMBERSHIP question ("… glass, ceramic, or stone?",
+  // where "yes" means one of them) is NOT an either/or and must survive — over-rejecting it would cost
+  // recall on the useful material scan.
+  test("propose of a SET-MEMBERSHIP question survives — 'yes' means one of the set") {
+    assertEquals(
+      parsed(move("propose", "", "Is it made of glass, ceramic, or stone?")).collect {
+        case AgentMove.Propose(q) => q
+      },
+      Some("Is it made of glass, ceramic, or stone?")
+    )
+  }
+
+  test("propose with 'or' before a non-verb (a colour set) survives — not an either/or") {
+    assert(parsed(move("propose", "", "Is it gold or silver-coloured?")).isDefined)
+  }
+
   test("the action is case- and whitespace-tolerant") {
     assertEquals(
       parsed(move("  ASSERT ", "dog", "x")).collect { case AgentMove.Assert(c, _) => c.value },

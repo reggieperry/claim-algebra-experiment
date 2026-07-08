@@ -60,7 +60,27 @@ object AgentMove:
     Option(dto.candidate).flatMap(Answer.from(_).toOption)
 
   private def question(dto: AgentMoveDto): Option[String] =
-    Option(dto.text).map(_.trim).filter(_.nonEmpty)
+    Option(dto.text).map(_.trim).filter(_.nonEmpty).filterNot(isEitherOr)
+
+  /** A structural, fail-closed guard on a proposed question (A3, recovery-and-endgame): drop an
+    * EITHER/OR question — one whose surface form joins a second interrogative clause with "or" ("…
+    * or is it …", "… or are they …") — because a plain "yes" to it is uninterpretable, the
+    * apple-log failure. Dropping is fail-closed: the proposer posts nothing (an abstention, exactly
+    * as a malformed move), never a fabricated or wrong sign. Kept deliberately CONSERVATIVE — it
+    * matches only "or" immediately followed by an interrogative verb, so a SET-MEMBERSHIP question
+    * ("… glass, ceramic, or stone?", where "yes" means one of them) is NOT dropped; over-rejecting
+    * useful questions would cost only recall, but is still avoided. The residue (an either/or with
+    * no repeated verb) is left to the prompt contract — a prompt cannot be proven by the fold, so
+    * best-effort is the honest ceiling under a cheap model. Structural only (surface tokens, no
+    * meaning judged), so it stays out of the librarian and the gate.
+    */
+  private val eitherOr =
+    raw"\bor\s+(is|are|am|does|do|did|was|were|can|could|has|have|will|would|should)\b".r
+
+  private def isEitherOr(question: String): Boolean =
+    // `Locale.ROOT` so the casing is locale-deterministic (determinism-first): a Turkish-locale JVM
+    // otherwise maps I/i differently and could shift which questions match.
+    eitherOr.findFirstIn(question.toLowerCase(java.util.Locale.ROOT)).isDefined
 
   private def text(dto: AgentMoveDto): String =
     Option(dto.text).map(_.trim).getOrElse("")
