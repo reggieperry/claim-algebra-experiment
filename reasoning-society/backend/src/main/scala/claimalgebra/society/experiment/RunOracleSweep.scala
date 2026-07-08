@@ -55,17 +55,26 @@ object RunOracleSweep extends IOApp.Simple:
       _ <- IO.println(OracleSweep.render(OracleSweep.summarize(records)))
     yield ()
 
+  // A bigger budget than the hermetic config: live Haiku needs room to converge on a lone candidate
+  // before B1's guess (the fail-open locus) can fire at all — the 6-round smoke abstained every game.
+  // Still bounded per game by the hard deadline.
+  private val liveConfig =
+    SocietyConfig(maxRounds = 12, roundTimeout = 30.seconds, hardDeadline = 5.minutes)
+
   /** The live Arm-1 path (Slice 3). The society runs on Haiku (the agent under test); the
     * experimenter's ground truth is a held-fixed [[ModelTruthOracle]] — model-backed because the
-    * live game's questions are free text (a table can't match them). This DEFAULT config is a SMALL
-    * SMOKE (2 games) to validate the live path end to end; scale the cells / targets / gamesPerCell
-    * up for the real sweep — a deliberate, billed run behind a cost check. A stronger
-    * truthful-oracle tier (e.g. `Model.CLAUDE_SONNET_5`) is recommended for the real ground truth;
-    * Haiku keeps the smoke cheap.
+    * live game's questions are free text (a table can't match them). This DIAGNOSTIC config runs 2
+    * games with full logs printed ([[OracleSweep.renderLog]]); it VALIDATED a live fail-open — a
+    * p=0.6 systematic game drifted to a wrong "crystal_vase" candidate (organic→NO, materials→YES
+    * corrupted) and the corrupted oracle confirmed the guess → SignWrong, while the p=1.0 game
+    * abstained. Scale cells / targets / N up for the real sweep — a deliberate, billed run behind a
+    * cost check. A stronger truthful-oracle tier (e.g. `Model.CLAUDE_SONNET_5`) is recommended for
+    * the real ground truth.
     */
   private def live: IO[Unit] =
     AnthropicLlmCall.clientResource.use { client =>
-      val societyLlm = AnthropicLlmCall(client, classOf[AgentMoveDto])
+      val societyLlm: AgentId => LlmCall[AgentMoveDto] =
+        _ => AnthropicLlmCall(client, classOf[AgentMoveDto])
       val definer = AnthropicLlmCall(client, classOf[DefinitionDto])
       val truth = ModelTruthOracle(AnthropicLlmCall(client, classOf[TruthDto]))
       val cells = List(
@@ -74,25 +83,27 @@ object RunOracleSweep extends IOApp.Simple:
       )
       for
         apple <- answer("apple")
-        targets = List((apple, truth))
-        _ <- IO.println("=== fallible-oracle sweep — LIVE Haiku (billed) — SMOKE (2 games) ===\n")
-        records <- OracleSweep.sweep(
-          IO.pure((_: AgentId) => societyLlm),
-          config,
-          cells,
-          targets,
-          gamesPerCell = 1,
-          concurrency = 1,
-          definerFor = _ => definer
+        _ <- IO.println(
+          "=== fallible-oracle — LIVE Haiku (billed) — DIAGNOSTIC (2 games, maxRounds=12) ==="
         )
-        _ <- records.traverse_ { r =>
-          IO.println(
-            s"  target=${r.trueTarget.value}  p=${r.cell.reliability} ${r.cell.errorModel}  " +
-              s"-> ${r.outcome}  (signed ${r.signed.map(_.value).getOrElse("nothing")})"
+        results <- cells.traverse { cell =>
+          OracleSweep.runOneGame(
+            societyLlm,
+            liveConfig,
+            cell,
+            apple,
+            truth,
+            seed = cell.reliability.hashCode.toLong,
+            definerFor = _ => definer
           )
         }
-        _ <- IO.println("")
-        _ <- IO.println(OracleSweep.render(OracleSweep.summarize(records)))
+        _ <- results.traverse_ { case (rec, log) =>
+          IO.println(
+            s"\n--- p=${rec.cell.reliability} ${rec.cell.errorModel} · target=${rec.trueTarget.value}" +
+              s" · ${rec.outcome} (signed ${rec.signed.map(_.value).getOrElse("nothing")}) ---"
+          ) *> IO.println(OracleSweep.renderLog(log))
+        }
+        _ <- IO.println("\n" + OracleSweep.render(OracleSweep.summarize(results.map(_._1))))
       yield ()
     }
 

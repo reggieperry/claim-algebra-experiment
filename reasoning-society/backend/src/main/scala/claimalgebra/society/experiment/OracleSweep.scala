@@ -128,6 +128,36 @@ object OracleSweep:
       )
     }
 
+  /** A compact one-line-per-event render of a game log — the discovery-loop tool
+    * (fallible-oracle-experiment-design §Secondary: inspect the fail-open logs) and a diagnostic
+    * for why a game did/didn't reach a signature. Shows the moves that matter (asserts, Q&A, the
+    * guess, the sign); the truth marker is shown as `[truth: …]` (harness-facing only).
+    */
+  def renderLog(log: Vector[Event]): String =
+    log
+      .map { e =>
+        val what = e match
+          case Event.TargetRegistered(_, _, t, _) => s"[truth: ${t.value}]"
+          case Event.Assert(_, _, a, c, _) => s"${a.value} asserts \"${c.value}\""
+          case Event.Corroborate(_, _, a, c, _) => s"${a.value} corroborates \"${c.value}\""
+          case Event.Refute(_, _, a, c, _) => s"${a.value} refutes \"${c.value}\""
+          case Event.Strike(_, _, a, c, _) => s"${a.value} strikes \"${c.value}\""
+          case Event.QuestionProposed(_, _, a, q, t) =>
+            s"${a.value} proposes ${q.value}: ${t.take(52)}"
+          case Event.QuestionAsked(_, _, _, q, t) => s"asks ${q.value}: ${t.take(52)}"
+          case Event.AnswerGiven(_, _, q, ans, _) =>
+            s"oracle ${q.value} = ${ans.toString.toUpperCase}"
+          case Event.GuessAnswered(_, _, c, ans) =>
+            s"GUESS \"${c.value}\" = ${ans.toString.toUpperCase}"
+          case Event.GateSign(_, _, c) => s"*** SIGN \"${c.value}\" ***"
+          case Event.GateAbstain(_, _, r) => s"abstain — ${r.take(48)}"
+          case Event.ConvergenceWarning(_, _, rc, gp) =>
+            s"convergence-warning (rounds=$rc glut=$gp)"
+          case other => other.getClass.getSimpleName
+        f"  ${e.seq}%3d  $what"
+      }
+      .mkString("\n")
+
   /** A plain-text render of the report — fail-open leads (the cardinal metric), each with its CI.
     */
   def render(report: Map[SweepCell, CellReport]): String =
