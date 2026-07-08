@@ -172,6 +172,21 @@ enum Event extends EventMeta:
       glutPersistence: Int
   )
 
+  /** The society POSED A GUESS to the oracle — "is it <candidate>?" — and got `answer` (B1,
+    * recovery-and-endgame). The endgame move: when the search stalls on a lone, unconfirmed
+    * candidate, the society asks the oracle directly rather than dying blank. Belief-inert — it
+    * moves no hypothesis itself ([[GameCore.project]] drops it); the WORK is done by two structural
+    * folds over these events. A `No` UNIONS the candidate into the masking authority
+    * ([[GameCore.maskedCandidates]]), dropping it from the slot, `decide`, and the live board —
+    * never a `Refute`, which would glut the whole slot's channel TOTALS and deadlock all future
+    * signing. A `Yes` relaxes ONLY the no-lone-sign floor inside [[GameCore.decide]], so the
+    * ground-truth confirmation substitutes for the missing second backer while `Gate.accept` still
+    * gates on `corner = True ∧ cardinality = 1` from the LIVE evidence. `Unknown` neither masks nor
+    * confirms. No agent — the oracle is not an agent; the guess is posed by the society from the
+    * gate's own clean winner, never an agent's free text.
+    */
+  case GuessAnswered(seq: Int, timestamp: Long, candidateId: Answer, answer: OracleAnswer)
+
   /** The uniform "who spoke" read — `Some` on the seven agent-bearing variants (including
     * [[DefinitionGiven]], the asking agent's move), `None` on the human's challenge, the recalled
     * definition (its author spoke in a prior game — the origin agent is provenance, not a this-game
@@ -199,3 +214,5 @@ enum Event extends EventMeta:
     // The convergence flag likewise carries no agent — it counts structural evidence over the
     // belief-state history, a fact about the log, not any agent's move.
     case ConvergenceWarning(_, _, _, _) => None
+    // The guess is posed by the society to the oracle, not by an agent — no agent.
+    case GuessAnswered(_, _, _, _) => None

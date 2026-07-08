@@ -204,6 +204,19 @@ const GOLDEN: readonly {
       glutPersistence: 4,
     },
   },
+  {
+    // The society's guess to the oracle (B1) — candidate + reply token. Byte-for-byte the backend
+    // WireSuite golden.
+    name: 'guess_answered',
+    json: '{"seq":31,"timestamp":32,"type":"guess_answered","candidateId":"dog","answer":"no"}',
+    want: {
+      seq: 31,
+      timestamp: 32,
+      type: 'guess_answered',
+      candidateId: candidateId('dog'),
+      answer: 'no',
+    },
+  },
 ];
 
 describe('decodeEvent', () => {

@@ -124,6 +124,11 @@ object GameCore:
       // the flag is a request for help, not a sign. `Convergence.flag` reads this same fold; a
       // ConvergenceWarning contributing evidence would let the monitor move its own input.
       case _: Event.ConvergenceWarning => Nil
+      // B1 (recovery-and-endgame): a guess answer is BELIEF-INERT. The No/Yes do their work through
+      // the two structural folds ([[maskedCandidates]] unions a No-rejected candidate off the fold;
+      // [[oracleConfirmed]] relaxes the decide floor on a Yes) — never by projecting to Evidence. A
+      // con here would glut the slot's channel totals and deadlock signing (the committee's B-1).
+      case _: Event.GuessAnswered => Nil
     }
 
   /** The folded answer-slot at a prefix — the single `Testimony[Answer]` whose candidate values are
@@ -134,7 +139,7 @@ object GameCore:
     */
   def slot(log: Vector[Event], upTo: Int): Testimony[Answer] =
     val prefix = log.take(upTo)
-    Ledger.belief(maskedProject(prefix, retiredCandidates(prefix))).fold(identity, _.operative)
+    Ledger.belief(maskedProject(prefix, maskedCandidates(prefix))).fold(identity, _.operative)
 
   /** The four-state read at a prefix — the `Resolution` the frontend viewer mirrors. `upTo` is a
     * positional prefix count (`log.take`), so a negative or over-large value degrades cleanly to
@@ -142,7 +147,7 @@ object GameCore:
     */
   def belief(log: Vector[Event], upTo: Int): Resolution[Answer] =
     val prefix = log.take(upTo)
-    Ledger.resolve(maskedProject(prefix, retiredCandidates(prefix)))
+    Ledger.resolve(maskedProject(prefix, maskedCandidates(prefix)))
 
   /** The gate decision at a prefix: apply the shipped [[Gate]] (reduced to `corner = True ∧
     * cardinality = 1` on this path, θ/verify wired off), THEN the no-lone-sign floor. A clean,
@@ -155,15 +160,23 @@ object GameCore:
     val prefix = log.take(upTo)
     // Mask the defeated candidates before the gate reads the slot, so a *defeated* hypothesis's
     // jamming con can no longer hold a different well-supported live one hostage (the false-glut
-    // jam the lifecycle fix removes). The winner is never a retired candidate — it was masked out —
-    // so `distinctBackers(prefix, winner)` counts the same backers masked or not.
-    val retired = retiredCandidates(prefix)
-    Ledger.belief(maskedProject(prefix, retired)) match
+    // jam the lifecycle fix removes). `maskedCandidates` unions the lifecycle retirements with the
+    // B1 oracle rejections (a guess the oracle answered `No`), dropped the same way. The winner is
+    // never a masked candidate — it was masked out — so `distinctBackers(prefix, winner)` counts the
+    // same backers masked or not.
+    val masked = maskedCandidates(prefix)
+    Ledger.belief(maskedProject(prefix, masked)) match
       case Left(answerSlot) =>
         Gate.accept(answerSlot, WiredOffTheta, WiredOffNu, trusting[Answer]) match
           case Decision.Accepted(winner) =>
+            // The no-lone-sign floor, RELAXED by a ground-truth Yes (B1): a `GuessAnswered(winner,
+            // Yes)` substitutes for the missing second backer. This sits BEHIND `Gate.accept ==
+            // Accepted(winner)`, so `corner = True ∧ cardinality = 1` must still hold from the live
+            // evidence — a stale `Refute`/rival that gluts the winner returns `Blocked` above and the
+            // relaxation is never reached (the honest "confirmed but contested — held").
             val backers = distinctBackers(prefix, winner)
-            if backers >= MinCorroboration then GateDecision.Sign(winner)
+            if backers >= MinCorroboration || oracleConfirmed(prefix).contains(winner) then
+              GateDecision.Sign(winner)
             else GateDecision.Abstain(AbstainReason.Unconfirmed(backers))
           case Decision.Blocked(reason) =>
             GateDecision.Abstain(AbstainReason.Blocked(reason))
@@ -284,6 +297,31 @@ object GameCore:
     */
   private[society] def retiredCandidates(log: Seq[Event]): Set[Answer] =
     stances(log).collect { case (c, s) if defeated(s) => c }.toSet
+
+  /** The full masking authority (B1): the lifecycle retirements UNIONED with the oracle rejections.
+    * A candidate the ORACLE answered `No` to (a [[Event.GuessAnswered]] with `No`) is dropped from
+    * BOTH channels exactly as a retired candidate is — masking, NOT a `Refute` (a con would glut
+    * the slot's channel totals and deadlock signing). Kept SEPARATE from [[retiredCandidates]]
+    * (which [[reconcileRetirements]] can resurrect) because a ground-truth oracle rejection is
+    * final. `slot` / `belief` / `decide` and `GameView.from` all mask through this.
+    */
+  private[society] def maskedCandidates(log: Seq[Event]): Set[Answer] =
+    retiredCandidates(log) ++ oracleRejected(log)
+
+  /** The candidates the oracle REJECTED via a guess (B1): every [[Event.GuessAnswered]] answered
+    * `No`. Unioned into [[maskedCandidates]]. An `Unknown` is not an elimination, so it does not
+    * mask.
+    */
+  private[society] def oracleRejected(log: Seq[Event]): Set[Answer] =
+    log.collect { case Event.GuessAnswered(_, _, c, OracleAnswer.No) => c }.toSet
+
+  /** The candidates the oracle CONFIRMED via a guess (B1): every [[Event.GuessAnswered]] answered
+    * `Yes`. Relaxes ONLY the no-lone-sign floor for that candidate inside [[decide]] — the
+    * ground-truth Yes substitutes for the missing second backer, while `Gate.accept` still gates on
+    * `corner = True ∧ cardinality = 1` from the live evidence.
+    */
+  private[society] def oracleConfirmed(log: Seq[Event]): Set[Answer] =
+    log.collect { case Event.GuessAnswered(_, _, c, OracleAnswer.Yes) => c }.toSet
 
   /** [[project]] with the retired candidates' pro AND con events dropped first — masking a defeated
     * hypothesis off both channels before the existing projection. Only the per-candidate stance

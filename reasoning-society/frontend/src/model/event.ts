@@ -142,6 +142,18 @@ export type ReasoningEvent =
       // guess. NO `agentId` — the librarian emits it, not an agent (mirrors `Event.ConvergenceWarning`).
       readonly roundsWithoutConsolidation: number;
       readonly glutPersistence: number;
+    })
+  | (EventBase & {
+      readonly type: 'guess_answered';
+      // The society POSED A GUESS to the oracle — "is it <candidateId>?" — and got `answer` (B1,
+      // recovery-and-endgame). The endgame move: when the search stalls on a lone, unconfirmed
+      // candidate, the society asks the oracle directly rather than dying blank. Belief-inert — it
+      // moves no hypothesis itself; the WORK is done by the fold's masking (a `no` drops the
+      // candidate off the board) and the gate's floor relaxation (a `yes` confirms it). NO `agentId`
+      // — the oracle is not an agent; the guess is posed by the society from the gate's own clean
+      // winner (mirrors the Scala `Event.GuessAnswered`).
+      readonly candidateId: CandidateId;
+      readonly answer: Answer;
     });
 
 export type EventType = ReasoningEvent['type'];

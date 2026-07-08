@@ -1,5 +1,5 @@
 import { describeEvent } from './describeEvent';
-import type { ReasoningEvent } from '../model';
+import { candidateId, type ReasoningEvent } from '../model';
 
 // A1 (recovery-and-endgame): the librarian's non-convergence flag renders STRUCTURALLY and must not
 // leak the raw glut counter. The header hand-off already reads "no candidate consolidating"; the
@@ -38,6 +38,36 @@ describe('describeEvent — convergence_warning', () => {
     const line = describeEvent(warning(5, 4), noAgent);
     expect(line.detail).toBe(
       'search not converging — 5 rounds without a consolidating candidate, one contested candidate held for 4 rounds',
+    );
+  });
+});
+
+// B1 (recovery-and-endgame): the society's guess to the oracle renders as the question and the reply,
+// attributed to the Gate (the committing voice) — never to an agent.
+describe('describeEvent — guess_answered', () => {
+  const guess = (answer: 'yes' | 'no' | 'unknown'): ReasoningEvent => ({
+    type: 'guess_answered',
+    candidateId: candidateId('salt'),
+    answer,
+    seq: 1,
+    timestamp: 1,
+  });
+
+  const noAgent = (): string => 'unused';
+
+  it('renders the guess with a CONFIRMED verdict on yes, attributed to the Gate', () => {
+    const line = describeEvent(guess('yes'), noAgent);
+    expect(line.actor).toBe('Gate');
+    expect(line.verb).toBe('guesses');
+    expect(line.detail).toBe('is it "salt"? — CONFIRMED');
+  });
+
+  it('renders a declined verdict on no, and an unknown verdict on unknown', () => {
+    expect(describeEvent(guess('no'), noAgent).detail).toBe(
+      'is it "salt"? — declined',
+    );
+    expect(describeEvent(guess('unknown'), noAgent).detail).toBe(
+      'is it "salt"? — unknown',
     );
   });
 });

@@ -72,10 +72,10 @@ object GameView:
           case _ => acc
       }
 
-    val retired: Set[Answer] = GameCore.retiredCandidates(log)
+    val masked: Set[Answer] = GameCore.maskedCandidates(log)
     val hypotheses: List[(Answer, Int)] =
       backers.toList
-        .filterNot((c, _) => retired.contains(c))
+        .filterNot((c, _) => masked.contains(c))
         .map((c, agents) => c -> agents.size)
         .sortBy((_, n) => -n)
 

@@ -209,6 +209,13 @@ export function fold(
         // by `retiredCandidates` above, NEVER by these markers (which would lag the predicate by a
         // round), so they move no belief beyond the masking already applied.
         break;
+      case 'guess_answered':
+        // Belief-inert in the VIEWER (B1): the guess answer shows in the event stream, but the
+        // candidate-board masking a `no` applies and the floor relaxation a `yes` applies on the
+        // BACKEND are not yet mirrored in this fold — the authoritative gate outcome still arrives as
+        // a `gate_sign` / `gate_abstain` event. (Frontend fold-parity — masking the oracle-rejected
+        // candidate and relaxing the signable floor on an oracle-confirmed one — is a follow-up.)
+        break;
       default:
         assertNever(event);
     }

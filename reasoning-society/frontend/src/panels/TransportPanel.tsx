@@ -156,7 +156,9 @@ function histoTone(event: ReasoningEvent): string {
       return 'conflict';
     case 'strike':
       return 'superseded';
+    // `answer_given` and B1's `guess_answered` are both the oracle replying — the same reply band.
     case 'answer_given':
+    case 'guess_answered':
       return 'answer';
     case 'gate_abstain':
       return 'missing';

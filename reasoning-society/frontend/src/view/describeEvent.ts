@@ -30,9 +30,10 @@ export function agentOf(event: ReasoningEvent): AgentId | undefined {
     case 'retired':
     case 'resurrected':
     case 'convergence_warning':
-      // The oracle's answer, the human's challenge, a recalled definition, the gate's decisions, and
-      // the librarian's lifecycle + non-convergence markers carry no agent — the flag is a structural
-      // fact about the log the librarian detected, not one agent's move.
+    case 'guess_answered':
+      // The oracle's answer, the human's challenge, a recalled definition, the gate's decisions, the
+      // librarian's lifecycle + non-convergence markers, and the society's guess to the oracle carry
+      // no agent — none is one agent's move.
       return undefined;
   }
 }
@@ -137,6 +138,22 @@ export function describeEvent(
           ? `${base}, one contested candidate held for ${event.glutPersistence.toString()} rounds`
           : base;
       return { actor: 'Librarian', verb: 'flags', detail };
+    }
+    case 'guess_answered': {
+      // The society posed a guess to the oracle — "is it <candidate>?" — and got the reply (B1). The
+      // endgame move, attributed to the Gate (the committing voice): a `yes` confirms and signs, a
+      // `no` masks the candidate off the board, an `unknown` neither.
+      const verdict =
+        event.answer === 'yes'
+          ? 'CONFIRMED'
+          : event.answer === 'no'
+            ? 'declined'
+            : 'unknown';
+      return {
+        actor: 'Gate',
+        verb: 'guesses',
+        detail: `is it "${event.candidateId}"? — ${verdict}`,
+      };
     }
     default:
       return assertNever(event);

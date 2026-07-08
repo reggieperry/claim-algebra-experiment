@@ -181,7 +181,9 @@ class SocietyGameSuite extends CatsEffectSuite:
       clue("the two speaking agents are a signable 2-backer field")
     )
     // But the third agent is silent, so the round never completes; the eager timeout closes it with
-    // roundComplete = false → nextMove Abstains. The game never signs.
+    // roundComplete = false → nextMove Abstains — attrition never signs via the internal path. B1's
+    // give-up guess is DECLINED by the oracle (No), so the candidate is masked and the game still ends
+    // Inconclusive: neither the incomplete-round path nor the oracle-guess path drives a signature.
     val scripts = Map(
       "driller" -> List(assertOf("apple")),
       "splitter" -> List(corroborateOf("apple")),
@@ -189,7 +191,7 @@ class SocietyGameSuite extends CatsEffectSuite:
     )
     for
       llmFor <- scriptedLlms(scripts)
-      result <- play(llmFor, Nil, eager, attrition)
+      result <- play(llmFor, List(OracleAnswer.No), eager, attrition)
     yield
       val (outcome, events) = result
       assertEquals(outcome, Outcome.Inconclusive)
@@ -218,6 +220,55 @@ class SocietyGameSuite extends CatsEffectSuite:
         events.exists(isGateAbstain),
         "the loop kept running (a round closed)"
       )
+  }
+
+  test(
+    "a lone unconfirmed candidate the oracle CONFIRMS at give-up → Signed (B1 closes a winnable game)"
+  ) {
+    // One backer only → decide = Unconfirmed; the internal 2-backer quorum never comes, so the
+    // society reaches a give-up and GUESSES. The oracle confirms → the ground-truth Yes relaxes the
+    // no-lone-sign floor and the game signs the confirmed candidate.
+    val scripts = Map(
+      "driller" -> List(assertOf("apple")),
+      "splitter" -> List(passMove),
+      "skeptic" -> List(passMove)
+    )
+    for
+      llmFor <- scriptedLlms(scripts)
+      result <- play(llmFor, List(OracleAnswer.Yes), noTimeout, fast)
+    yield
+      val (outcome, events) = result
+      assertEquals(outcome, Outcome.Signed(apple))
+      assertEquals(gateSigns(events), Vector(apple), clue("the oracle-confirmed candidate signs"))
+      // the sign is ORACLE-confirmed: a GuessAnswered(apple, Yes) precedes the GateSign.
+      val guessSeq = events.collectFirst {
+        case Event.GuessAnswered(seq, _, c, OracleAnswer.Yes) if c == apple => seq
+      }
+      val signSeq = events.collectFirst { case Event.GateSign(seq, _, _) => seq }
+      (guessSeq, signSeq) match
+        case (Some(g), Some(sg)) => assert(g < sg, clue("the guess precedes the sign"))
+        case other => fail(s"expected a Yes-guess then a sign, got $other")
+  }
+
+  test(
+    "the oracle DECLINES the guess → the candidate is masked, guessed once, the game ends Inconclusive"
+  ) {
+    val scripts = Map(
+      "driller" -> List(assertOf("apple")),
+      "splitter" -> List(passMove),
+      "skeptic" -> List(passMove)
+    )
+    for
+      llmFor <- scriptedLlms(scripts)
+      result <- play(llmFor, List(OracleAnswer.No), noTimeout, fast)
+    yield
+      val (outcome, events) = result
+      assertEquals(outcome, Outcome.Inconclusive)
+      assertEquals(gateSigns(events), Vector.empty, clue("a declined guess never signs"))
+      // guessed EXACTLY once — the No masks the candidate off the fold, so the give-up ladder has
+      // nothing left to re-guess (termination).
+      val guesses = events.collect { case Event.GuessAnswered(_, _, c, a) => (c, a) }
+      assertEquals(guesses, Vector((apple, OracleAnswer.No)))
   }
 
   test(

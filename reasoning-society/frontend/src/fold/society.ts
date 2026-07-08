@@ -64,6 +64,7 @@ function agentOf(event: ReasoningEvent): AgentId | undefined {
     case 'retired':
     case 'resurrected':
     case 'convergence_warning':
+    case 'guess_answered':
       return undefined;
   }
 }

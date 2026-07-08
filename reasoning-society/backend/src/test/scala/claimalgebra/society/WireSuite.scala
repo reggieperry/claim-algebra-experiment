@@ -146,6 +146,17 @@ class WireSuite extends munit.FunSuite with SocietyFixtures:
     )
   }
 
+  test("guess_answered encodes to its exact wire JSON (candidate + lowercase oracle reply token)") {
+    assertEquals(
+      json(Event.GuessAnswered(31, 32L, dog, OracleAnswer.No)),
+      """{"seq":31,"timestamp":32,"type":"guess_answered","candidateId":"dog","answer":"no"}"""
+    )
+    assertEquals(
+      json(Event.GuessAnswered(33, 34L, dog, OracleAnswer.Yes)),
+      """{"seq":33,"timestamp":34,"type":"guess_answered","candidateId":"dog","answer":"yes"}"""
+    )
+  }
+
   test("the oracle token is the lowercase yes/no/unknown of the TS Answer set") {
     assertEquals(Wire.answerToken(OracleAnswer.Yes), "yes")
     assertEquals(Wire.answerToken(OracleAnswer.No), "no")

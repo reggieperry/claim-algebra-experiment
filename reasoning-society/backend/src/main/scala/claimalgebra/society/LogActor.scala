@@ -108,15 +108,22 @@ object LogState:
   * owns the event log in `become`-state, folds belief via [[GameCore]], and drives the round loop.
   *
   * The forward-carry safety spine (the adversarial-verify findings, §9):
-  *   - EVERY sign routes through [[GameCore.nextMove]] (round-completeness-gated) at exactly one
-  *     site ([[closeRound]]); `decide` is consulted only to RENDER an abstain reason, never to
-  *     sign.
+  *   - Signing happens at exactly TWO gated sites. (1) The round path ([[closeRound]] →
+  *     [[GameCore.nextMove]], round-completeness-gated): a completed round signs iff `decide`
+  *     signs. (2) The B1 guess path ([[onGuessAnswered]]): an ORACLE-CONFIRMED guess signs iff
+  *     `decide` signs the SAME candidate that was guessed. Its safety comes NOT from
+  *     round-completeness but from the ground-truth premise (the oracle knows the answer) plus the
+  *     `winner == candidate` guard plus `Gate.accept` re-read on the LIVE fold — so a candidate a
+  *     stale post has since gluted or out-voted is HELD, and the round-completeness attrition guard
+  *     is never bypassed. Everywhere else `decide` is consulted only to RENDER an abstain reason,
+  *     never to sign.
   *   - A timed-out round closes with `roundComplete = false`, so [[GameCore.nextMove]] Abstains —
   *     round attrition can never drive a signature.
   *   - An oracle answer ([[ToLog.Answered]]) opens a NEW round with a fresh, incomplete barrier, so
   *     the gate cannot sign a candidate a fresh human answer contradicts until the agents have
   *     re-reported (and emitted any `Refute`, which gluts → Conflict → blocked). This is the
-  *     structural realization of the Oracle→Refute guard.
+  *     structural realization of the Oracle→Refute guard. (A guess answer, [[ToLog.GuessAnswered]],
+  *     takes its OWN transport and does NOT open a round — the guess is the endgame, not a probe.)
   */
 final class LogActor(
     context: ActorContext[ToLog],
@@ -132,6 +139,8 @@ final class LogActor(
     case ToLog.Challenged(qid, term) => onChallenged(qid, term).map(withState)
     case ToLog.Defined(qid, agent, term, meaning) =>
       onDefined(qid, agent, term, meaning).map(withState)
+    case ToLog.GuessAnswered(candidate, answer) =>
+      onGuessAnswered(candidate, answer).map(withState)
 
   private def withState(s: LogState): LogActor = new LogActor(context, deps, s)
 
@@ -232,6 +241,38 @@ final class LogActor(
       appendEmit(state.log)((seq, ts) => Event.DefinitionGiven(seq, ts, agent, qid, term, meaning))
         .map { case (log2, _) => state.copy(log = log2) }
 
+  /** The oracle answered a guess (B1, recovery-and-endgame). Log the belief-inert `GuessAnswered`,
+    * then re-run the SAME gate tail `closeRound` uses ([[GameCore.nextMove]] with the round
+    * complete) so any signature emits at the ONE gate site: a `Yes` on a still-clean winner
+    * re-reads `decide = Sign` (the floor relaxed by the ground-truth confirmation, but only BEHIND
+    * `Gate.accept`, so a candidate a stale post has since gluted is HELD, not signed); a `No` has
+    * masked the candidate off the fold, and an `Unknown` neither masks nor confirms — both fall
+    * back to the give-up ladder ([[giveUpOrGuess]]), which guesses the next lone candidate or ends
+    * inconclusive. Fail-closed at every arm; a guess never opens an agent round.
+    */
+  private def onGuessAnswered(candidate: Answer, answer: OracleAnswer): IO[LogState] =
+    if state.phase == Phase.Ended then IO.pure(state)
+    else
+      appendEmit(state.log)((seq, ts) => Event.GuessAnswered(seq, ts, candidate, answer)).flatMap {
+        case (log2, _) =>
+          val s2 = state.copy(log = log2)
+          // Sign here on EXACTLY one gated condition: the oracle CONFIRMED this guess (`Yes`) AND the
+          // guessed candidate is STILL the clean single-`True` winner `decide` signs (the floor
+          // relaxed for it by the confirmation, `Gate.accept` still holding corner/cardinality on the
+          // LIVE fold — so a stale post that has since gluted or out-voted it is caught here, NOT
+          // signed). A `No` (candidate masked) or `Unknown`, or a `Yes` on a since-contested
+          // candidate, never signs — it falls to the give-up ladder. This is deliberately STRICTER
+          // than re-running the round gate: it will not sign a DIFFERENT candidate that a straggler
+          // post pushed to a quorum, so the round-completeness attrition guard is never bypassed by
+          // the guess handler (a completed round remains the ONLY quorum-sign path).
+          answer match
+            case OracleAnswer.Yes =>
+              GameCore.decide(s2.log, s2.log.size) match
+                case GateDecision.Sign(winner) if winner == candidate => sign(s2, winner)
+                case _ => giveUpOrGuess(s2)
+            case OracleAnswer.No | OracleAnswer.Unknown => giveUpOrGuess(s2)
+      }
+
   // --- the round loop ---
 
   private def open(s: LogState, roundId: RoundId): IO[LogState] =
@@ -316,12 +357,12 @@ final class LogActor(
         ).map { case (log2, _) => s.copy(log = log2) }
 
   private def advance(s: LogState): IO[LogState] =
-    if s.roundsUsed >= deps.config.maxRounds then endInconclusive(s)
+    if s.roundsUsed >= deps.config.maxRounds then giveUpOrGuess(s)
     else askQuestion(s)
 
   private def askQuestion(s: LogState): IO[LogState] =
     pendingQuestion(s.log) match
-      case None => endInconclusive(s) // no unasked question proposed → nothing to advance on
+      case None => giveUpOrGuess(s) // no unasked question left → try a guess, else give up
       case Some(pending) =>
         appendEmit(s.log)((seq, ts) =>
           Event.QuestionAsked(seq, ts, pending.asker, pending.id, pending.text)
@@ -353,6 +394,31 @@ final class LogActor(
       MessageId.from(s"challenged-${qid.value}-${term.value}") match
         case Right(mid) => context.self.tell(mid, ToLog.Challenged(qid, term))
         case Left(_) => IO.unit
+
+  /** Background one oracle round-trip for a GUESS "is it <candidate>?" (B1) and route the reply
+    * back as a self-sent [[ToLog.GuessAnswered]] — its OWN transport, never
+    * [[submitRespond]]/[[Answered]] (which would open a new round). A `Challenge` to a guess is not
+    * an answer, so it degrades to `Unknown` (no sign, no mask); an oracle FAULT likewise degrades
+    * to `Unknown` rather than wedging the loop. The synthetic question id is never logged — the
+    * guess is recorded by the belief-inert [[Event.GuessAnswered]], not a `QuestionAsked`.
+    */
+  private def submitGuess(candidate: Answer): IO[Unit] =
+    QuestionId.from(s"guess-${candidate.value}") match
+      case Right(qid) =>
+        val reply = deps.oracle
+          .respond(Question(qid, s"Is it ${candidate.value}?"))
+          .handleError(_ => HumanMove.Answer(OracleAnswer.Unknown))
+          .flatMap(routeGuessMove(candidate, _))
+        deps.scheduler.submit(reply)
+      case Left(_) => IO.unit // structurally impossible (candidate is a non-blank label)
+
+  private def routeGuessMove(candidate: Answer, move: HumanMove): IO[Unit] =
+    val answer = move match
+      case HumanMove.Answer(a) => a
+      case HumanMove.Challenge(_) => OracleAnswer.Unknown // a challenge to a guess is not an answer
+    MessageId.from(s"guessed-${candidate.value}") match
+      case Right(mid) => context.self.tell(mid, ToLog.GuessAnswered(candidate, answer))
+      case Left(_) => IO.unit
 
   /** Re-ask a question after a challenge (clarification-feature §1) — background a fresh oracle
     * round-trip WITHOUT re-emitting `QuestionAsked` (the question was already asked; only the human
@@ -390,6 +456,42 @@ final class LogActor(
       .flatMap { case (log2, _) =>
         deps.onDone(Outcome.Inconclusive).as(s.copy(log = log2, phase = Phase.Ended))
       }
+
+  /** B1's LATE trigger — the give-up fall-through. Where the round loop would otherwise ABSTAIN
+    * (budget exhausted, or no proposed question left to ask), first try to close the game by
+    * GUESSING to the oracle: if the gate is held ONLY by the no-lone-sign floor (`decide =
+    * Unconfirmed` — a lone, unrefuted, rival-free `True` candidate) and that candidate has not
+    * already been guessed, pose "is it <candidate>?". Every OTHER decision (gap, glut, ambiguity,
+    * or a candidate already guessed) gives up honestly via [[endInconclusive]]. The pose is from
+    * the GATE'S OWN clean winner (`slot.value`), never an agent's free text — so the guess can only
+    * ever be the candidate the gate already accepts on corner/cardinality, and B1 cannot introduce
+    * a value the society never reasoned to.
+    */
+  private def giveUpOrGuess(s: LogState): IO[LogState] =
+    GameCore.decide(s.log, s.log.size) match
+      case GateDecision.Abstain(AbstainReason.Unconfirmed(_)) =>
+        GameCore.slot(s.log, s.log.size).value match
+          case Some(candidate) if !alreadyGuessed(s.log, candidate) => poseGuess(s, candidate)
+          case _ => endInconclusive(s)
+      case _ => endInconclusive(s)
+
+  /** Pose a guess for `candidate`: background the oracle round-trip (so `receive` stays
+    * non-blocking; the reply arrives as a self-sent [[ToLog.GuessAnswered]]) and hold the state
+    * unchanged until it lands. No event is logged yet — the belief-inert `GuessAnswered` is written
+    * when the answer arrives ([[onGuessAnswered]]), carrying the reply.
+    */
+  private def poseGuess(s: LogState, candidate: Answer): IO[LogState] =
+    submitGuess(candidate).as(s)
+
+  /** Whether `candidate` has already been posed to the oracle this game (any `GuessAnswered` on
+    * it), so the give-up ladder never re-guesses it — guaranteeing termination (a No shrinks the
+    * finite live candidate set; each candidate is posed at most once).
+    */
+  private def alreadyGuessed(log: Vector[Event], candidate: Answer): Boolean =
+    log.exists {
+      case Event.GuessAnswered(_, _, c, _) => c == candidate
+      case _ => false
+    }
 
   // --- effects ---
 

@@ -82,3 +82,12 @@ enum ToLog:
     * the rest of the game. Carries the defining `agent` (the proposer) for provenance.
     */
   case Defined(question: QuestionId, agent: AgentId, term: Term, meaning: String)
+
+  /** The oracle ANSWERED a guess (B1, recovery-and-endgame) — "is it `candidate`?" → `answer`. Its
+    * own transport (NOT [[Answered]], which opens a new round): the LogActor logs the belief-inert
+    * `GuessAnswered` and re-runs the gate — a `Yes` signs the confirmed winner (the floor relaxed
+    * by the ground truth), a `No` masks the candidate off the fold and the give-up ladder
+    * continues, an `Unknown` neither signs nor masks (the candidate is marked posed and never
+    * re-guessed).
+    */
+  case GuessAnswered(candidate: Answer, answer: OracleAnswer)

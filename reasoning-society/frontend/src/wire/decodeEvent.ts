@@ -350,6 +350,22 @@ export function decodeEvent(json: unknown): ReasoningEvent | null {
         glutPersistence: glut,
       };
     }
+    case 'guess_answered': {
+      // The society's guess to the oracle (B1) — the candidate and the oracle's reply token. A blank
+      // candidate or an answer outside the closed yes|no|unknown set fails the frame closed rather
+      // than reaching the viewer, matching Wire.scala's golden shape.
+      const candidate = idField(json, 'candidateId');
+      const answer = json.answer;
+      if (candidate === null || !isAnswer(answer)) {
+        return null;
+      }
+      return {
+        ...base,
+        type: 'guess_answered',
+        candidateId: candidateId(candidate),
+        answer,
+      };
+    }
     default:
       // An unrecognized discriminator is not a frame we understand — reject it.
       return null;

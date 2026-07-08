@@ -26,6 +26,7 @@ import io.circe.{Decoder, DecodingFailure, Encoder, Json}
   *   gate_abstain            {seq, timestamp, type:"gate_abstain",      reason}
   *   gate_sign               {seq, timestamp, type:"gate_sign",         candidateId}
   *   convergence_warning     {seq, timestamp, type:"convergence_warning", roundsWithoutConsolidation, glutPersistence}
+  *   guess_answered          {seq, timestamp, type:"guess_answered",      candidateId, answer}
   * }}}
   *
   * The opaque id types (and `term`) serialize as their bare string value; `answer` is the lowercase
@@ -195,6 +196,16 @@ object Wire:
         "type" -> "convergence_warning".asJson,
         "roundsWithoutConsolidation" -> roundsWithoutConsolidation.asJson,
         "glutPersistence" -> glutPersistence.asJson
+      )
+    // The guess-to-oracle answer (B1) — belief-inert; carries the guessed candidate and the oracle's
+    // reply token (yes|no|unknown). Shape mirrors gate_sign plus the answer token.
+    case Event.GuessAnswered(seq, timestamp, candidate, answer) =>
+      Json.obj(
+        "seq" -> seq.asJson,
+        "timestamp" -> timestamp.asJson,
+        "type" -> "guess_answered".asJson,
+        "candidateId" -> candidate.value.asJson,
+        "answer" -> answerToken(answer).asJson
       )
   }
 
