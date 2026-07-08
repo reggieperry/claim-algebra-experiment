@@ -3,7 +3,7 @@ package experiment
 
 import cats.effect.{IO, IOApp}
 import cats.syntax.all.*
-import claimalgebra.extract.{CallError, LlmCall}
+import claimalgebra.extract.{AnthropicLlmCall, CallError, LlmCall}
 
 import scala.concurrent.duration.*
 
@@ -55,13 +55,46 @@ object RunOracleSweep extends IOApp.Simple:
       _ <- IO.println(OracleSweep.render(OracleSweep.summarize(records)))
     yield ()
 
+  /** The live Arm-1 path (Slice 3). The society runs on Haiku (the agent under test); the
+    * experimenter's ground truth is a held-fixed [[ModelTruthOracle]] — model-backed because the
+    * live game's questions are free text (a table can't match them). This DEFAULT config is a SMALL
+    * SMOKE (2 games) to validate the live path end to end; scale the cells / targets / gamesPerCell
+    * up for the real sweep — a deliberate, billed run behind a cost check. A stronger
+    * truthful-oracle tier (e.g. `Model.CLAUDE_SONNET_5`) is recommended for the real ground truth;
+    * Haiku keeps the smoke cheap.
+    */
   private def live: IO[Unit] =
-    IO.println(
-      "A live-Haiku sweep needs the experimenter's TRUTHFUL ORACLE — a pre-registered property table " +
-        "(closed question-space) or a held-fixed truthful model call (open question-space). That is " +
-        "the sharpest open design decision (fallible-oracle-build-plan §Decisions), sequenced as " +
-        "Slice 3. Not yet wired."
-    )
+    AnthropicLlmCall.clientResource.use { client =>
+      val societyLlm = AnthropicLlmCall(client, classOf[AgentMoveDto])
+      val definer = AnthropicLlmCall(client, classOf[DefinitionDto])
+      val truth = ModelTruthOracle(AnthropicLlmCall(client, classOf[TruthDto]))
+      val cells = List(
+        SweepCell(1.0, "perfect", "common"),
+        SweepCell(0.6, "systematic", "common")
+      )
+      for
+        apple <- answer("apple")
+        targets = List((apple, truth))
+        _ <- IO.println("=== fallible-oracle sweep — LIVE Haiku (billed) — SMOKE (2 games) ===\n")
+        records <- OracleSweep.sweep(
+          IO.pure((_: AgentId) => societyLlm),
+          config,
+          cells,
+          targets,
+          gamesPerCell = 1,
+          concurrency = 1,
+          definerFor = _ => definer
+        )
+        _ <- records.traverse_ { r =>
+          IO.println(
+            s"  target=${r.trueTarget.value}  p=${r.cell.reliability} ${r.cell.errorModel}  " +
+              s"-> ${r.outcome}  (signed ${r.signed.map(_.value).getOrElse("nothing")})"
+          )
+        }
+        _ <- IO.println("")
+        _ <- IO.println(OracleSweep.render(OracleSweep.summarize(records)))
+      yield ()
+    }
 
   private def answer(raw: String): IO[Answer] =
     IO.fromEither(Answer.from(raw).leftMap(m => RuntimeException(m)))

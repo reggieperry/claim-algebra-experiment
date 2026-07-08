@@ -109,3 +109,11 @@ class ExperimentOracleSuite extends CatsEffectSuite with SocietyFixtures:
       val rate = a.count(identity).toDouble / a.size
       assert(rate > 0.05 && rate < 0.40, clue(s"corruption rate ~ 1-p = 0.2, got $rate"))
   }
+
+  test("ModelTruthOracle.parse is fail-closed — only yes/no map, everything else is a gap") {
+    assertEquals(ModelTruthOracle.parse("yes"), OracleAnswer.Yes)
+    assertEquals(ModelTruthOracle.parse(" NO "), OracleAnswer.No)
+    assertEquals(ModelTruthOracle.parse("unknown"), OracleAnswer.Unknown)
+    assertEquals(ModelTruthOracle.parse("maybe"), OracleAnswer.Unknown)
+    assertEquals(ModelTruthOracle.parse(""), OracleAnswer.Unknown)
+  }
