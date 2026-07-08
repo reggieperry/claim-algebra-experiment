@@ -1,0 +1,5 @@
+Fallible-oracle experiment — engineering report (Claude Artifact)
+https://claude.ai/code/artifact/75c7523d-b959-4242-9291-764ac4d9ae59
+
+Published 2026-07-08. Default-private; share from the claude.ai gallery.
+Source: docs/reasoning-society/ (fallible-oracle-experiment-design.md, fallible-oracle-build-plan.md)
