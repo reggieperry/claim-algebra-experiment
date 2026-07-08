@@ -9,7 +9,7 @@ import { defineConfig } from 'vitest/config';
 // CORS, no hardcoded backend host) and Vite forwards to the http4s server on :8080:
 //   /events → SSE. http-proxy pipes the upstream response chunk-by-chunk, so the `text/event-stream`
 //             streams through UN-buffered; Vite's dev server applies no compression that would batch it.
-//   /answer → the human oracle's POST.  /start → relaunch a game.
+//   /answer → the human oracle's POST.  /start → relaunch a game.  /rewind → flip a poisoned answer.
 const BACKEND = 'http://localhost:8080';
 export default defineConfig({
   plugins: [react()],
@@ -22,6 +22,7 @@ export default defineConfig({
       '/challenge': { target: BACKEND, changeOrigin: true },
       '/start': { target: BACKEND, changeOrigin: true },
       '/reset': { target: BACKEND, changeOrigin: true },
+      '/rewind': { target: BACKEND, changeOrigin: true },
     },
   },
   preview: { host: true, port: 4173 },
