@@ -103,6 +103,43 @@ object LogState:
       Nil
     )
 
+  /** The round-boundary prefix for a rewind (B2, recovery-and-endgame): given the human-clicked
+    * `AnswerGiven` seq, truncate the log to just before that answer's `QuestionAsked` — so the
+    * poisoned question re-enters the ordinary `askQuestion` path (still proposed-but-unasked, its
+    * `QuestionAsked` dropped) and the round's poisoning `DefinitionGiven` drops with it, letting
+    * A3's reframed definition regenerate. Snapping to before the `QuestionAsked` (not before the
+    * `AnswerGiven`) is REQUIRED: `pendingQuestion` returns only a `QuestionProposed` not yet in the
+    * `asked` set, so keeping the `QuestionAsked` would leave the poisoned question un-re-askable.
+    * Fail-closed: a `toSeq` that names no `AnswerGiven`, or whose question was never asked, returns
+    * the log UNCHANGED (no rewind) — untrusted input, the backend snaps, never the client.
+    */
+  def rewindPrefix(log: Vector[Event], toSeq: Int): Vector[Event] =
+    val question = log.collectFirst { case Event.AnswerGiven(s, _, q, _, _) if s == toSeq => q }
+    val askedSeq = question.flatMap { q =>
+      log.collectFirst { case Event.QuestionAsked(s, _, _, `q`, _) => s }
+    }
+    askedSeq.fold(log)(s => log.filter(_.seq < s))
+
+  /** Rehydrate a `LogState` from a rewind prefix (B2): the log IS the prefix, the round counter is
+    * the number of answers already in it (so the budget continues from the rewind point, not a
+    * fresh full budget), the barrier is closed (no active round), the phase is `Playing`. Agents
+    * register at [[ToLog.Begin]], which re-probes over `GameView.from(prefix)` and re-asks the
+    * pending question.
+    */
+  def resumed(prefix: Vector[Event]): LogState =
+    val answers = prefix.count {
+      case _: Event.AnswerGiven => true
+      case _ => false
+    }
+    LogState(
+      log = prefix,
+      round = RoundId.first,
+      barrier = Barrier(RoundId.first, Set.empty, Set.empty, closed = true),
+      roundsUsed = answers,
+      phase = Phase.Playing,
+      agents = Nil
+    )
+
 /** The single-writer LogActor (actor-abstraction §7–§9): its mailbox is the global serialization
   * point (Agha's arbitration — one message at a time, so `seq = log.size + 1` is race-free), it
   * owns the event log in `become`-state, folds belief via [[GameCore]], and drives the round loop.

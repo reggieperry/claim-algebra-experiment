@@ -72,7 +72,8 @@ object Society:
       config: SocietyConfig,
       schedulerOf: Supervisor[IO] => Scheduler = Scheduler.supervised,
       definerFor: AgentId => LlmCall[DefinitionDto] = _ => noDefiner,
-      seed: List[Definition] = Nil
+      seed: List[Definition] = Nil,
+      initial: LogState = LogState.initial
   ): IO[Outcome] =
     val ids = strategies.map(_.id.value)
     val duplicates = ids.diff(ids.distinct).distinct
@@ -86,9 +87,7 @@ object Society:
           beginId <- messageId("begin")
           done <- Deferred[IO, Outcome]
           deps = LogDeps(oracle, scheduler, sink, now, o => done.complete(o).void, config, seed)
-          logRef <- system.actorOf(logAddress)(context =>
-            new LogActor(context, deps, LogState.initial)
-          )
+          logRef <- system.actorOf(logAddress)(context => new LogActor(context, deps, initial))
           agentRefs <- strategies.traverse { strategy =>
             address(s"society/agent/${strategy.id.value}").flatMap { agentAddress =>
               system

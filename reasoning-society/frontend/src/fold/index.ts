@@ -4,12 +4,14 @@
 export {
   fold,
   answerSeqFor,
+  answeredQuestions,
   signableCandidate,
   retiredCandidates,
   SIGN_THRESHOLD,
   MIN_CORROBORATORS,
   MIN_REFUTERS,
 } from './fold';
+export type { AnsweredQuestion } from './fold';
 export { gradeOf } from './grade';
 
 export { buildGraph, candidatesTouchedBy, RELATIONS } from './graph';

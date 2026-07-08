@@ -285,6 +285,39 @@ export function answerSeqFor(
   return undefined;
 }
 
+// One answered question, surfaced for the rewind control (B2, recovery-and-endgame): the seq of the
+// `answer_given` the human clicks to reconsider, the question's content, and the answer given. This is
+// the NON-GENERATIVE surface — a positional list of the human's OWN answers, never a diagnosis of which
+// one is wrong (the librarian cannot judge that; the human, who holds the ground truth, picks).
+export interface AnsweredQuestion {
+  readonly seq: number;
+  readonly content: string;
+  readonly answer: Answer;
+}
+
+// The human's answered questions up to the playhead, in order — the positional list the rewind control
+// offers when the convergence flag fires. Each answer's question text is correlated from its
+// `question_asked`; an answer whose question was never asked in the prefix is skipped (fail-closed — no
+// re-askable boundary exists for it). Pure reader of `(events, playhead)`, stored nowhere (brief §1).
+export function answeredQuestions(
+  events: readonly ReasoningEvent[],
+  playhead: number,
+): readonly AnsweredQuestion[] {
+  const askedContent = new Map<QuestionId, string>();
+  const answered: AnsweredQuestion[] = [];
+  for (const event of events.slice(0, playhead)) {
+    if (event.type === 'question_asked') {
+      askedContent.set(event.questionId, event.content);
+    } else if (event.type === 'answer_given') {
+      const content = askedContent.get(event.questionId);
+      if (content !== undefined) {
+        answered.push({ seq: event.seq, content, answer: event.answer });
+      }
+    }
+  }
+  return answered;
+}
+
 // --- The channel-asymmetry retirement predicate (hypothesis-lifecycle §A) ---
 //
 // Ported from the backend `GameCore` — purely STRUCTURAL, reading only `seq`, `agentId`, and

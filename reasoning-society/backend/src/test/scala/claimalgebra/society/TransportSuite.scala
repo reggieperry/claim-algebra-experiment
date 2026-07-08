@@ -1,7 +1,7 @@
 package claimalgebra.society
 
-import cats.effect.IO
 import cats.effect.std.Supervisor
+import cats.effect.{IO, Ref}
 import cats.syntax.all.*
 import claimalgebra.extract.{CallError, LlmCall}
 import fs2.{Stream, text}
@@ -72,7 +72,7 @@ class TransportSuite extends CatsEffectSuite with SocietyFixtures:
       topicAndSink <- TopicSink.make
       (sink, topic, logRef) = topicAndSink
       oracle <- RemoteOracle.make
-      routes = SocietyRoutes(topic, logRef, oracle, IO.unit, IO.unit).orNotFound
+      routes = SocietyRoutes(topic, logRef, oracle, IO.unit, IO.unit, _ => IO.unit).orNotFound
       resp <- routes.run(Request[IO](method = Method.GET, uri = uri"/events"))
       _ = assertEquals(resp.status, Status.Ok)
       _ = assertEquals(resp.contentType.map(_.mediaType), Some(MediaType.`text/event-stream`))
@@ -101,7 +101,7 @@ class TransportSuite extends CatsEffectSuite with SocietyFixtures:
       topicAndSink <- TopicSink.make
       (sink, topic, logRef) = topicAndSink
       oracle <- RemoteOracle.make
-      routes = SocietyRoutes(topic, logRef, oracle, IO.unit, IO.unit).orNotFound
+      routes = SocietyRoutes(topic, logRef, oracle, IO.unit, IO.unit, _ => IO.unit).orNotFound
       // Events are emitted BEFORE any subscriber connects — a bare Topic would lose them entirely.
       _ <- List(e1, e2, e3).traverse_(sink.emit)
       resp <- routes.run(Request[IO](method = Method.GET, uri = uri"/events"))
@@ -151,7 +151,7 @@ class TransportSuite extends CatsEffectSuite with SocietyFixtures:
       topicAndSink <- TopicSink.make
       (sink, topic, logRef) = topicAndSink
       oracle <- RemoteOracle.make
-      routes = SocietyRoutes(topic, logRef, oracle, IO.unit, IO.unit).orNotFound
+      routes = SocietyRoutes(topic, logRef, oracle, IO.unit, IO.unit, _ => IO.unit).orNotFound
       llmFor <- scriptedLlms(appleScripts)
       result <- topic.subscribeAwaitUnbounded.use { stream =>
         val autoAnswer: IO[Unit] =
@@ -176,7 +176,7 @@ class TransportSuite extends CatsEffectSuite with SocietyFixtures:
       topicAndSink <- TopicSink.make
       (_, topic, logRef) = topicAndSink
       oracle <- RemoteOracle.make
-      routes = SocietyRoutes(topic, logRef, oracle, IO.unit, IO.unit).orNotFound
+      routes = SocietyRoutes(topic, logRef, oracle, IO.unit, IO.unit, _ => IO.unit).orNotFound
       parked <- oracle.respond(Question(qid, "is it alive?")).start
       resolved <- postChallengeWhenRegistered(routes, qid, "Alive")
       move <- parked.joinWithNever
@@ -191,7 +191,7 @@ class TransportSuite extends CatsEffectSuite with SocietyFixtures:
       topicAndSink <- TopicSink.make
       (_, topic, logRef) = topicAndSink
       oracle <- RemoteOracle.make
-      routes = SocietyRoutes(topic, logRef, oracle, IO.unit, IO.unit).orNotFound
+      routes = SocietyRoutes(topic, logRef, oracle, IO.unit, IO.unit, _ => IO.unit).orNotFound
       notJson <- routes.run(
         Request[IO](method = Method.POST, uri = uri"/challenge").withEntity("not json")
       )
@@ -209,7 +209,7 @@ class TransportSuite extends CatsEffectSuite with SocietyFixtures:
       topicAndSink <- TopicSink.make
       (_, topic, logRef) = topicAndSink
       oracle <- RemoteOracle.make
-      routes = SocietyRoutes(topic, logRef, oracle, IO.unit, IO.unit).orNotFound
+      routes = SocietyRoutes(topic, logRef, oracle, IO.unit, IO.unit, _ => IO.unit).orNotFound
       notJson <- routes.run(
         Request[IO](method = Method.POST, uri = uri"/answer").withEntity("not json")
       )
@@ -220,6 +220,41 @@ class TransportSuite extends CatsEffectSuite with SocietyFixtures:
     yield
       assertEquals(notJson.status, Status.BadRequest, clue("a non-JSON body is a 400"))
       assertEquals(badToken.status, Status.BadRequest, clue("an answer outside the set is a 400"))
+  }
+
+  test(
+    "POST /rewind hands the human's clicked seq to the supervisor and 200s; a bad body is a 400"
+  ) {
+    for
+      topicAndSink <- TopicSink.make
+      (_, topic, logRef) = topicAndSink
+      oracle <- RemoteOracle.make
+      captured <- Ref[IO].of(Option.empty[Int])
+      routes = SocietyRoutes(
+        topic,
+        logRef,
+        oracle,
+        IO.unit,
+        IO.unit,
+        n => captured.set(Some(n))
+      ).orNotFound
+      ok <- routes.run(
+        Request[IO](method = Method.POST, uri = uri"/rewind")
+          .withEntity(Json.obj("toSeq" -> 3.asJson))
+      )
+      seenSeq <- captured.get
+      notJson <- routes.run(
+        Request[IO](method = Method.POST, uri = uri"/rewind").withEntity("not json")
+      )
+      nonPositive <- routes.run(
+        Request[IO](method = Method.POST, uri = uri"/rewind")
+          .withEntity(Json.obj("toSeq" -> 0.asJson))
+      )
+    yield
+      assertEquals(ok.status, Status.Ok)
+      assertEquals(seenSeq, Some(3), clue("the route hands the human's clicked seq to rewindTo"))
+      assertEquals(notJson.status, Status.BadRequest, clue("a non-JSON body is a 400"))
+      assertEquals(nonPositive.status, Status.BadRequest, clue("a non-positive toSeq is a 400"))
   }
 
   test("a failing SSE subscriber is contained — the sink and a second subscriber are unaffected") {

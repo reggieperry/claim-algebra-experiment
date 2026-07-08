@@ -34,7 +34,7 @@ object RunServer extends IOApp.Simple:
       topicAndSink <- Resource.eval(TopicSink.make)
       (sink, topic, logRef) = topicAndSink
       oracle <- Resource.eval(RemoteOracle.make)
-      playSeeded <- gameProgram(sink, oracle)
+      forks <- gameProgram(sink, oracle)
       memory <- Resource.eval(DefinitionMemory.make)
       gameCounter <- Resource.eval(Ref[IO].of(GameId.first))
       // Harvest the finishing game's established definitions off the working replay log; the
@@ -43,10 +43,24 @@ object RunServer extends IOApp.Simple:
       // Clear the working scope a reset wipes: empty the replay log and drop every pending oracle
       // question, so no event or stale question id from a cancelled game survives.
       clearWorking = logRef.set(Vector.empty[Event]) *> oracle.reset
+      // B2: reset the working scope TO A PREFIX (the SSE mirror reflects the rewound log) and reset
+      // the oracle's pending map (else a question parked at rewind wedges the resumed game on a stale
+      // Deferred the deterministically-minted re-asked id collides on).
+      rewindWorking = (prefix: Vector[Event]) => logRef.set(prefix) *> oracle.reset
       games <- Resource.eval(
-        GameSupervisor.make(playSeeded, memory, gameCounter, harvest, clearWorking)
+        GameSupervisor.make(
+          forks.seeded,
+          forks.resumed,
+          logRef.get,
+          memory,
+          gameCounter,
+          harvest,
+          clearWorking,
+          rewindWorking
+        )
       )
-      routes = SocietyRoutes(topic, logRef, oracle, games.newGame, games.fullReset)
+      routes =
+        SocietyRoutes(topic, logRef, oracle, games.newGame, games.fullReset, games.rewindTo)
       _ <- EmberServerBuilder
         .default[IO]
         .withHost(bindHost)
@@ -60,27 +74,28 @@ object RunServer extends IOApp.Simple:
       ) *> games.newGame *> IO.never
     }
 
-  /** Build the seeded "play one game" program, real or hermetic — a
-    * `List[Definition] => IO[Outcome]` that forks a game seeded with the recalled definitions
-    * (threaded into [[Society.play]]'s `seed`). Live acquires the shared Anthropic client as a
-    * Resource (held for the server's lifetime so a New Game can re-run); hermetic needs no
-    * resource, so a re-run rebuilds fresh stub cursors.
+  /** The two fork channels a game needs: `seeded` starts a fresh game seeded with recalled
+    * definitions (New Game / Full Reset), `resumed` re-forks the SAME game over a rewind PREFIX
+    * injected as the initial log (B2). Both share the cohort / model / oracle / sink / config.
     */
-  private def gameProgram(
-      sink: EventSink,
-      oracle: Oracle
-  ): Resource[IO, List[Definition] => IO[Outcome]] =
+  final case class GameForks(
+      seeded: List[Definition] => IO[Outcome],
+      resumed: Vector[Event] => IO[Outcome]
+  )
+
+  /** Build the game fork channels, real or hermetic. Live acquires the shared Anthropic client as a
+    * Resource (held for the server's lifetime so a New Game or a rewind can re-run); hermetic needs
+    * no resource, so a re-run rebuilds fresh stub cursors.
+    */
+  private def gameProgram(sink: EventSink, oracle: Oracle): Resource[IO, GameForks] =
     if sys.env.contains("RUN_LIVE_SOCIETY") then live(sink, oracle)
     else Resource.pure(hermetic(sink, oracle))
 
-  private def live(
-      sink: EventSink,
-      oracle: Oracle
-  ): Resource[IO, List[Definition] => IO[Outcome]] =
+  private def live(sink: EventSink, oracle: Oracle): Resource[IO, GameForks] =
     AnthropicLlmCall.clientResource.map { client =>
       val llm = AnthropicLlmCall(client, classOf[AgentMoveDto])
       val definer = AnthropicLlmCall(client, classOf[DefinitionDto])
-      (seed: List[Definition]) =>
+      def play(seed: List[Definition], initial: LogState): IO[Outcome] =
         Society.play(
           AgentStrategy.cohort,
           _ => llm,
@@ -88,12 +103,17 @@ object RunServer extends IOApp.Simple:
           sink,
           Society.defaultConfig,
           definerFor = _ => definer,
-          seed = seed
+          seed = seed,
+          initial = initial
         )
+      GameForks(
+        seeded = seed => play(seed, LogState.initial),
+        resumed = prefix => play(Nil, LogState.resumed(prefix))
+      )
     }
 
-  private def hermetic(sink: EventSink, oracle: Oracle): List[Definition] => IO[Outcome] =
-    (seed: List[Definition]) =>
+  private def hermetic(sink: EventSink, oracle: Oracle): GameForks =
+    def play(seed: List[Definition], initial: LogState): IO[Outcome] =
       val config =
         SocietyConfig(maxRounds = 6, roundTimeout = 30.seconds, hardDeadline = 10.minutes)
       val scripts: Map[String, List[Either[CallError, AgentMoveDto]]] = Map(
@@ -108,8 +128,20 @@ object RunServer extends IOApp.Simple:
         stubs <- scripts.toList.traverse((id, script) => StubLlm.scripted(script).map(id -> _))
         llmById = stubs.toMap
         llmFor = (id: AgentId) => llmById.getOrElse(id.value, fallbackStub)
-        outcome <- Society.play(AgentStrategy.cohort, llmFor, oracle, sink, config, seed = seed)
+        outcome <- Society.play(
+          AgentStrategy.cohort,
+          llmFor,
+          oracle,
+          sink,
+          config,
+          seed = seed,
+          initial = initial
+        )
       yield outcome
+    GameForks(
+      seeded = seed => play(seed, LogState.initial),
+      resumed = prefix => play(Nil, LogState.resumed(prefix))
+    )
 
   private val fallbackStub: LlmCall[AgentMoveDto] =
     new LlmCall[AgentMoveDto]:

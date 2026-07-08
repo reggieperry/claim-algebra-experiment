@@ -264,3 +264,18 @@ object ChallengeCommand:
       term <- Term.from(termRaw).leftMap(DecodingFailure(_, cursor.history))
     yield ChallengeCommand(question, term)
   }
+
+/** The `POST /rewind` command (B2, recovery-and-endgame) — the human flips ONE poisoned early
+  * answer. `toSeq` is the `AnswerGiven` event seq the human clicked; the BACKEND snaps it to the
+  * round boundary ([[LogState.rewindPrefix]]), never trusting the client to compute the snap.
+  * Untrusted input: a non-positive seq is a [[DecodingFailure]], surfaced as a 400.
+  */
+final case class RewindCommand(toSeq: Int)
+
+object RewindCommand:
+  given decoder: Decoder[RewindCommand] = Decoder.instance { cursor =>
+    cursor.get[Int]("toSeq").flatMap { toSeq =>
+      if toSeq >= 1 then Right(RewindCommand(toSeq))
+      else Left(DecodingFailure(s"toSeq must be a positive event seq: $toSeq", cursor.history))
+    }
+  }

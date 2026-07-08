@@ -85,7 +85,16 @@ class GameSupervisorSocietySuite extends CatsEffectSuite:
       // fresh game's seed is empty — game two refills the log from seq 1, byte-identical.
       harvest = (_: GameId) => logRef.get.map(Definitions.established)
       clearWorking = logRef.set(Vector.empty[Event]) *> oracle.reset
-      games <- GameSupervisor.make(playSeeded, memory, gameCounter, harvest, clearWorking)
+      games <- GameSupervisor.make(
+        playSeeded,
+        _ => IO.never[Outcome],
+        IO.pure(Vector.empty[Event]),
+        memory,
+        gameCounter,
+        harvest,
+        clearWorking,
+        _ => IO.unit
+      )
 
       // Await a helper that installs a fresh signal, New-Games, and blocks until the new game parks.
       awaitAsked = (d: Deferred[IO, Unit]) => askedSignal.set(Some(d)) *> games.newGame *> d.get

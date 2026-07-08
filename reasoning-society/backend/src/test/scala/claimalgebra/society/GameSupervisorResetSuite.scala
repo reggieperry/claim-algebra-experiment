@@ -89,7 +89,16 @@ class GameSupervisorResetSuite extends CatsEffectSuite with SocietyFixtures:
       // The REAL RunServer wiring: harvest the working log's established definitions; clear the log.
       harvest = (_: GameId) => logRef.get.map(Definitions.established)
       clearWorking = logRef.set(Vector.empty[Event])
-      games <- GameSupervisor.make(playSeeded, memory, gameCounter, harvest, clearWorking)
+      games <- GameSupervisor.make(
+        playSeeded,
+        _ => IO.never[Outcome],
+        IO.pure(Vector.empty[Event]),
+        memory,
+        gameCounter,
+        harvest,
+        clearWorking,
+        _ => IO.unit
+      )
     yield Harness(games, logRef, memory, seeds, started)
 
   test(
@@ -237,7 +246,16 @@ class GameSupervisorResetSuite extends CatsEffectSuite with SocietyFixtures:
           if raise then IO.raiseError(boom) else logRef.get.map(Definitions.established)
         }
       clearWorking = logRef.set(Vector.empty[Event])
-      games <- GameSupervisor.make(playSeeded, memory, gameCounter, harvest, clearWorking)
+      games <- GameSupervisor.make(
+        playSeeded,
+        _ => IO.never[Outcome],
+        IO.pure(Vector.empty[Event]),
+        memory,
+        gameCounter,
+        harvest,
+        clearWorking,
+        _ => IO.unit
+      )
       awaitStart = (io: IO[Unit]) =>
         Deferred[IO, Unit].flatMap(d => started.set(Some(d)) *> io *> d.get)
       _ <- awaitStart(games.newGame) // boot: game 1 establishes alive

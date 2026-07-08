@@ -272,6 +272,63 @@ class SocietyGameSuite extends CatsEffectSuite:
   }
 
   test(
+    "SPIKE (B2 de-risk): the round loop RESUMES coherently over a non-empty seeded prefix"
+  ) {
+    // The committee's one empirical unknown: the round loop has only ever run from an EMPTY
+    // LogState.initial — no run has forked it over a pre-populated log. Seed a round-boundary prefix
+    // (a hypothesis + a proposed-but-UNASKED question q1) and resume. If B2's wholesale rewind is
+    // buildable, the loop must re-probe over GameView.from(prefix) and re-ask q1 (pendingQuestion
+    // re-surfaces it) rather than wedge or crash. This validates the resume mechanism the design of
+    // record rests on, before the full slice is built.
+    val prefix = Vector[Event](
+      Event.Assert(1, 1L, mkAgentId("driller"), apple, "guess"),
+      Event.QuestionProposed(2, 2L, mkAgentId("splitter"), mkQuestionId("q1"), "Is it big?")
+    )
+    val seeded = LogState(
+      log = prefix,
+      round = RoundId.first,
+      barrier = Barrier(RoundId.first, Set.empty, Set.empty, closed = true),
+      roundsUsed = 1,
+      phase = Phase.Playing,
+      agents = Nil
+    )
+    val scripts = Map(
+      "driller" -> List(passMove),
+      "splitter" -> List(passMove),
+      "skeptic" -> List(passMove)
+    )
+    for
+      llmFor <- scriptedLlms(scripts)
+      oracle <- Oracle.scripted(List(OracleAnswer.No))
+      sinkAndGet <- collectingSink
+      outcome <- Society.play(
+        AgentStrategy.cohort,
+        llmFor,
+        oracle,
+        sinkAndGet._1,
+        fast,
+        noTimeout,
+        initial = seeded
+      )
+      events <- sinkAndGet._2
+    yield
+      // (a) The resume did not wedge or crash — it reached a terminal outcome (a hang would trip the
+      //     hardDeadline and fail differently).
+      assertEquals(outcome, Outcome.Inconclusive)
+      // (b) The pending question q1 from the seeded prefix was RE-ASKED — pendingQuestion re-surfaced
+      //     it over the non-empty prefix (the committee's core worry, resolved).
+      assert(
+        events.exists {
+          case Event.QuestionAsked(_, _, _, qid, _) => qid.value == "q1"
+          case _ => false
+        },
+        clue(events)
+      )
+      // (c) The human's re-answer flowed in — the resumed turn completed end to end.
+      assert(events.exists(isAnswerGiven), clue("the re-asked question was answered"))
+  }
+
+  test(
     "an answer opens a NEW round: agents react to a 'no', retiring the abandoned candidate — it never signs"
   ) {
     val scripts = Map(

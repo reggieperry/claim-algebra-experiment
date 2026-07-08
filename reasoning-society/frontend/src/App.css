@@ -674,6 +674,63 @@
   color: var(--c-conflict);
 }
 
+/* --- The rewind panel (B2, recovery-and-endgame): reconsider one poisoned early answer. Shown only
+   when the convergence monitor flags the search as stuck; keyed to the conflict hue since it recovers a
+   stuck/contradicted search. --- */
+.panel--rewind {
+  border-color: var(--c-conflict);
+}
+.rewind__list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rewind__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--frame);
+  border-radius: 5px;
+  background: var(--panel-raise);
+}
+.rewind__question {
+  flex: 1;
+  font-size: 0.8rem;
+  color: var(--ink);
+}
+.rewind__answer {
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+.rewind__button {
+  padding: 5px 9px;
+  border: 1px solid var(--frame);
+  border-radius: 5px;
+  background: var(--panel-raise);
+  color: var(--ink-dim);
+  font: inherit;
+  font-size: 0.74rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease;
+}
+.rewind__button:hover {
+  border-color: var(--c-conflict);
+  color: var(--ink);
+}
+.rewind__error {
+  margin: 4px 0 0;
+  font-size: 0.72rem;
+  color: var(--c-conflict);
+}
+
 /* The definition(s) established for this question, rendered as CLAIMS (clarification-feature §4). */
 .human__defs {
   list-style: none;

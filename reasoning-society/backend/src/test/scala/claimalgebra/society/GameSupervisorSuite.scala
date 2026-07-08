@@ -76,7 +76,16 @@ class GameSupervisorSuite extends CatsEffectSuite:
       // for the replay-log clear + oracle reset.
       harvest = (_: GameId) => IO.pure(List.empty[Definition])
       clearWorking = log.set(Vector.empty)
-      games <- GameSupervisor.make(playSeeded, memory, gameCounter, harvest, clearWorking)
+      games <- GameSupervisor.make(
+        playSeeded,
+        _ => IO.never[Outcome],
+        IO.pure(Vector.empty[Event]),
+        memory,
+        gameCounter,
+        harvest,
+        clearWorking,
+        _ => IO.unit
+      )
     yield Harness(games, log, released, inFlight, maxInFlight, starts, nextStarted)
 
   // Poll the in-flight count with a fiber yield (no sleep) until it settles at `n`.

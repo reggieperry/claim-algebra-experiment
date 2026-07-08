@@ -6,5 +6,6 @@ export { EventStreamPanel } from './EventStreamPanel';
 export { HeaderBar } from './HeaderBar';
 export { HumanActionPanel } from './HumanActionPanel';
 export { MemoryPanel } from './MemoryPanel';
+export { RewindPanel } from './RewindPanel';
 export { SocietyNavigatorPanel } from './SocietyNavigatorPanel';
 export { TransportPanel } from './TransportPanel';

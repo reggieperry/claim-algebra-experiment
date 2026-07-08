@@ -32,6 +32,7 @@ object SocietyRoutes:
   private given answerEntityDecoder: EntityDecoder[IO, AnswerCommand] = jsonOf[IO, AnswerCommand]
   private given challengeEntityDecoder: EntityDecoder[IO, ChallengeCommand] =
     jsonOf[IO, ChallengeCommand]
+  private given rewindEntityDecoder: EntityDecoder[IO, RewindCommand] = jsonOf[IO, RewindCommand]
 
   private val landing: String =
     """reasoning-society transport (Build 3 slice 3a)
@@ -40,6 +41,7 @@ object SocietyRoutes:
       |  POST /challenge {"questionId": "...", "term": "..."}   (define a term before answering)
       |  POST /start     New Game — fresh working log, one game; learned definitions kept
       |  POST /reset     Full Reset — New Game plus clearing the learned definitions
+      |  POST /rewind    {"toSeq": <AnswerGiven seq>}  — flip one poisoned early answer (B2)
       |""".stripMargin
 
   /** Wire the routes.
@@ -59,7 +61,8 @@ object SocietyRoutes:
       logRef: Ref[IO, Vector[Event]],
       oracle: RemoteOracle,
       newGame: IO[Unit],
-      fullReset: IO[Unit]
+      fullReset: IO[Unit],
+      rewindTo: Int => IO[Unit]
   ): HttpRoutes[IO] =
     HttpRoutes.of[IO] {
       case GET -> Root / "events" =>
@@ -119,6 +122,21 @@ object SocietyRoutes:
         // Full Reset (serialized by the same mutex): as New Game, but the persistent definitions are
         // cleared too — a truly blank session.
         fullReset *> Ok(Json.obj("reset" -> true.asJson))
+
+      case request @ POST -> Root / "rewind" =>
+        // Rewind (B2): the human flips ONE poisoned early answer. Untrusted input: a malformed body or
+        // a non-positive toSeq is a 400. A valid toSeq is snapped SERVER-SIDE to the round boundary
+        // (never the client), and the SAME game re-folds the truncated prefix — fail-closed to a no-op
+        // prefix if the seq names no answer. Serialized by the GameSupervisor's mutex; on 2xx the
+        // browser reconnects and refills from the truncated snapshot.
+        request.attemptAs[RewindCommand].value.flatMap {
+          case Left(_) =>
+            BadRequest(
+              Json.obj("error" -> "malformed body; expected {toSeq: positive int}".asJson)
+            )
+          case Right(command) =>
+            rewindTo(command.toSeq) *> Ok(Json.obj("rewound" -> true.asJson))
+        }
 
       case GET -> Root =>
         Ok(landing)

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactElement } from 'react';
 
 import './App.css';
 import {
+  answeredQuestions,
   answerSeqFor,
   buildGraph,
   candidatesTouchedBy,
@@ -14,6 +15,7 @@ import {
   postAnswer,
   postChallenge,
   postReset,
+  postRewind,
   postStart,
   useLiveEvents,
 } from './live';
@@ -26,6 +28,7 @@ import {
   HeaderBar,
   HumanActionPanel,
   MemoryPanel,
+  RewindPanel,
   SocietyNavigatorPanel,
   TransportPanel,
 } from './panels';
@@ -87,6 +90,8 @@ export function App(): ReactElement {
   // for POST /reset (which also clears learned definitions). Derived UI state only.
   const [fullResetPending, setFullResetPending] = useState(false);
   const [fullResetError, setFullResetError] = useState<string | null>(null);
+  // A transient error from the last rewind POST — surfaced in the rewind panel, cleared on a fresh try.
+  const [rewindError, setRewindError] = useState<string | null>(null);
 
   // The single source of truth and its pure projections — recomputed every render, stored nowhere.
   const belief = fold(events, playhead);
@@ -94,6 +99,9 @@ export function App(): ReactElement {
   const society = societyOf(events, playhead, belief, ROSTER, graph);
   const memory = memoryOf(events, playhead, belief, graph);
   const definitions = definitionsOf(events, playhead);
+  // The human's own recent answers, for the rewind affordance (B2). A positional list, no diagnosis —
+  // the RewindPanel is inert unless the convergence flag is in scope and the stream is live.
+  const answered = answeredQuestions(events, playhead);
   const atHead = playhead >= total;
 
   // The agent filter is a VIEW derived from the same graph — the set of claims the selected agent
@@ -265,6 +273,21 @@ export function App(): ReactElement {
       });
   };
 
+  // The Rewind gesture (B2, recovery-and-endgame): the human reconsiders ONE poisoned early answer. POST
+  // its seq to /rewind — the backend snaps to the round boundary, re-folds the truncated log, and re-asks
+  // the question — then reconnect the SSE stream so it refills from the rewound log (seq 1). The sibling of
+  // handleNewGame/handleFullReset; a failure surfaces transiently in the panel and the operator retries.
+  const handleRewind = (toSeq: number): void => {
+    setRewindError(null);
+    void postRewind(toSeq)
+      .then(() => {
+        live.reconnect();
+      })
+      .catch(() => {
+        setRewindError('could not rewind — please retry');
+      });
+  };
+
   const handleToggleTier = (key: string): void => {
     setExpanded((current) => {
       const next = new Set(current);
@@ -315,6 +338,13 @@ export function App(): ReactElement {
             live={!offline}
             error={answerError}
             challengeError={challengeError}
+          />
+          <RewindPanel
+            answers={answered}
+            flagged={belief.convergence !== undefined}
+            live={!offline}
+            onRewind={handleRewind}
+            error={rewindError}
           />
         </div>
 

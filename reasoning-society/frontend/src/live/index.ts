@@ -10,3 +10,5 @@ export { postStart } from './postStart';
 export type { PostStartOptions } from './postStart';
 export { postReset } from './postReset';
 export type { PostResetOptions } from './postReset';
+export { postRewind } from './postRewind';
+export type { PostRewindOptions } from './postRewind';
