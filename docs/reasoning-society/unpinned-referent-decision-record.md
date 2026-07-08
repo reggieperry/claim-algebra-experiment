@@ -152,6 +152,38 @@ point.
 3. Independently of the toy, note the credit `⊗ₖ` guard is a manual, must-extend discipline; a per-node
    gate would be the more robust form if that path grows new contestable nodes.
 
+## Follow-up — the `conjoin` lift (built 2026-07-07)
+
+The reusable kernel inside `CreditNetwork` is `conjoin` — the fail-closed conjunction fork: an actively-
+contested conjunct routes to the truth-meet `∧ₜ` (which carries the contest to the root), otherwise the
+knowledge-meet `⊗ₖ`. Its signature and body are pure `Testimony`-level algebra (abstract `A, B, C`; only
+`corner`/`truthMeet`/`derive`/`Belnap`), so it is domain-neutral and a clean lift into the `claim-algebra`
+library. Two refinements from reading the source:
+
+- **`CreditNetwork` is legitimately the credit topology** (Money, Ratio, Covenant, the nine nodes); the
+  name is correct for what it is. It is `conjoin` that is mis-housed, not the network mis-named. The move
+  is extraction, not a rename.
+- **The shipped `conjoin` branches to `∧ₜ` only on `Belnap.False`, not `Belnap.Glut`.** A gluted conjunct
+  falls to the `else` → `⊗ₖ` → and launders (con `= c·0 = 0` → clean `True`). The credit path is safe
+  today only because the debt-glut is branched locally, before it can reach `conjoin` — the manual,
+  must-extend guard. So `conjoin` alone is not glut-safe.
+
+**The lift, done glut-safe:** a general `Testimony.conjoin` was added to the library that routes to `∧ₜ`
+when either conjunct's corner is `False` OR `Glut` (a conjunct carrying any con-channel mass), otherwise
+`⊗ₖ`; `CreditNetwork` delegates to it. This (1) creates the reusable, domain-neutral combinator the future
+twenty-questions multi-slot fix needs, and (2) hardens the credit path — a glut is now caught
+structurally rather than laundered, reducing the reliance the committee flagged. It is
+DECISION-preserving for the credit pipeline (the adversarial-verify corrected a looser claim here): a glut
+CAN reach `conjoin` — a debt-leaf F7 sends a gluted `debt` into `leverage` — but the downstream
+`corner(debt) == Glut → Blocked(Conflict)` branch guards the decision, and every stored/graded field reads
+the decision, so no finding changes; the extension only shifts the intermediate `leverage`/`covenant`
+corner `True → Glut` in that case, strictly more conservative and invisible to every measured field.
+Verified by the credit findings and the four TIE suites staying byte-identical. The all-corners
+enumeration is fail-closed: `conjoin` signs only when both conjuncts are cleanly `True`, and blocks on any
+gap, refutation, or glut. This does not itself build the multi-slot fix
+(still deferred behind the monitor hand-off) — it banks the corrected primitive so the eventual build
+reuses it rather than re-deriving it, and closes the latent glut-laundering gap in `conjoin` in passing.
+
 ## Correlation caveat and the running-system check
 
 The evaluation is Claude reasoning over one corpus, so lens concurrence is not independent confirmation —

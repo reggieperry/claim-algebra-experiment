@@ -109,6 +109,30 @@ object Testimony:
       Prov.plus(Prov.plus(Prov.times(ca, pb), Prov.times(pa, cb)), Prov.times(ca, cb))
     }
 
+  /** The fail-closed conjunction fork. A CONTESTED conjunct — one carrying con-channel mass,
+    * whether corner `F` (actively refuted) or `Glut` (asserted AND refuted) — routes to the
+    * TRUTH-meet `∧ₜ` ([[truthMeet]]), which carries the contest to the root so the composite's
+    * corner stays non-`True` and blocks. A merely-missing or clean conjunct takes the
+    * KNOWLEDGE-meet `⊗ₖ` default ([[derive]]): `N ⊗ₖ x = N` (a gap annihilates) and `T ⊗ₖ T = T`
+    * (two clean conjuncts compose clean).
+    *
+    * WHY the glut must join `∧ₜ` rather than fall to the `⊗ₖ` default: `⊗ₖ`'s con-channel is a
+    * PRODUCT of the two cons, so a gluted `(p, c)` conjoined with a clean-`True` `(q, 0)` yields
+    * con `= c · 0 = 0` — the composite reads a clean `True` and would sign, LAUNDERING the
+    * contradiction away. `∧ₜ`'s three-term con (`ca·pb + pa·cb + ca·cb`) is non-zero whenever a
+    * conjunct is contested, so it is carried to the root and blocks. This fork therefore routes `F`
+    * and `Glut` alike; routing only `F` would leave the glut to launder.
+    */
+  def conjoin[A, B, C](a: Testimony[A], b: Testimony[B])(f: (A, B) => C): Testimony[C] =
+    if contested(a) || contested(b) then truthMeet(a, b)(f) else derive(a, b)(f)
+
+  /** A conjunct carrying con-channel mass — corner `F` (refuted) or `Glut` (asserted and refuted).
+    * These are the two corners [[conjoin]] must keep OFF the knowledge-meet `⊗ₖ` default (which
+    * launders their con-channel), routing them to the truth-meet `∧ₜ` instead.
+    */
+  private def contested[A](t: Testimony[A]): Boolean =
+    corner(t) == Belnap.False || corner(t) == Belnap.Glut
+
   /** The conjunction skeleton: f-convolution over candidate pairs. Each pair `(va, vb)` yields the
     * result candidate `f(va, vb)` with pro `pa·pb` and con per the caller; pairs colliding on the
     * same result value accumulate by `+`. An empty input has no pairs, so the result is the gap —
