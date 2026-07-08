@@ -15,12 +15,17 @@ Ground yourself in the repo before judging: read the design doc / code under rev
 coding discipline in .claude/rules/ (craft-* + scala-*), and the relevant docs/ findings. The project's
 cardinal rule is FAIL-CLOSED — never sign or admit a wrong/partial/ungrounded value. Secondary virtues:
 deep, non-leaky abstraction (Ousterhout/Liskov) and honest reporting (do not manufacture an advantage;
-the project has killed features for having no measurable edge).`
+the project has killed features for having no measurable edge).
+
+MAPPING-VERIFICATION RULE: when the target claims a code construct IS some spec/algebra concept (e.g.
+"the corroboration floor = the verify conjunct"), verify it against the construct's actual definition and
+wiring — the parameters it is called with, the guards around it — never from the spec's shape alone, and
+never by accepting the target's own framing. This is where a review silently reproduces the author's error.`
 
 const LENSES = [
   ['safety', 'Judge ONLY safety and correctness. Is the fail-closed rule preserved? Any reachable path to a wrong/ungrounded result? Trace it concretely.'],
   ['design', 'Judge the abstraction and complexity (Ousterhout/Liskov). Is the seam deep and non-leaky, the right design? Is there a simpler or stronger alternative? Scope / YAGNI.'],
-  ['adversary', 'Attack it. Find where it breaks or where a claim is too strong; give concrete counterexamples; concede where you cannot break it.'],
+  ['adversary', "Attack it — including the target's OWN premises and every code↔spec mapping it asserts; do NOT refine within its framing. Find where it breaks or a claim is too strong, verify each asserted mapping against the code's actual wiring, give concrete counterexamples; concede where you cannot break it."],
 ]
 
 phase('Review')
@@ -40,7 +45,10 @@ const verdict = await agent(
     `\n\nProduce a clear PROSE verdict (no JSON — schema synthesis has crashed before). Open with exactly
 one line: "VERDICT: PROCEED" or "VERDICT: PROCEED WITH CHANGES" or "VERDICT: RECONSIDER". Then: (1) the
 blocking concerns, if any; (2) the required changes, concretely; (3) the strongest alternative raised and
-whether it beats the proposal; (4) any empirical unknown that should be spiked before committing. Weight
+whether it beats the proposal; (4) any empirical unknown that should be spiked before committing; (5) any
+conclusion resting on an unverified code↔spec mapping — flag it explicitly as needing a direct source
+read. Do not certify a mapping none of the lenses checked against the code: these lenses are the SAME
+model reasoning from one framing, so agreement is correlated, not independent validation. Weight
 fail-closed safety first, then abstraction quality, then simplicity. Be decisive.`,
   { label: 'synthesize', phase: 'Synthesize', effort: 'high' }
 )

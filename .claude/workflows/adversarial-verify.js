@@ -13,7 +13,13 @@ ${TARGET}
 Read the changed code and the relevant .claude/rules/ (esp. scala-security.md, scala-errors.md) and
 docs/ findings. The CARDINAL RULE is FAIL-CLOSED — never sign, admit, or return a wrong, partial, or
 ungrounded value; an error must degrade to a gap/abstention, never to a confident wrong result and never
-to an uncaught crash that bypasses the gap.`
+to an uncaught crash that bypasses the gap.
+
+MAPPING-VERIFICATION RULE: when the change's safety rests on a claim that a code construct IS some
+spec/algebra concept (e.g. "this floor discharges the verify conjunct", "this event is belief-inert"),
+VERIFY that mapping by reading the construct's actual definition and the parameters/guards it is wired
+with — never infer it from the spec's shape, and never accept the change's own framing of it. Reviews
+silently REPRODUCE the author's mapping error otherwise.`
 
 phase('Hunt')
 const [failOpen, correctness] = await parallel([
@@ -44,7 +50,10 @@ ${correctness}
 Produce a clear PROSE verdict (no JSON). Open with exactly one line: "VERDICT: MERGE_SAFE" or
 "VERDICT: FIX_NEEDED". MERGE_SAFE only if there is NO reachable way to produce a wrong/partial/ungrounded
 result and no error path bypasses the gap. List any required fix concretely with its triggering input;
-report fail-closed-safe recall regressions without blocking.`,
+report fail-closed-safe recall regressions without blocking. If the verdict rests on any code↔spec
+mapping, confirm it against the code's actual wiring or mark it UNVERIFIED — do not anchor on the change's
+own framing. (Caveat: this hunt and audit are the SAME model reasoning from one framing — agreement is
+correlated, not independent; a clean verdict resting on one unverified mapping is not safe.)`,
   { label: 'verdict', phase: 'Verdict', effort: 'high' }
 )
 
