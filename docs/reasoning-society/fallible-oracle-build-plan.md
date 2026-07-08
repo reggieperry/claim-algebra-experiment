@@ -44,7 +44,20 @@ The toy has **no** batch runner today — only `RunServer` (SSE) and `RunSociety
 
 ### Slice 4 — redundancy / correlation study — ⚠️ THE ONE CORE-TOUCHING SLICE
 
-**BUILT + adversarially-verified MERGE_SAFE (2026-07-08, commit `8d40993`, 231 tests).** Byte-identical at k=1; k>1 reaches nothing shipped. The one-line summary: `decide`'s floor disjunct became `oracleConfirmations >= k`, the LogActor pose guard became a per-candidate budget (re-pose via the existing give-up ladder), `CorrelatedConfirmations` realizes ρ, guess-truth is structural, and `SweepCell(k,ρ)`/`GameRecord.signPath` carry the study. The full billed sweep is a separate trigger-gated run.
+**BUILT + adversarially-verified MERGE_SAFE (2026-07-08, commit `8d40993`, 231 tests).** Byte-identical at k=1; k>1 reaches nothing shipped. The one-line summary: `decide`'s floor disjunct became `oracleConfirmations >= k`, the LogActor pose guard became a per-candidate budget (re-pose via the existing give-up ladder), `CorrelatedConfirmations` realizes ρ, guess-truth is structural, and `SweepCell(k,ρ)`/`GameRecord.signPath` carry the study.
+
+**The (k, ρ) fail-open CURVE — HERMETIC, end to end (commit `c624a8d`).** The live toy mostly abstains, so the "full sweep" is hermetic rather than billed: a scripted lone-"apple" cohort always reaches the give-up guess, target="dog" so every sign is an oracle-confirmed fail-open, answered through `CorrelatedConfirmations`. Swept `k∈{1,2,3} × ρ∈{0,0.5,1}`, N=800/cell, through the REAL society/gate/re-pose loop (`RunOracleSweep` default; `renderCorrelation` counts only `OracleConfirmed` signs via `signPath`):
+
+```
+  k   rho      N  FAIL-OPEN (oracle-confirmed)   (1-p)^k   (1-p)
+  1  0.00/0.50/1.00        0.32 (flat)             0.300   0.300   ← no redundancy
+  2  0.00                  0.093 [0.07-0.11]        0.090   0.300   ← independent: redundancy pays
+  2  1.00                  0.320 [0.29-0.35]        0.090   0.300   ← correlated: buys nothing
+  3  0.00                  0.024 [0.02-0.04]        0.027   0.300   ← ~13× suppression
+  3  1.00                  0.320 [0.29-0.35]        0.027   0.300   ← monoculture: flat at (1-p)
+```
+
+Along ρ=0 the fail-open falls geometrically with k; along ρ=1 it is flat at (1-p) — three correlated confirmations are no safer than one. **Epistemic adversarial-verify = GENUINE-AS-FRAMED, one overclaim softened:** ρ is an *assumed, swept* parameter, so this makes the Part-V monoculture failure mode CONCRETE and validates it end to end *as a function of a given correlation* — it does NOT measure real all-Claude-check correlation, and the curve equals a closed form a pure test already pins, so its value is end-to-end integration confidence, not a numerical discovery. Not a finding-7 rig (no control, no arm comparison). A real *billed* sweep remains a separate trigger-gated run and would only add live confounds (abstention), not tighten this curve.
 
 The only part that modifies the fail-closed sign path. **Committee-reviewed 2026-07-08 → PROCEED WITH CHANGES; the three load-bearing code-facts were then verified directly against source.** Design of record (revised from the seam-map sketch, which was wrong on two points):
 
