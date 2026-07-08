@@ -187,6 +187,20 @@ enum Event extends EventMeta:
     */
   case GuessAnswered(seq: Int, timestamp: Long, candidateId: Answer, answer: OracleAnswer)
 
+  /** The fallible-oracle experiment's SEALED TRUE TARGET, registered at game start
+    * (fallible-oracle-experiment-design). It exists in the log ONLY to adjudicate the outcome —
+    * compare the signed slot, if any, to this — and MUST NOT enter the society's reasoning: it
+    * matches no case in [[GameView.from]]'s agent-facing whitelist, so it never reaches a prompt
+    * (the non-leakage is STRUCTURAL, by omission — do not add a case for it there). Belief-inert
+    * exactly like the librarian markers — no agent (the experimenter is outside the actor graph,
+    * like the oracle), and it projects to nothing ([[GameCore.project]]), so it can never move a
+    * hypothesis, invent a backer, or change the gate/sign decision. `seed` records the oracle's
+    * error-model RNG seed so a game is bit-reproducible from (target, seed) plus the logged
+    * answers. Injected via `Society.play`'s `initial: LogState` seam (the harness seeds it at the
+    * head of the log).
+    */
+  case TargetRegistered(seq: Int, timestamp: Long, target: Answer, seed: Long)
+
   /** The uniform "who spoke" read — `Some` on the seven agent-bearing variants (including
     * [[DefinitionGiven]], the asking agent's move), `None` on the human's challenge, the recalled
     * definition (its author spoke in a prior game — the origin agent is provenance, not a this-game
@@ -216,3 +230,5 @@ enum Event extends EventMeta:
     case ConvergenceWarning(_, _, _, _) => None
     // The guess is posed by the society to the oracle, not by an agent — no agent.
     case GuessAnswered(_, _, _, _) => None
+    // The experiment's sealed truth is the experimenter's, outside the actor graph — no agent.
+    case TargetRegistered(_, _, _, _) => None

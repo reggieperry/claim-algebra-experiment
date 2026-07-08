@@ -129,6 +129,12 @@ object GameCore:
       // [[oracleConfirmed]] relaxes the decide floor on a Yes) — never by projecting to Evidence. A
       // con here would glut the slot's channel totals and deadlock signing (the committee's B-1).
       case _: Event.GuessAnswered => Nil
+      // The fallible-oracle experiment's sealed true target (fallible-oracle-experiment-design) is
+      // BELIEF-INERT: it is the experimenter's adjudication record, MUST NOT move belief, and — since
+      // it also matches no case in GameView.from — never reaches the agents. `project ≡
+      // maskedProject(_, ∅)` and every gate/sign read fold over this, so a Nil projection is the
+      // guarantee the sealed truth cannot influence the game it adjudicates.
+      case _: Event.TargetRegistered => Nil
     }
 
   /** The folded answer-slot at a prefix — the single `Testimony[Answer]` whose candidate values are

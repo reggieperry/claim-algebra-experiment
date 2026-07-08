@@ -207,6 +207,17 @@ object Wire:
         "candidateId" -> candidate.value.asJson,
         "answer" -> answerToken(answer).asJson
       )
+    // The fallible-oracle experiment's sealed true target is REDACTED on the wire: the target and
+    // seed are DELIBERATELY omitted, so even if an experiment game were ever streamed to a browser
+    // the answer the experiment measures cannot leak (defense-in-depth over the fact that the SSE
+    // path never carries this marker — only the headless harness seeds it). The frontend has no
+    // decoder for `target_registered` and drops it.
+    case Event.TargetRegistered(seq, timestamp, _, _) =>
+      Json.obj(
+        "seq" -> seq.asJson,
+        "timestamp" -> timestamp.asJson,
+        "type" -> "target_registered".asJson
+      )
   }
 
   /** The nested `origin` object on a `definition_remembered` frame — the provenance of a recalled
