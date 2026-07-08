@@ -7,52 +7,71 @@ import claimalgebra.extract.{AnthropicLlmCall, CallError, LlmCall}
 
 import scala.concurrent.duration.*
 
-/** The fallible-oracle sweep entry point (fallible-oracle-build-plan §Slice 2). The DEFAULT run is
-  * a HERMETIC demonstration — a scripted apple-signing cohort over a couple of cells, proving the
-  * harness runs end to end and prints the three-rate report WITHOUT a single live call. The stub
-  * ignores the oracle, so this exercises the PIPELINE, not the science; the real curves need live
-  * agents that reason over corrupted answers plus the experimenter's truthful-oracle — a design
-  * decision, sequenced as Slice 3 and gated behind `RUN_LIVE_ORACLE_SWEEP`.
+/** The fallible-oracle sweep entry point. The DEFAULT run is the HERMETIC redundancy/correlation
+  * curve ([[correlationSweep]], Slice 4 — the crown jewel): a deterministic, large-N sweep over
+  * `(k, rho)` through the real society / gate / re-pose loop that shows the fail-open rate falling
+  * from `(1-p)^k` (independent confirmations) to `(1-p)` (correlated — the monoculture) as `rho`
+  * rises. `RUN_LIVE_ORACLE_SWEEP` selects the billed live diagnostic ([[live]], Slice 3) instead.
   *
   * {{{sbt "reasoningSociety/runMain claimalgebra.society.experiment.RunOracleSweep"}}}
   */
 object RunOracleSweep extends IOApp.Simple:
 
-  private val config =
-    SocietyConfig(maxRounds = 6, roundTimeout = 5.seconds, hardDeadline = 1.minute)
-
   def run: IO[Unit] =
-    if sys.env.contains("RUN_LIVE_ORACLE_SWEEP") then live else hermeticDemo
+    if sys.env.contains("RUN_LIVE_ORACLE_SWEEP") then live else correlationSweep
 
-  private def hermeticDemo: IO[Unit] =
-    val cells = List(
-      SweepCell(1.0, "perfect", "easy"),
-      SweepCell(0.7, "systematic", "easy"),
-      SweepCell(0.7, "independent-uniform", "easy")
-    )
+  // A tight budget: the lone cohort asserts once then passes, so a game reaches the give-up GUESS in
+  // a few rounds. Rounds close on full-cohort report (every agent posts each round), so the timers
+  // never fire and the sweep stays fast and fully hermetic.
+  private val hermeticConfig =
+    SocietyConfig(maxRounds = 3, roundTimeout = 5.seconds, hardDeadline = 1.minute)
+
+  /** The HERMETIC redundancy/correlation curve (fallible-oracle Slice 4). A scripted LONE-candidate
+    * cohort (asserts "apple", one backer, then passes) drives every game straight to the give-up
+    * GUESS "is it apple?" — but the sealed target is "dog", so the guess is WRONG and any signature
+    * is a FAIL-OPEN. The oracle answers the guess through `CorrelatedConfirmations(p, rho)`: a
+    * fail-open needs ALL `k` poses to corrupt No→Yes, so the fail-open rate IS the joint flip rate
+    * — `(1-p)^k` at rho=0 (independent confirmations → redundancy pays) climbing to `(1-p)` at
+    * rho=1 (correlated → the monoculture failure mode, where redundancy buys nothing). It runs
+    * through the REAL society / gate / re-pose loop, not the ErrorModel in isolation, so it
+    * VALIDATES that the k-quorum machinery yields that rate end to end (a buggy loop would break
+    * the curve).
+    *
+    * Scope, stated honestly: `rho` is an ASSUMED, swept parameter — this makes the Part-V
+    * monoculture failure mode CONCRETE as a function of a given confirmation-correlation; it does
+    * NOT measure the real correlation of redundant model checks (this bench says nothing about that
+    * magnitude), and the curve is a closed form a pure test already pins
+    * ([[ExperimentOracleSuite]]), so the value here is end-to-end integration confidence, not a
+    * numerical discovery.
+    */
+  private def correlationSweep: IO[Unit] =
+    val p = 0.7
+    val n = 800
+    val cells = for
+      k <- List(1, 2, 3)
+      rho <- List(0.0, 0.5, 1.0)
+    yield SweepCell(p, "correlated", "lone-wrong-guess", k = k, rho = rho)
     for
-      apple <- answer("apple")
       dog <- answer("dog")
-      truth = TruthOracle.pure((_, _) => OracleAnswer.Yes)
-      targets = List((apple, truth), (dog, truth))
+      // never consulted: the cohort proposes no property questions, and guesses are answered
+      // structurally (guessTruth), so the truth oracle is inert here.
+      truth = TruthOracle.pure((_, _) => OracleAnswer.Unknown)
+      _ <- IO.println(
+        s"=== fallible-oracle CORRELATION sweep — HERMETIC (p=$p, N=$n/cell, k × rho) ==="
+      )
+      _ <- IO.println(
+        "every sign is an oracle-confirmed fail-open (target=dog, lone guess=apple);" +
+          " expect (1-p)^k at rho=0, (1-p) at rho=1\n"
+      )
       records <- OracleSweep.sweep(
-        signingCohort,
-        config,
+        loneCohort,
+        hermeticConfig,
         cells,
-        targets,
-        gamesPerCell = 3,
-        concurrency = 2
+        List((dog, truth)),
+        gamesPerCell = n,
+        concurrency = 8
       )
-      _ <- IO.println(
-        "=== fallible-oracle sweep — HERMETIC demo (scripted cohort; pipeline only) ==="
-      )
-      _ <- IO.println(
-        "(the stub ignores the oracle and always signs apple, so p has no effect here;"
-      )
-      _ <- IO.println(
-        " it proves the harness runs. Real curves: RUN_LIVE_ORACLE_SWEEP — Slice 3.)\n"
-      )
-      _ <- IO.println(OracleSweep.render(OracleSweep.summarize(records)))
+      _ <- IO.println(OracleSweep.renderCorrelation(records, p))
     yield ()
 
   // A bigger budget than the hermetic config: live Haiku needs room to converge on a lone candidate
@@ -114,16 +133,13 @@ object RunOracleSweep extends IOApp.Simple:
     def call(s: String, u: String): IO[Either[CallError, AgentMoveDto]] =
       IO.pure(Right(StubLlm.pass))
 
-  // A FRESH apple-signing cohort per game (StubLlm cursors are per-game state, so the factory rebuilds
-  // them each time — mirrors RunServer.hermetic).
-  private def signingCohort: IO[AgentId => LlmCall[AgentMoveDto]] =
+  // A FRESH lone cohort per game: driller asserts "apple" ONCE (one backer, no corroborator) then
+  // passes, and every other agent passes → a lone Unconfirmed winner → the give-up ladder GUESSES
+  // "is it apple?". (StubLlm cursors are per-game state, so the factory rebuilds them each game;
+  // `[assert, pass]` is explicit because an exhausted script repeats its LAST element.)
+  private def loneCohort: IO[AgentId => LlmCall[AgentMoveDto]] =
     val scripts: Map[String, List[Either[CallError, AgentMoveDto]]] = Map(
-      "driller" -> List(Right(StubLlm.move("assert", "apple", "a common fruit"))),
-      "splitter" -> List(
-        Right(StubLlm.move("propose", "", "Is it a fruit?")),
-        Right(StubLlm.move("corroborate", "apple", "agreed"))
-      ),
-      "skeptic" -> List(Right(StubLlm.pass))
+      "driller" -> List(Right(StubLlm.move("assert", "apple", "a lone guess")), Right(StubLlm.pass))
     )
     scripts.toList
       .traverse((id, script) => StubLlm.scripted(script).map(id -> _))

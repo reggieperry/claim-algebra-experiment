@@ -193,3 +193,45 @@ object OracleSweep:
         f"${cell.reliability}%5.2f ${cell.errorModel}%20s ${cell.difficulty}%8s ${rep.n}%4d ${fmt(rep.failOpen)}%16s ${fmt(rep.abstain)}%16s ${fmt(rep.signCorrect)}%16s"
       }
     (header :: rows).mkString("\n")
+
+  /** The correlation-curve report (fallible-oracle Slice 4). It does NOT claim to *measure* real
+    * check correlation: `rho` is an ASSUMED, swept sweep-parameter, so this validates the
+    * *consequence* of a given correlation end to end, not its real-world magnitude. Per `(k, rho)`
+    * cell it reports the ORACLE-CONFIRMED fail-open rate — `SignWrong` via the k-quorum disjunct,
+    * read off `signPath`, so a k-invariant `BackerQuorum` sign is EXCLUDED by construction rather
+    * than merely assumed absent (a future corroborator in the cohort can no longer silently pollute
+    * the curve; any such sign is counted and flagged on a trailing line). In the lone-wrong-guess
+    * harness that rate IS the joint probability that all `k` guess-confirmations corrupt, shown
+    * beside the two analytic anchors: `(1-p)^k` (the `rho = 0` independent floor, where redundancy
+    * pays) and `(1-p)` (the `rho = 1` monoculture, where correlated confirmations buy nothing).
+    * This adds INTEGRATION confidence — a buggy re-pose loop would break the curve — over a closed
+    * form a pure test already pins ([[ExperimentOracleSuite]]); it is not a numerical discovery.
+    */
+  def renderCorrelation(records: List[GameRecord], p: Double): String =
+    val header =
+      f"${"k"}%3s ${"rho"}%5s ${"N"}%6s ${"FAIL-OPEN (oracle-confirmed)"}%29s ${"(1-p)^k"}%9s ${"(1-p)"}%7s"
+    val byCell = records.groupBy(_.cell).toList.sortBy((c, _) => (c.k, c.rho))
+    val rows = byCell.map { (cell, rs) =>
+      val n = rs.size
+      // Only OracleConfirmed fail-opens count — the sign-disjunct attribution the curve depends on,
+      // ENFORCED via signPath, not assumed from the cohort construction.
+      val failOpen = Rate(
+        rs.count(r =>
+          r.outcome == PrimaryOutcome.SignWrong && r.signPath.contains(SignPath.OracleConfirmed)
+        ),
+        n
+      )
+      val (lo, hi) = failOpen.ci95
+      val obs = f"${failOpen.point}%.3f [${lo}%.2f-${hi}%.2f]"
+      val indep = math.pow(1.0 - p, cell.k.toDouble)
+      f"${cell.k}%3d ${cell.rho}%5.2f ${n}%6d ${obs}%29s ${indep}%9.3f ${1.0 - p}%7.3f"
+    }
+    // Guard the load-bearing invariant: a BackerQuorum sign is k-invariant and would pollute the curve.
+    val bogus = records.count(_.signPath.contains(SignPath.BackerQuorum))
+    val note =
+      if bogus == 0 then Nil
+      else
+        List(
+          s"!! WARNING: $bogus BackerQuorum sign(s) — the cohort is no longer lone; curve polluted"
+        )
+    (header :: rows ++ note).mkString("\n")

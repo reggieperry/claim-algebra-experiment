@@ -118,3 +118,42 @@ class OracleSweepSuite extends CatsEffectSuite with SocietyFixtures:
     val (lo, hi) = cell.failOpen.ci95
     assert(lo >= 0.0 && hi <= 1.0 && lo < hi, clue((lo, hi)))
   }
+
+  test(
+    "the k=2 redundancy curve is real END TO END: ρ=0 suppresses the fail-open, ρ=1 (monoculture) does not"
+  ) {
+    // A lone-"apple" cohort gives up and guesses "is it apple?"; the sealed target is "dog", so EVERY
+    // signature is an oracle-confirmed fail-open. Through the real gate + re-pose loop, k=2 needs BOTH
+    // guess-confirmations corrupted: independent (ρ=0) ⇒ ~(1-p)² = 0.09; correlated (ρ=1) ⇒ ~(1-p) =
+    // 0.30. So redundancy suppresses the fail-open ONLY when the confirmations are independent.
+    val p = 0.7
+    val n = 120
+    val cfg = SocietyConfig(maxRounds = 3, roundTimeout = 5.seconds, hardDeadline = 1.minute)
+    val truthUnknown = TruthOracle.pure((_, _) => OracleAnswer.Unknown)
+    def loneCohort: IO[AgentId => LlmCall[AgentMoveDto]] =
+      cohortFrom(
+        Map("driller" -> List(Right(StubLlm.move("assert", "apple", "lone")), Right(StubLlm.pass)))
+      )
+    def failOpenRate(rho: Double): IO[Double] =
+      val cell = SweepCell(p, "correlated", "lone-wrong-guess", k = 2, rho = rho)
+      OracleSweep
+        .sweep(
+          loneCohort,
+          cfg,
+          List(cell),
+          List((dog, truthUnknown)),
+          gamesPerCell = n,
+          concurrency = 4
+        )
+        .map(recs => OracleSweep.summarize(recs)(cell).failOpen.point)
+    for
+      indep <- failOpenRate(0.0)
+      corr <- failOpenRate(1.0)
+    yield
+      assert(indep < 0.20, clue(s"ρ=0 fail-open ≈ (1-p)² = 0.09, got $indep"))
+      assert(corr > 0.22, clue(s"ρ=1 fail-open ≈ (1-p) = 0.30, got $corr"))
+      assert(
+        corr > indep + 0.10,
+        clue(s"redundancy pays ONLY under independence: ρ=0 $indep vs ρ=1 $corr")
+      )
+  }
