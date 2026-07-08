@@ -7,18 +7,28 @@ import cats.syntax.all.*
 import claimalgebra.extract.{CallError, LlmCall}
 
 /** The coordinates of one sweep point (fallible-oracle-experiment-design §Independent variables).
-  * `errorModel` names the adversary: `"perfect"`, `"independent-uniform"`, `"systematic"`.
+  * `errorModel` names the adversary: `"perfect"`, `"independent-uniform"`, `"systematic"`,
+  * `"correlated"`. `k` is the confirmation quorum (Slice 4) and `rho` the confirmation correlation
+  * (used only by the `"correlated"` model); both default to the shipped single-confirmation game.
   */
-final case class SweepCell(reliability: Double, errorModel: String, difficulty: String)
+final case class SweepCell(
+    reliability: Double,
+    errorModel: String,
+    difficulty: String,
+    k: Int = 1,
+    rho: Double = 0.0
+)
 
-/** One trial's record: the cell, the sealed truth, what (if anything) was signed, the adjudicated
-  * primary outcome, and the seed (for bit-reproducibility).
+/** One trial's record: the cell, the sealed truth, what (if anything) was signed, HOW it signed
+  * (the sign-disjunct attribution — Slice 4, so k-invariant backer signs stay out of the redundancy
+  * curve), the adjudicated primary outcome, and the seed (for bit-reproducibility).
   */
 final case class GameRecord(
     cell: SweepCell,
     trueTarget: Answer,
     signed: Option[Answer],
     outcome: PrimaryOutcome,
+    signPath: Option[SignPath],
     seed: Long
 )
 
@@ -39,6 +49,7 @@ object OracleSweep:
   def modelFor(cell: SweepCell, seed: Long): ErrorModel = cell.errorModel match
     case "independent-uniform" => ErrorModel.IndependentUniform(cell.reliability)
     case "systematic" => ErrorModel.SystematicPerQuestion(cell.reliability, seed)
+    case "correlated" => ErrorModel.CorrelatedConfirmations(cell.reliability, cell.rho, seed)
     case _ => ErrorModel.perfect
 
   private def collectingSink: IO[(EventSink, IO[Vector[Event]])] =
@@ -72,14 +83,24 @@ object OracleSweep:
         llmFor,
         oracle,
         sink,
-        config,
+        config.copy(k = cell.k), // the cell's confirmation quorum drives this game
         definerFor = definerFor,
         initial = initial
       )
       emitted <- getEvents
       fullLog = initial.log ++ emitted
       primary <- IO.fromEither(Adjudication.classify(fullLog).leftMap(m => RuntimeException(m)))
-    yield (GameRecord(cell, target, Adjudication.signed(fullLog), primary, seed), fullLog)
+    yield (
+      GameRecord(
+        cell,
+        target,
+        Adjudication.signed(fullLog),
+        primary,
+        Adjudication.signPath(fullLog),
+        seed
+      ),
+      fullLog
+    )
 
   /** The sweep grid: for each `(cell, target)` run `gamesPerCell` games with BOUNDED fan-out —
     * never unbounded, since each game already fans out ~3 agent calls per round (rate-limit

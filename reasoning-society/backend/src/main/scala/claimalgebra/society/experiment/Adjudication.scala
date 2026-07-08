@@ -16,6 +16,21 @@ enum PrimaryOutcome:
   /** The gate signed nothing (inconclusive / budget exhausted). */
   case Abstain
 
+/** Which acceptance disjunct produced a signature (fallible-oracle Slice 4). The k-confirmation
+  * quorum gates ONLY [[OracleConfirmed]], so [[BackerQuorum]] signs are k-INVARIANT and must be
+  * isolated from the crown-jewel curve in analysis (otherwise they flatten the redundancy effect).
+  */
+enum SignPath:
+  /** Signed via ≥ MinCorroboration distinct backers — structural corroboration, independent of the
+    * oracle and of `k`.
+    */
+  case BackerQuorum
+
+  /** Signed via the `k` ground-truth guess-confirmations (the oracle-confirmed floor relaxation) —
+    * the path `k` tightens and the correlation study measures.
+    */
+  case OracleConfirmed
+
 /** The mechanical adjudicator: a pure fold over a finished game's log that classifies the outcome
   * against the sealed truth. No LLM judge, no similarity threshold (consistent with librarian
   * non-generativity, fallible-oracle-experiment-design §Dependent variables): SignWrong holds iff
@@ -36,6 +51,17 @@ object Adjudication:
     */
   def signed(log: Seq[Event]): Option[Answer] =
     log.collect { case Event.GateSign(_, _, c) => c }.lastOption
+
+  /** Which disjunct produced the signature, if any: [[SignPath.BackerQuorum]] when the signed
+    * candidate had ≥ `MinCorroboration` distinct backers (k-invariant), else
+    * [[SignPath.OracleConfirmed]] (the k-gated ground-truth path the correlation study measures).
+    * `None` when the game abstained. Read from the final log — the same folds `decide` used.
+    */
+  def signPath(log: Seq[Event]): Option[SignPath] =
+    signed(log).map { c =>
+      if GameCore.distinctBackers(log, c) >= GameCore.MinCorroboration then SignPath.BackerQuorum
+      else SignPath.OracleConfirmed
+    }
 
   /** Classify a finished game's log against its sealed truth. Fail-closed: a log with no
     * [[Event.TargetRegistered]] marker cannot be adjudicated (a harness error, never a valid

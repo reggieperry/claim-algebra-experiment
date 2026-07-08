@@ -31,6 +31,9 @@ class SocietyGameSuite extends CatsEffectSuite:
   private val fast = SocietyConfig(maxRounds = 6, roundTimeout = 1.hour, hardDeadline = 10.seconds)
   private val attrition =
     SocietyConfig(maxRounds = 3, roundTimeout = 1.hour, hardDeadline = 10.seconds)
+  // A k=2 confirmation quorum (fallible-oracle Slice 4): a lone candidate needs TWO oracle Yes-es.
+  private val k2 =
+    SocietyConfig(maxRounds = 3, roundTimeout = 1.hour, hardDeadline = 10.seconds, k = 2)
 
   // The round timeout never fires; rounds close on full-cohort report (deterministic).
   private def noTimeout(supervisor: Supervisor[IO]): Scheduler = new Scheduler:
@@ -269,6 +272,47 @@ class SocietyGameSuite extends CatsEffectSuite:
       // nothing left to re-guess (termination).
       val guesses = events.collect { case Event.GuessAnswered(_, _, c, a) => (c, a) }
       assertEquals(guesses, Vector((apple, OracleAnswer.No)))
+  }
+
+  test("k=2: a lone candidate signs only after TWO oracle confirmations (the re-pose loop)") {
+    // A lone backer never reaches the internal 2-backer quorum, so the society guesses. At k=2 one
+    // Yes is short of quorum: onGuessAnswered re-poses through the give-up ladder, and the SECOND
+    // Yes signs. The scripted oracle delivers Yes, Yes in order across the two poses.
+    val scripts = Map(
+      "driller" -> List(assertOf("apple")),
+      "splitter" -> List(passMove),
+      "skeptic" -> List(passMove)
+    )
+    for
+      llmFor <- scriptedLlms(scripts)
+      result <- play(llmFor, List(OracleAnswer.Yes, OracleAnswer.Yes), noTimeout, k2)
+    yield
+      val (outcome, events) = result
+      assertEquals(outcome, Outcome.Signed(apple))
+      assertEquals(gateSigns(events), Vector(apple), clue("signs once, on the quorum"))
+      val yesGuesses = events.count {
+        case Event.GuessAnswered(_, _, c, OracleAnswer.Yes) => c == apple
+        case _ => false
+      }
+      assertEquals(yesGuesses, 2, clue("k=2 re-posed the guess and collected TWO confirmations"))
+  }
+
+  test("k=2: a SINGLE confirmation is short of quorum → Inconclusive, never a sign below k") {
+    // Only one Yes is scripted; the re-pose draws Unknown (the exhausted-oracle default), which can
+    // never reach the k=2 Yes-quorum — the game fails closed to Inconclusive rather than signing on
+    // one confirmation (which is what k=1 would have done — see the B1 test above).
+    val scripts = Map(
+      "driller" -> List(assertOf("apple")),
+      "splitter" -> List(passMove),
+      "skeptic" -> List(passMove)
+    )
+    for
+      llmFor <- scriptedLlms(scripts)
+      result <- play(llmFor, List(OracleAnswer.Yes), noTimeout, k2)
+    yield
+      val (outcome, events) = result
+      assertEquals(outcome, Outcome.Inconclusive, clue("one confirmation cannot reach k=2"))
+      assertEquals(gateSigns(events), Vector.empty, clue("never signs below quorum"))
   }
 
   test(

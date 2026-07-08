@@ -57,6 +57,39 @@ object ErrorModel:
     def corrupt(question: Question, truthful: OracleAnswer, draw: Double): OracleAnswer =
       if blindSpot(question, seed, p) then flip(truthful) else truthful
 
+  /** Correlated confirmations (fallible-oracle Slice 4 — THE redundancy/correlation study, Part-V
+    * monoculture made measurable). The `k` re-poses of ONE guess draw their errors with correlation
+    * `rho`: a candidate-stable COMMON-MODE latent (a Bernoulli(1−p) hashed from the question text +
+    * `seed`, IDENTICAL across every pose of that guess) and a fresh per-pose INDEPENDENT component
+    * (the `draw`). Each pose delivers the common error with probability `rho`, else its independent
+    * error. The per-pose MARGINAL flip rate is `(1 − p)` at every `rho` (so per-question
+    * reliability is unchanged); `rho` moves only the JOINT rate that all `k` poses flip together —
+    * the fail-open. `rho = 0` → independent, joint ≈ `(1 − p)^k` (redundancy pays); `rho = 1` → the
+    * SAME error every pose, joint ≈ `(1 − p)` (redundancy buys nothing — the monoculture failure).
+    * The common-mode keys on the candidate-stable question (`guess-<c>`), which is exactly why the
+    * guess QuestionId must NOT be de-collided per pose.
+    */
+  final case class CorrelatedConfirmations(p: Double, rho: Double, seed: Long) extends ErrorModel:
+    def corrupt(question: Question, truthful: OracleAnswer, draw: Double): OracleAnswer =
+      // draw < rho selects the correlated (common) error; otherwise an independent flip, taken from
+      // the leftover uniform mass (draw − rho)/(1 − rho), so a single per-pose draw carries both the
+      // mixing coin and the independent component. At rho = 1 the else branch is unreachable
+      // (draw < 1 always), so there is no division by zero.
+      val flipped =
+        if draw < rho then CorrelatedConfirmations.commonUniform(question, seed) < (1.0 - p)
+        else ((draw - rho) / (1.0 - rho)) < (1.0 - p)
+      if flipped then flip(truthful) else truthful
+
+  object CorrelatedConfirmations:
+    /** The candidate-stable common-mode latent — a uniform in `[0, 1)` hashed from `(seed, question
+      * text)`, identical across the `k` poses of one guess, so at `rho = 1` every pose flips
+      * together.
+      */
+    private[experiment] def commonUniform(question: Question, seed: Long): Double =
+      val h =
+        scala.util.hashing.MurmurHash3.stringHash(s"$seed:common:${question.text}") & 0x7fffffff
+      h.toDouble / Int.MaxValue.toDouble
+
   /** Flip yes↔no; a gap stays a gap (a corruption does not manufacture knowledge). */
   def flip(a: OracleAnswer): OracleAnswer = a match
     case OracleAnswer.Yes => OracleAnswer.No

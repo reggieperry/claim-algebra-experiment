@@ -70,3 +70,58 @@ class GuessGateSuite extends munit.FunSuite with SocietyFixtures:
       case GateDecision.Abstain(AbstainReason.Blocked(_)) => () // correct: contested → held
       case other => fail(s"a confirmed-but-contested candidate must NOT sign, got $other")
   }
+
+  // --- fallible-oracle Slice 4: the k-confirmation quorum ---
+
+  test("oracleConfirmations counts the distinct YES guesses for a candidate") {
+    val base = Vector(mkAssert(1, driller, dog))
+    val twoYes = base :+ guess(2, dog, OracleAnswer.Yes) :+ guess(3, dog, OracleAnswer.Yes)
+    assertEquals(GameCore.oracleConfirmations(base, dog), 0)
+    assertEquals(GameCore.oracleConfirmations(twoYes, dog), 2)
+    assertEquals(GameCore.oracleConfirmations(twoYes, cat), 0, clue("counts per-candidate"))
+  }
+
+  test("k=1 is byte-identical (one YES signs); k=2 needs TWO genuine confirmations") {
+    val oneYes = Vector(mkAssert(1, driller, dog), guess(2, dog, OracleAnswer.Yes))
+    val twoYes = oneYes :+ guess(3, dog, OracleAnswer.Yes)
+    // k=1 (the shipped default): one Yes signs a lone candidate — exactly as B1.
+    assertEquals(GameCore.decide(oneYes, oneYes.size), GateDecision.Sign(dog))
+    // k=2: one Yes is short of quorum — still Unconfirmed; the second Yes signs.
+    assertEquals(
+      GameCore.decide(oneYes, oneYes.size, k = 2),
+      GateDecision.Abstain(AbstainReason.Unconfirmed(1))
+    )
+    assertEquals(GameCore.decide(twoYes, twoYes.size, k = 2), GateDecision.Sign(dog))
+  }
+
+  test(
+    "the k-quorum stays BEHIND Gate.accept — k confirmations cannot sign a contested candidate"
+  ) {
+    val log = Vector(
+      mkAssert(1, driller, dog),
+      guess(2, dog, OracleAnswer.Yes),
+      guess(3, dog, OracleAnswer.Yes),
+      refute(4, skeptic, dog) // glut → Blocked before the floor, regardless of k
+    )
+    GameCore.decide(log, log.size, k = 2) match
+      case GateDecision.Abstain(AbstainReason.Blocked(_)) => ()
+      case other => fail(s"k confirmations must NOT sign a contested candidate, got $other")
+  }
+
+  test("alreadyGuessed — the k-pose budget terminates, and stops after any non-Yes") {
+    val yes = guess(2, dog, OracleAnswer.Yes)
+    val twoYes = Vector(yes, guess(3, dog, OracleAnswer.Yes))
+    // never posed → budget available (both k).
+    assert(!GameCore.alreadyGuessed(Vector.empty, dog, k = 1))
+    assert(!GameCore.alreadyGuessed(Vector.empty, dog, k = 2))
+    // k=1: any single guess spends the budget — exactly "posed at all" (byte-identical to B1).
+    assert(GameCore.alreadyGuessed(Vector(yes), dog, k = 1))
+    // k=2: one Yes leaves room for a second; two Yes spend it.
+    assert(!GameCore.alreadyGuessed(Vector(yes), dog, k = 2), clue("one Yes: budget left"))
+    assert(GameCore.alreadyGuessed(twoYes, dog, k = 2), clue("two Yes: budget spent"))
+    // a non-Yes stops re-posing immediately (quorum unreachable → fail-closed).
+    assert(GameCore.alreadyGuessed(Vector(guess(2, dog, OracleAnswer.Unknown)), dog, k = 2))
+    assert(GameCore.alreadyGuessed(Vector(guess(2, dog, OracleAnswer.No)), dog, k = 2))
+    // per-candidate: a guess on cat does not spend dog's budget.
+    assert(!GameCore.alreadyGuessed(Vector(guess(2, cat, OracleAnswer.Yes)), dog, k = 1))
+  }

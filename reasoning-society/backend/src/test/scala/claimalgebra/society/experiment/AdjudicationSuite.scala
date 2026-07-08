@@ -46,3 +46,32 @@ class AdjudicationSuite extends munit.FunSuite with SocietyFixtures:
     assertEquals(view.hypotheses, Nil)
     assertEquals(view.definitions, Nil)
   }
+
+  test(
+    "signPath attributes the sign: OracleConfirmed for a lone confirmed winner, BackerQuorum for ≥2"
+  ) {
+    val driller = mkAgent("driller")
+    val splitter = mkAgent("splitter")
+    val head = Event.TargetRegistered(1, 1L, apple, 42L)
+    // one backer + a ground-truth Yes → signed via the oracle-confirmed disjunct (the k-gated path).
+    val oracleSigned = Vector[Event](
+      head,
+      mkAssert(2, driller, apple),
+      Event.GuessAnswered(3, 3L, apple, OracleAnswer.Yes),
+      Event.GateSign(4, 4L, apple)
+    )
+    // two distinct backers → signed via the structural quorum (k-invariant).
+    val backerSigned = Vector[Event](
+      head,
+      mkAssert(2, driller, apple),
+      Event.Corroborate(3, 3L, splitter, apple, "agreed"),
+      Event.GateSign(4, 4L, apple)
+    )
+    assertEquals(Adjudication.signPath(oracleSigned), Some(SignPath.OracleConfirmed))
+    assertEquals(Adjudication.signPath(backerSigned), Some(SignPath.BackerQuorum))
+    assertEquals(
+      Adjudication.signPath(Vector(head)),
+      None,
+      clue("an unsigned game has no sign path")
+    )
+  }

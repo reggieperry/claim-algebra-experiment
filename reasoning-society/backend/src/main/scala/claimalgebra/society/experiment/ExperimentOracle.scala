@@ -25,7 +25,9 @@ final class ExperimentOracle private (
 
   def respond(question: Question): IO[HumanMove] =
     for
-      truthful <- truth.truth(target, question)
+      truthful <- ExperimentOracle.guessTruth(target, question) match
+        case Some(structural) => IO.pure(structural) // a guess — the harness owns this truth
+        case None => truth.truth(target, question)
       draw <- rng.nextDouble
       delivered = model.corrupt(question, truthful, draw)
       _ <- draws.update(_ :+ ExperimentOracle.Draw(question.id, truthful, delivered))
@@ -37,6 +39,24 @@ final class ExperimentOracle private (
   def recordedDraws: IO[Vector[ExperimentOracle.Draw]] = draws.get
 
 object ExperimentOracle:
+
+  private val GuessPrefix = "guess-"
+
+  /** The STRUCTURAL truth of a guess question ("Is it X?", minted with qid `guess-X` by
+    * `LogActor.submitGuess`): `Some(Yes)` iff the guessed candidate is the sealed target,
+    * `Some(No)` otherwise; `None` for a property question (`q1`, `q2`, …), which routes to the
+    * [[TruthOracle]]. Short-circuits the model/table truth oracle for guesses because the harness
+    * ALREADY OWNS this truth — it sealed the target — so asking a model a fact it knows only
+    * injects model noise (the confound that muddied the observed `crystal_vase` fail-open, where a
+    * model was consulted for `is it crystal_vase?` with the target already sealed as apple). The
+    * error model still corrupts this structural truth — that corrupted guess-confirmation is the
+    * fail-open under test.
+    */
+  def guessTruth(target: Answer, question: Question): Option[OracleAnswer] =
+    Option.when(question.id.value.startsWith(GuessPrefix)) {
+      val guessed = question.id.value.drop(GuessPrefix.length)
+      if guessed == target.value then OracleAnswer.Yes else OracleAnswer.No
+    }
 
   /** One oracle draw: the question, the truthful answer, and what was actually delivered. */
   final case class Draw(questionId: QuestionId, truthful: OracleAnswer, delivered: OracleAnswer):

@@ -16,7 +16,15 @@ import scala.concurrent.duration.FiniteDuration
 final case class SocietyConfig(
     maxRounds: Int,
     roundTimeout: FiniteDuration,
-    hardDeadline: FiniteDuration
+    hardDeadline: FiniteDuration,
+    // The confirmation quorum for a guess (fallible-oracle Slice 4): a lone candidate signs on the
+    // oracle-confirmed path only after `k` independent guess-confirmations, not one. DEFAULT 1 keeps
+    // every shipped game byte-identical (`oracleConfirmations >= 1` ⟺ a single `Yes`); the redundancy
+    // experiment threads k > 1. Never gates the 2-distinct-backer sign path. Expected k >= 1; a
+    // degenerate k <= 0 is fail-CLOSED, not fail-open — it disables the oracle-confirmed sign path
+    // (the give-up ladder only poses on `Unconfirmed`, and the round path still needs a real Yes or
+    // two backers), so it can never sign without a confirmation.
+    k: Int = 1
 )
 
 /** Where the ordered event log is emitted — stdout for a live run now, an SSE transport in slice 3,
@@ -304,7 +312,7 @@ final class LogActor(
           // the guess handler (a completed round remains the ONLY quorum-sign path).
           answer match
             case OracleAnswer.Yes =>
-              GameCore.decide(s2.log, s2.log.size) match
+              GameCore.decide(s2.log, s2.log.size, deps.config.k) match
                 case GateDecision.Sign(winner) if winner == candidate => sign(s2, winner)
                 case _ => giveUpOrGuess(s2)
             case OracleAnswer.No | OracleAnswer.Unknown => giveUpOrGuess(s2)
@@ -505,10 +513,11 @@ final class LogActor(
     * a value the society never reasoned to.
     */
   private def giveUpOrGuess(s: LogState): IO[LogState] =
-    GameCore.decide(s.log, s.log.size) match
+    GameCore.decide(s.log, s.log.size, deps.config.k) match
       case GateDecision.Abstain(AbstainReason.Unconfirmed(_)) =>
         GameCore.slot(s.log, s.log.size).value match
-          case Some(candidate) if !alreadyGuessed(s.log, candidate) => poseGuess(s, candidate)
+          case Some(candidate) if !GameCore.alreadyGuessed(s.log, candidate, deps.config.k) =>
+            poseGuess(s, candidate)
           case _ => endInconclusive(s)
       case _ => endInconclusive(s)
 
@@ -519,16 +528,6 @@ final class LogActor(
     */
   private def poseGuess(s: LogState, candidate: Answer): IO[LogState] =
     submitGuess(candidate).as(s)
-
-  /** Whether `candidate` has already been posed to the oracle this game (any `GuessAnswered` on
-    * it), so the give-up ladder never re-guesses it — guaranteeing termination (a No shrinks the
-    * finite live candidate set; each candidate is posed at most once).
-    */
-  private def alreadyGuessed(log: Vector[Event], candidate: Answer): Boolean =
-    log.exists {
-      case Event.GuessAnswered(_, _, c, _) => c == candidate
-      case _ => false
-    }
 
   // --- effects ---
 

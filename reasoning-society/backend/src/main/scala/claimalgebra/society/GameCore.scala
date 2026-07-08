@@ -126,7 +126,7 @@ object GameCore:
       case _: Event.ConvergenceWarning => Nil
       // B1 (recovery-and-endgame): a guess answer is BELIEF-INERT. The No/Yes do their work through
       // the two structural folds ([[maskedCandidates]] unions a No-rejected candidate off the fold;
-      // [[oracleConfirmed]] relaxes the decide floor on a Yes) — never by projecting to Evidence. A
+      // [[oracleConfirmations]] relaxes the decide floor on `k` Yes) — never by projecting to Evidence. A
       // con here would glut the slot's channel totals and deadlock signing (the committee's B-1).
       case _: Event.GuessAnswered => Nil
       // The fallible-oracle experiment's sealed true target (fallible-oracle-experiment-design) is
@@ -162,7 +162,7 @@ object GameCore:
     * `Unconfirmed`. Every other belief (gap, glut, ambiguity, struck) abstains with the gate's own
     * [[BlockReason]].
     */
-  def decide(log: Vector[Event], upTo: Int): GateDecision =
+  def decide(log: Vector[Event], upTo: Int, k: Int = 1): GateDecision =
     val prefix = log.take(upTo)
     // Mask the defeated candidates before the gate reads the slot, so a *defeated* hypothesis's
     // jamming con can no longer hold a different well-supported live one hostage (the false-glut
@@ -175,13 +175,16 @@ object GameCore:
       case Left(answerSlot) =>
         Gate.accept(answerSlot, WiredOffTheta, WiredOffNu, trusting[Answer]) match
           case Decision.Accepted(winner) =>
-            // The no-lone-sign floor, RELAXED by a ground-truth Yes (B1): a `GuessAnswered(winner,
-            // Yes)` substitutes for the missing second backer. This sits BEHIND `Gate.accept ==
-            // Accepted(winner)`, so `corner = True ∧ cardinality = 1` must still hold from the live
-            // evidence — a stale `Refute`/rival that gluts the winner returns `Blocked` above and the
-            // relaxation is never reached (the honest "confirmed but contested — held").
+            // The no-lone-sign floor, RELAXED by ground-truth `Yes` confirmations (B1; the k-quorum
+            // is fallible-oracle Slice 4): `k` `GuessAnswered(winner, Yes)` events substitute for the
+            // missing second backer. This sits BEHIND `Gate.accept == Accepted(winner)`, so
+            // `corner = True ∧ cardinality = 1` must still hold from the live evidence — a stale
+            // `Refute`/rival that gluts the winner returns `Blocked` above and the relaxation is never
+            // reached (the honest "confirmed but contested — held"). `k` defaults to 1, so a single
+            // `Yes` signs exactly as before; the redundancy experiment sets `k > 1`. `k` gates ONLY
+            // this oracle disjunct — the structural 2-distinct-backer path is untouched.
             val backers = distinctBackers(prefix, winner)
-            if backers >= MinCorroboration || oracleConfirmed(prefix).contains(winner) then
+            if backers >= MinCorroboration || oracleConfirmations(prefix, winner) >= k then
               GateDecision.Sign(winner)
             else GateDecision.Abstain(AbstainReason.Unconfirmed(backers))
           case Decision.Blocked(reason) =>
@@ -200,6 +203,13 @@ object GameCore:
   def nextMove(log: Vector[Event], upTo: Int, roundComplete: Boolean): Move =
     if !roundComplete then Move.Abstain
     else
+      // The round path decides at the DEFAULT k = 1, NOT config.k (fallible-oracle Slice 4). This is
+      // safe only because the guess phase is TERMINAL — no round is ever opened after a guess is
+      // posed, so a round-completing `decide` can never observe a `GuessAnswered(winner, Yes)` in the
+      // log, and the k-quorum disjunct is vacuous here (it needs a confirmation the round path never
+      // sees; a round signs only on the k-invariant ≥2-backer path). If a future change ever opens a
+      // round DURING the endgame guess loop, this default must become `config.k` or it would sign
+      // below quorum under k > 1.
       decide(log, upTo) match
         case GateDecision.Sign(winner) => Move.Sign(winner)
         case GateDecision.Abstain(_) => Move.Abstain
@@ -321,13 +331,33 @@ object GameCore:
   private[society] def oracleRejected(log: Seq[Event]): Set[Answer] =
     log.collect { case Event.GuessAnswered(_, _, c, OracleAnswer.No) => c }.toSet
 
-  /** The candidates the oracle CONFIRMED via a guess (B1): every [[Event.GuessAnswered]] answered
-    * `Yes`. Relaxes ONLY the no-lone-sign floor for that candidate inside [[decide]] — the
-    * ground-truth Yes substitutes for the missing second backer, while `Gate.accept` still gates on
-    * `corner = True ∧ cardinality = 1` from the live evidence.
+  /** The COUNT of ground-truth `Yes` confirmations for candidate `c` (B1; the k-quorum is
+    * fallible-oracle Slice 4): every [[Event.GuessAnswered]] on `c` answered `Yes`. Relaxes ONLY
+    * the no-lone-sign floor for `c` inside [[decide]] — `k` confirmations substitute for the
+    * missing second backer, while `Gate.accept` still gates on `corner = True ∧ cardinality = 1`
+    * from the live evidence. Each event is one independent oracle round-trip (the LogActor keeps at
+    * most one guess in flight, so a genuine confirmation cannot be double-counted).
+    * Recomputed-on-read, so a B2 rewind that drops the guesses drops the count to 0. At k=1 `>= 1`
+    * is membership — byte-identical to B1.
     */
-  private[society] def oracleConfirmed(log: Seq[Event]): Set[Answer] =
-    log.collect { case Event.GuessAnswered(_, _, c, OracleAnswer.Yes) => c }.toSet
+  private[society] def oracleConfirmations(log: Seq[Event], c: Answer): Int =
+    log.count {
+      case Event.GuessAnswered(_, _, `c`, OracleAnswer.Yes) => true
+      case _ => false
+    }
+
+  /** Whether `candidate` should NOT be posed (again) — the per-candidate guess budget for the
+    * k-confirmation quorum (fallible-oracle Slice 4). The give-up ladder stops posing when the
+    * `k`-pose budget is spent OR the candidate has already drawn any NON-`Yes` answer: a `No` masks
+    * it off the fold anyway, and any `No`/`Unknown` means the k-`Yes` quorum can no longer be
+    * reached within the remaining budget — so re-posing would only waste oracle round-trips and
+    * never sign (fail-closed). Counting ALL answers guarantees TERMINATION: each candidate is posed
+    * at most `k` times, and an all-`Unknown` candidate stops after the first. At k=1 this is
+    * exactly "posed at all" — the guess ladder is byte-identical to B1.
+    */
+  private[society] def alreadyGuessed(log: Seq[Event], candidate: Answer, k: Int): Boolean =
+    val answers = log.collect { case Event.GuessAnswered(_, _, `candidate`, a) => a }
+    answers.sizeIs >= k || answers.exists(_ != OracleAnswer.Yes)
 
   /** [[project]] with the retired candidates' pro AND con events dropped first — masking a defeated
     * hypothesis off both channels before the existing projection. Only the per-candidate stance

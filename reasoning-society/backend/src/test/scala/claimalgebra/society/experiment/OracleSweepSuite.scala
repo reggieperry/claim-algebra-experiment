@@ -91,9 +91,23 @@ class OracleSweepSuite extends CatsEffectSuite with SocietyFixtures:
 
   test("summarize computes fail-open / abstain / sign-correct rates per cell") {
     val recs = List(
-      GameRecord(perfectCell, apple, Some(apple), PrimaryOutcome.SignCorrect, 1L),
-      GameRecord(perfectCell, dog, Some(apple), PrimaryOutcome.SignWrong, 2L),
-      GameRecord(perfectCell, apple, None, PrimaryOutcome.Abstain, 3L)
+      GameRecord(
+        perfectCell,
+        apple,
+        Some(apple),
+        PrimaryOutcome.SignCorrect,
+        Some(SignPath.OracleConfirmed),
+        1L
+      ),
+      GameRecord(
+        perfectCell,
+        dog,
+        Some(apple),
+        PrimaryOutcome.SignWrong,
+        Some(SignPath.OracleConfirmed),
+        2L
+      ),
+      GameRecord(perfectCell, apple, None, PrimaryOutcome.Abstain, None, 3L)
     )
     val cell = OracleSweep.summarize(recs)(perfectCell)
     assertEquals(cell.n, 3)

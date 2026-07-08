@@ -15,6 +15,13 @@ class ExperimentOracleSuite extends CatsEffectSuite with SocietyFixtures:
   private def q(id: String, text: String): Question = Question(qid(id), text)
   private val apple = mkAnswer("apple")
 
+  // A deterministic pseudo-uniform draw in [0, 1) per (candidate, pose) — a hermetic, reproducible
+  // stand-in for the oracle's seeded RNG, so the statistical correlation tests never flake.
+  private def drawOf(j: Int, i: Int): Double =
+    (scala.util.hashing.MurmurHash3.stringHash(
+      s"draw:$j:$i"
+    ) & 0x7fffffff).toDouble / Int.MaxValue.toDouble
+
   private def answerOf(m: HumanMove): OracleAnswer = m match
     case HumanMove.Answer(a) => a
     case HumanMove.Challenge(_) => fail("expected an Answer, got a Challenge")
@@ -116,4 +123,94 @@ class ExperimentOracleSuite extends CatsEffectSuite with SocietyFixtures:
     assertEquals(ModelTruthOracle.parse("unknown"), OracleAnswer.Unknown)
     assertEquals(ModelTruthOracle.parse("maybe"), OracleAnswer.Unknown)
     assertEquals(ModelTruthOracle.parse(""), OracleAnswer.Unknown)
+  }
+
+  // --- Slice 4: structural guess-truth ---
+
+  test(
+    "guessTruth is structural on guess qids (Yes iff candidate==target); None for a property Q"
+  ) {
+    val dog = mkAnswer("dog")
+    assertEquals(
+      ExperimentOracle.guessTruth(apple, q("guess-apple", "Is it apple?")),
+      Some(OracleAnswer.Yes)
+    )
+    assertEquals(
+      ExperimentOracle.guessTruth(apple, q("guess-dog", "Is it dog?")),
+      Some(OracleAnswer.No),
+      clue(s"$dog is not the target")
+    )
+    assertEquals(ExperimentOracle.guessTruth(apple, q("q1", "is it a fruit?")), None)
+  }
+
+  test(
+    "respond answers a guess STRUCTURALLY, bypassing the truth oracle (closes the model-noise confound)"
+  ) {
+    // A truth oracle that would (wrongly) say Yes to EVERYTHING; the structural short-circuit ignores it.
+    val lying = TruthOracle.pure((_, _) => OracleAnswer.Yes)
+    for
+      oracle <- ExperimentOracle.make(apple, lying, ErrorModel.perfect, seed = 1L)
+      correct <- oracle.respond(q("guess-apple", "Is it apple?"))
+      wrong <- oracle.respond(q("guess-dog", "Is it dog?"))
+    yield
+      assertEquals(
+        answerOf(correct),
+        OracleAnswer.Yes,
+        clue("guess of the target → structural Yes")
+      )
+      assertEquals(
+        answerOf(wrong),
+        OracleAnswer.No,
+        clue("guess of a non-target → structural No, NOT the lying oracle's Yes")
+      )
+  }
+
+  // --- Slice 4: CorrelatedConfirmations — the redundancy/correlation crown jewel ---
+
+  test("CorrelatedConfirmations: the per-pose MARGINAL flip rate is ~1-p at both ρ endpoints") {
+    val p = 0.6
+    def marginal(rho: Double): Double =
+      val model = ErrorModel.CorrelatedConfirmations(p, rho, seed = 11L)
+      val n = 5000
+      val flips = (0 until n).count(j =>
+        model.corrupt(
+          q(s"guess-c$j", s"Is it c$j?"),
+          OracleAnswer.No,
+          drawOf(j, 0)
+        ) == OracleAnswer.Yes
+      )
+      flips.toDouble / n
+    assert(
+      math.abs(marginal(0.0) - (1 - p)) < 0.05,
+      clue(s"ρ=0 marginal ≈ ${1 - p}, got ${marginal(0.0)}")
+    )
+    assert(
+      math.abs(marginal(1.0) - (1 - p)) < 0.05,
+      clue(s"ρ=1 marginal ≈ ${1 - p}, got ${marginal(1.0)}")
+    )
+  }
+
+  test(
+    "CorrelatedConfirmations: ρ=0 suppresses the joint fail-open to (1-p)^k; ρ=1 does NOT (monoculture)"
+  ) {
+    val p = 0.5
+    val k = 2
+    def jointFlipRate(rho: Double): Double =
+      val model = ErrorModel.CorrelatedConfirmations(p, rho, seed = 11L)
+      val n = 5000
+      val allFlipped = (0 until n).count { j =>
+        val qn = q(s"guess-c$j", s"Is it c$j?")
+        (0 until k).forall(i =>
+          model.corrupt(qn, OracleAnswer.No, drawOf(j, i)) == OracleAnswer.Yes
+        )
+      }
+      allFlipped.toDouble / n
+    val independent = jointFlipRate(0.0) // ≈ (1-p)^k = 0.25
+    val correlated = jointFlipRate(1.0) //  ≈ (1-p)   = 0.50
+    assert(independent > 0.18 && independent < 0.32, clue(s"ρ=0 joint ≈ 0.25, got $independent"))
+    assert(correlated > 0.42 && correlated < 0.58, clue(s"ρ=1 joint ≈ 0.50, got $correlated"))
+    assert(
+      correlated > independent + 0.1,
+      clue("redundancy suppresses the fail-open ONLY when the errors are independent")
+    )
   }
