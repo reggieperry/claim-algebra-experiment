@@ -41,6 +41,20 @@ Motivating incident: a refuted glut-laundering claim sat live in project knowled
 
 Recovery is allowed — a traced entry can return via a new entry that cites it — but the traced original is immutable.
 
+## Acceptance run (2026-07-09)
+
+Observed, not argued (brief §8 items 2–4; items 1, 5 and §9 are out of scope for the install):
+
+- **Item 2 — invariants hold mechanically.** `python3 ledger/audit.py --root . --report` exits 0 on the live ledger; all six hard checks (schema, signed, coherence, chains, trace, immutable) PASS and the UNVERIFIED map prints.
+- **Item 3 — demotion is real.** On scratch branch `harness-accept-item3`, a commit carrying two approving testimonies (a `pr-review` and a workflow-verification subagent, both `about` the probe claim) plus a genuinely broken Scala file was **blocked** by the real `sbt check`; a `refuted` entry was recorded and the probe claim stayed `unverified` — the approval signed nothing. Branch discarded.
+- **Item 4 — the librarian fires.** `clm-0001` (a draft assertion) was superseded by `clm-0002` and retired by `ledger/librarian --sweep` to `ledger/trace/clm-0001.jsonl` with `retired_by: clm-0002`; the live file no longer carries it; audit clean before and after (commit `af76e4b`).
+
+Live ids after acceptance: `clm-0000` (bootstrap), `clm-0002` (the acceptance record). Retired: `clm-0001`. The harness is live; every friction it produces from here is data.
+
+## The kernel moment (item 5 — observed in operation, not installed)
+
+Still owed by operation, not by this install: the first natural occurrence of a model reporting done, a check refuting it, the refutation landing in the ledger, and the commit blocked. When that entry exists on real work, the harness is operating on a "done" that was not the model's to give.
+
 ## Rollback
 
 `git checkout pre-harness-baseline` restores the pre-harness tree. Removal is: delete `ledger/`, revert the hook wiring (`.githooks/pre-commit` gate block, `.githooks/post-commit`), revert the CLAUDE.md demotion line. Accumulated ledger contents should be archived, not destroyed — they record what was claimed.
