@@ -93,6 +93,15 @@ object AgentStrategy:
   /** The default diverse cohort (three distinct roles, three distinct ids and prompts). */
   val cohort: List[AgentStrategy] = List(splitter, driller, skeptic).flatten
 
+  /** The role ids, exposed typed so a model-allocation seam derives the strong set from these
+    * rather than from bare string literals (a typo in a literal would silently fall an agent back
+    * to the cheap tier — the stronger-closer trial's false-negative hazard). The proposer is the
+    * splitter, the closer the driller, the adversary the skeptic.
+    */
+  val proposerId: Option[AgentId] = splitter.map(_.id)
+  val closerId: Option[AgentId] = driller.map(_.id)
+  val adversaryId: Option[AgentId] = skeptic.map(_.id)
+
 /** An LLM-backed reasoning agent (actor-abstraction §2): on a [[ToAgent.Probe]] it makes ONE
   * bounded, structured call for its move, then posts the resulting claim to the LogActor tagged
   * with its OWN [[AgentId]] and the probe's round. A failed, timed-out, malformed, or raised call

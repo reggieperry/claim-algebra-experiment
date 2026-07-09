@@ -60,6 +60,22 @@ object Adjudication:
   def guessesPosed(log: Seq[Event]): List[Answer] =
     log.collect { case Event.GuessAnswered(_, _, c, _) => c }.toList.distinct
 
+  /** Did a WRONG guess (a non-target candidate, by [[TargetMatch]]) reach a confirmation — i.e. was
+    * a wrong candidate ever posed as a guess and answered? This is the conditional denominator the
+    * deferred verification-spend tradeoff needs (games where the oracle-confirmed sign path could
+    * have fired on a wrong candidate), and the base rate `w` the stronger-closer trial records:
+    * whether a strong closer leaves any wrong-sign signal for a live tradeoff to read. Reads the
+    * full log (a game-level fact, not a record field). `false` when the log carries no truth
+    * marker.
+    */
+  def wrongGuessReachedConfirmation(log: Seq[Event]): Boolean =
+    trueTarget(log).exists { truth =>
+      log.exists {
+        case Event.GuessAnswered(_, _, c, _) => !TargetMatch.matches(truth, c)
+        case _ => false
+      }
+    }
+
   /** Which disjunct produced the signature, if any: [[SignPath.BackerQuorum]] when the signed
     * candidate had ≥ `MinCorroboration` distinct backers (k-invariant), else
     * [[SignPath.OracleConfirmed]] (the k-gated ground-truth path the correlation study measures).
