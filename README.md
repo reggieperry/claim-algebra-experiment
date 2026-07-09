@@ -32,8 +32,8 @@ repo (`.claude/`, `ledger/`).
 
 - **The differential gate** (`gate/`) — a self-contained Scala port of an anti-weakening gate that
   blocks regressions versus the merge-base (net-new lint findings, new suppressions, deleted or
-  skipped tests, coverage drops). Ships as a standalone fat jar. The Go original it was ported from
-  is vendored under `docs/reference/a-go-original/` for reference.
+  skipped tests, coverage drops). Ships as a standalone fat jar. It is a clean-room Scala port — the
+  Go original it descends from is not included here.
 
 - **The dev-ledger harness** (`ledger/`) — a claim ledger over this repo's own development, gated at
   commit: a "done" report is an *unverified* claim; only a mechanical check signs; review is
