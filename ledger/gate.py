@@ -5,8 +5,9 @@
     1. FORGERY GUARD: any `signed` line newly staged into ledger/claims.jsonl that
        the gate did not itself write (its line-hash not in ledger/.hook-signed)
        blocks the commit. The gate is the sole writer of signatures.
-    2. CHECK-DISCHARGE: if a .scala/.sbt file is staged (or a pending unverified
-       claim names a runnable check), run the mechanical check. On FAILURE, append a
+    2. CHECK-DISCHARGE: if a staged file is in one of the repo's build languages (see
+       `code_exts`) or a pending unverified claim names a runnable check, run the
+       mechanical check — which must cover every one of those languages. On FAILURE, append a
        `refuted` entry (parent sha + patch-id, since pre-commit has no commit sha)
        and BLOCK — approving review testimony never signs. On PASS, queue the claims
        for the post-commit signer.
@@ -16,8 +17,10 @@
     Write the queued `signed` entries now that the commit sha exists, and record each
     one's line-hash in ledger/.hook-signed so the forgery guard admits it next commit.
 
-The check command defaults to `sbt -batch -Dsbt.color=false check`; LEDGER_CHECK_CMD
-overrides it (test-only knob — a bypass is exactly what the harness forbids in real use).
+The mechanical check is auto-detected (see `check_command`): a repo-provided
+`ledger/check.sh`, else an sbt/uv toolchain default, else none (forgery guard + audit
+only). LEDGER_CHECK_CMD overrides it (test-only knob — a bypass is exactly what the
+harness forbids in real use).
 """
 from __future__ import annotations
 
@@ -35,10 +38,63 @@ HOOKSIGNED = ROOT / "ledger" / ".hook-signed"
 PENDING = ROOT / "ledger" / ".pending-sign"
 APPEND = ROOT / "ledger" / "append"
 AUDIT = ROOT / "ledger" / "audit.py"
-CHECK_CMD = os.environ.get("LEDGER_CHECK_CMD", "sbt -batch -Dsbt.color=false check")
-CHECK_NAME = "scala-check"
-STANDARD_CLAIM = "sbt check passes (scalafmt, scalafix, library-neutrality, test suite)"
-RUNNABLE = {"scala-check", "scala-suite", "typecheck"}
+CHECK_NAME = "repo-check"
+STANDARD_CLAIM = "the repo's mechanical check passes"
+RUNNABLE = {"repo-check", "scala-check", "scala-suite", "typecheck"}
+CODE_EXTS = (".scala", ".sc", ".sbt", ".py", ".go", ".ts", ".tsx", ".js", ".rs", ".java", ".kt")
+
+
+def check_command() -> list[str] | None:
+    """The repo's mechanical check, auto-detected. LEDGER_CHECK_CMD overrides (test
+    knob). A repo-provided `ledger/check.sh` wins next (the recommended way to pin the
+    exact check). Otherwise a toolchain default; None means no check is wired, so the
+    gate runs the forgery guard + audit only."""
+    env = os.environ.get("LEDGER_CHECK_CMD")
+    if env is not None:
+        return env.split()
+    if (ROOT / "ledger" / "check.sh").exists():
+        return ["bash", "ledger/check.sh"]
+    if (ROOT / "build.sbt").exists():
+        return ["sbt", "-batch", "-Dsbt.color=false", "check"]
+    if (ROOT / "pyproject.toml").exists():
+        return ["uv", "run", "pytest", "-q"]
+    return None
+
+
+def code_exts() -> tuple[str, ...]:
+    """Extensions whose staged change should fire the check — every language that builds
+    the SYSTEM in this repo. A repo may build from several (the lab is Scala + a
+    TypeScript frontend); the gate must fire for all of them, and `ledger/check.sh` must
+    in turn check all of them — else a change in an unchecked language slips through
+    green (a fail-open). Vendored or tooling sources in a language the system is not
+    built in (a Go reference copy, the ledger's own Python) are deliberately excluded.
+
+    Resolution: `LEDGER_CODE_EXTS` override (test knob) → a per-repo `ledger/languages`
+    declaration (authoritative: one extension per line, `#` comments; the robust choice
+    when build markers are nested or vendored) → a union auto-detected from the build
+    markers at the repo root → a broad fallback (any source — fail-closed)."""
+    def norm(toks) -> tuple[str, ...]:
+        return tuple(dict.fromkeys(t if t.startswith(".") else "." + t for t in toks))
+    env = os.environ.get("LEDGER_CODE_EXTS")
+    if env:
+        return norm(env.replace(",", " ").split())
+    decl = ROOT / "ledger" / "languages"
+    if decl.exists():
+        toks = [t for line in decl.read_text().splitlines() for t in line.split("#", 1)[0].split()]
+        if toks:
+            return norm(toks)
+    detected: list[str] = []
+    if (ROOT / "build.sbt").exists():
+        detected += [".scala", ".sc", ".sbt"]
+    if (ROOT / "tsconfig.json").exists() or (ROOT / "package.json").exists():
+        detected += [".ts", ".tsx"]
+    if (ROOT / "go.mod").exists():
+        detected += [".go"]
+    if (ROOT / "pyproject.toml").exists() or (ROOT / "setup.py").exists():
+        detected += [".py"]
+    if (ROOT / "Cargo.toml").exists():
+        detected += [".rs"]
+    return norm(detected) if detected else CODE_EXTS
 
 
 def sh(cmd: list[str], **kw) -> subprocess.CompletedProcess:
@@ -78,7 +134,7 @@ def staged_added_ledger_lines() -> list[str]:
 
 def staged_code() -> list[str]:
     r = sh(["git", "diff", "--cached", "--name-only"])
-    return [f for f in r.stdout.split() if f.endswith((".scala", ".sc", ".sbt"))]
+    return [f for f in r.stdout.split() if f.endswith(code_exts())]
 
 
 def hook_hashes() -> set[str]:
@@ -130,12 +186,13 @@ def pre_commit() -> int:
     # 2. check-discharge
     code = staged_code()
     pend = pending_runnable()
-    if code or pend:
+    cmd = check_command()
+    if (code or pend) and cmd:
         parent, patch = run_ref()
         ref = f"{CHECK_NAME}@{parent}+{patch}"
-        sys.stderr.write(f"dev-ledger gate: running `{CHECK_CMD}` "
+        sys.stderr.write(f"dev-ledger gate: running `{' '.join(cmd)}` "
                          f"({'code staged' if code else 'pending claims'})…\n")
-        r = sh(CHECK_CMD.split(), env=clean_env())
+        r = sh(cmd, env=clean_env())
         if r.returncode != 0:
             append_entry({
                 "claim": STANDARD_CLAIM, "subject": "verification-surface", "source": "hook",
