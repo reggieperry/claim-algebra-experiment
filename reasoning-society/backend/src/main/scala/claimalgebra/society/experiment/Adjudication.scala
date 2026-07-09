@@ -52,6 +52,14 @@ object Adjudication:
   def signed(log: Seq[Event]): Option[Answer] =
     log.collect { case Event.GateSign(_, _, c) => c }.lastOption
 
+  /** The distinct candidates B1 ever posed as a guess (any [[Event.GuessAnswered]], regardless of
+    * the answer) — the endgame-diagnostic read (E0). An abstention with an empty list never reached
+    * a guess (a convergence/trigger failure); a non-empty list that omits the target reached a
+    * guess but searched wrong.
+    */
+  def guessesPosed(log: Seq[Event]): List[Answer] =
+    log.collect { case Event.GuessAnswered(_, _, c, _) => c }.toList.distinct
+
   /** Which disjunct produced the signature, if any: [[SignPath.BackerQuorum]] when the signed
     * candidate had ≥ `MinCorroboration` distinct backers (k-invariant), else
     * [[SignPath.OracleConfirmed]] (the k-gated ground-truth path the correlation study measures).
