@@ -16,6 +16,7 @@ Two halves with different epistemic status, per the committee's reframe:
 
 - **Fail-open (deductive).** At a perfect oracle with the seam gated, both enumerated sign paths are shut: `C` (2-backer corroboration) is dropped by the flag, and `O` cannot confirm a wrong candidate when every answer is true. Gated fail-open is structurally ~0, bounded only by an unenumerated third sign path. The run confirms the deduction against the code as it exists.
 - **Wins (open).** Gated wins are structurally ≤ open wins: removing the standalone `C` path re-routes those winners to the oracle within budget, exposed longer to rivals. Whether the improved society's wins survive gating is the question the cell exists to answer, not a prediction. The 0.08 prior from Run B bounds it (gating at a perfect oracle does not zero wins) without settling it, since Run B ran the un-improved endgame.
+  > **Superseded by measurement (2026-07-09, see the fourth cell in `fallible-oracle-results.md`).** The ≤ prediction was REFUTED: gated wins *rose* (6/52 vs 5/52). The argument counted re-routed winners but not *resurrected* games — in the open arm a 2-backer wrong sign terminates the game, but under gating that game is demoted and keeps playing, and can win. The per-game log query split the 6 gated wins 1 re-routed : 5 resurrected (2 of them open-arm lies converted to wins), against 4 of the open arm's 5 correct 2-backer wins lost to re-route attrition. Net +1.
 
 ## Configuration
 
