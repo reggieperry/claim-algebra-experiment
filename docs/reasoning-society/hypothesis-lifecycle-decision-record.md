@@ -7,7 +7,7 @@ record), `hypothesis-lifecycle-instructions.md` (rev 2, the requirements), and
 
 ## What is built and safe (independent of this decision)
 
-**Slice 1 — self-withdrawal retirement — is committed (`5f67dfc`) and adversarially verified MERGE_SAFE.**
+**Slice 1 — self-withdrawal retirement — is committed and adversarially verified MERGE_SAFE.**
 It is the working fix for the plant-or-fungus jam:
 
 - A candidate B is retired iff every agent that asserted B has since refuted it (self-withdrawal) and ≥2

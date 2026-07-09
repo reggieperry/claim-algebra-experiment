@@ -2,7 +2,7 @@
 
 The verifiable claim algebra is a graded distributive bilattice — Belnap's four values via a for/against twist over the free provenance semiring ℕ[X] — carried as the typed, fail-closed, trust-pluggable contract on the wire between agents. The documents here develop it, prove it, test it, and apply it. This map says what each one is, the order to read them in, and which are current versus superseded, so the set reads as one connected body of work rather than a folder of files.
 
-The implementation these describe is [`../../src/main/scala/claimalgebra/`](../../src/main/scala/claimalgebra); the project's status and conventions are in [`../../CLAUDE.md`](../../CLAUDE.md).
+The core of what these documents describe is implemented in the Scala library module [`claim-algebra/`](../../claim-algebra) — the bilattice, the ℕ[X] provenance semiring, the `Testimony`/`Claim` types, the calculus, and the acceptance gate.
 
 ## The algebra — read in this order
 
@@ -13,18 +13,14 @@ The implementation these describe is [`../../src/main/scala/claimalgebra/`](../.
 
 ## The experiment
 
-5. **[`falsifying-the-claim-algebra.html`](falsifying-the-claim-algebra.html)** — the design: the nine-node credit topology, the three arms (naive prose, disciplined baseline, claim algebra), the confidently-wrong-at-signature (CWS) headline metric, and the F1–F8 fault matrix.
-6. **[`falsification-experiment.md`](falsification-experiment.md)** — the build-shape outline behind that design (the pre-registration-grade detail).
-7. **[`wiring-the-falsification-rig.html`](wiring-the-falsification-rig.html)** — the rig architecture: a boxes-and-arrows view of the built harness — the sealed-key boundary, the `Testimony`/`Claim` type layer, the node seams.
-8. **[`experiment-findings.md`](experiment-findings.md)** — the running results and validity-audit log. **Read this for what the experiment actually established.**
+The algebra was put to a falsification test — a controlled three-arm experiment (naive prose, disciplined baseline, claim algebra) over a nine-node credit-analysis topology with a sealed fault key, measuring confidently-wrong-at-signature (CWS) as the headline metric against an F1–F8 fault matrix. The harness wired it through a sealed-key boundary, a `Testimony`/`Claim` type layer, and transport-agnostic node seams; its running results and validity audit are summarized in the findings below.
 
 ## Around the algebra
 
-- **[`library-overview.html`](library-overview.html)** — the plain-language plain-language overview (non-technical).
+- **[`library-overview.html`](library-overview.html)** — the plain-language overview (non-technical).
 - **[`claim-algebra-novelty.html`](claim-algebra-novelty.html)** — a citation-verified prior-art assessment: the novelty is a synthesis of settled parts, not an invention.
 - **[`diplomacy-agent-game.html`](diplomacy-agent-game.html)** — the algebra's third, adversarial instance (seven LLM powers playing Diplomacy over a trust semiring).
 - **[`july-1914-claim-ledger.html`](july-1914-claim-ledger.html)** — an interactive replay of the July Crisis as a fold over evidence events: a 1914 board, the bilattice diamond (position = rendered grade, badge = structural corner), and a steppable decision ledger. Six claims exercise the machinery natively — scope Ambiguity (the blank cheque), a glut with a CWS signature (the Serbian reply), a clean supersession (Russian mobilization), an absorbing strike (the Lichnowsky telegram), a decade-old commitment glut (Italy), and the betrayal corner (Belgium). Adversarially verified for history, algebra faithfulness, and code; self-contained, no external dependencies.
-- **[`claim-object-activation-design-brief.md`](claim-object-activation-design-brief.md)** — a design brief for activating the *full* claim object (all four coordinates, the glut, the confidence/verification axes) in an early-stage, multi-document deal corpus. Its credit-workbench Scenario-A design of record is [`../credit-deal-workbench/in-flight-deal-design.md`](../credit-deal-workbench/in-flight-deal-design.md).
 - **[`claim-algebra-law-audit-checklist.md`](claim-algebra-law-audit-checklist.md)** — the law & property audit checklist, reconciled against the algebra (§§3–5) and the calculus (§§4–8): every law/theorem tagged by whether the formalization backs it, which test covers it, and the two deliberate non-theorems not to test. Audited against the suite 2026-07-01 — coverage complete.
 
 ## Superseded drafts — kept for history
@@ -34,12 +30,7 @@ These predate the canonical note and are retained only for design history. **Rea
 - **[`verifiable-claim-algebra.html`](verifiable-claim-algebra.html)** — Revision 1, the original single-channel semiring design.
 - **[`claim-algebra-belnap.html`](claim-algebra-belnap.html)** — Revision 2, which completed Rev 1 into the two-channel Belnap bilattice. Both are consolidated into the canonical note.
 
-## Sibling lines
-
-- **[`../credit-deal-workbench/`](../credit-deal-workbench)** — the N=1 product specialization (the live tool over real EDGAR deals) and its findings.
-- **[`../actors/`](../actors)** — the actor-model canon for the eventual general agent system (not the experiment).
-
 ## Findings worth knowing
 
-- **Structuring beats prose live, but the bilattice does not isolate a measurable edge over a fair control** — its value is parsimony and disclosure, not accuracy ([`experiment-findings.md`](experiment-findings.md), findings 5 and 7).
-- **How well each model exercises the bilattice.** The multi-reader panel's conflict cross-examination across model tiers: surfacing a document-internal Conflict is frontier-grade and self-grounding-only — **Opus 3/3, GPT-5.4 full 2/3, Sonnet 0/3, the cheap tiers 0**; the Citations API converges on the operative value regardless of tier (recall, not conflict); the catch is probabilistic. The table and the analysis are in [`../credit-deal-workbench/live-demo-findings.md`](../credit-deal-workbench/live-demo-findings.md) — **Run 10**.
+- **Structuring beats prose live, but the bilattice does not isolate a measurable edge over a fair control** — its value is parsimony and disclosure, not accuracy (findings 5 and 7).
+- **How well each model exercises the bilattice.** The multi-reader panel's conflict cross-examination across model tiers: surfacing a document-internal Conflict is frontier-grade and self-grounding-only — **Opus 3/3, GPT-5.4 full 2/3, Sonnet 0/3, the cheap tiers 0**; the Citations API converges on the operative value regardless of tier (recall, not conflict); the catch is probabilistic (the multi-reader panel study, Run 10).

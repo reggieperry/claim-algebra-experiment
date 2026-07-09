@@ -39,6 +39,6 @@ I expect the steelman to **fail** to construct a surviving third notion, because
 
 ## What does NOT depend on this
 
-Per the decision record: slice 1 (self-withdrawal retirement, committed `5f67dfc`, MERGE_SAFE) is the working fix and holds regardless. The remaining *build* work (retirement markers on the wire, agents-see-retired, frontend replay) proceeds either way. This note only settles whether a **distinct §C mechanism** is additionally warranted — a scope question, not a blocker on the delivered fix.
+Per the decision record: slice 1 (self-withdrawal retirement, committed, MERGE_SAFE) is the working fix and holds regardless. The remaining *build* work (retirement markers on the wire, agents-see-retired, frontend replay) proceeds either way. This note only settles whether a **distinct §C mechanism** is additionally warranted — a scope question, not a blocker on the delivered fix.
 
 *End of focusing note — 2026-07-07.*

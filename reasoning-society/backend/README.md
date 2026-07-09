@@ -14,9 +14,8 @@ a pure viewer of the emitted log.
 
 - **Uses `claim-algebra`** — the `Ledger` fold, `Testimony` / `Gate`, the four-state `Resolution`.
 - **Uses `extract`** — the `LlmCall` facade for the agents (cheap Haiku tier per the brief).
-- **Actors are lightly implemented** on `cats.effect.std.Queue` per
-  [`docs/actors/mailbox-abstraction.md`](../../docs/actors/mailbox-abstraction.md) — address,
-  mailbox, one message at a time, send/create/designate. No Akka/Pekko.
+- **Actors are lightly implemented** on `cats.effect.std.Queue` — a lightweight mailbox design:
+  address, mailbox, one message at a time, send/create/designate. No Akka/Pekko.
 
 ## Layout (standard sbt)
 

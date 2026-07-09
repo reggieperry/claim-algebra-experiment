@@ -23,9 +23,8 @@ head, so there is one system, not two.
 
 - The **fold** is the claim-calculus `Ledger` (`claim-algebra` module) — belief state is a pure
   function of `(event_log, playhead)`.
-- The **actor substrate** is the mailbox design in [`docs/actors/mailbox-abstraction.md`](../docs/actors/mailbox-abstraction.md),
-  lightly implemented on `cats.effect.std.Queue` (address, mailbox, one-at-a-time,
-  send/create/designate) — no Akka/Pekko.
+- The **actor substrate** is a lightweight mailbox design, implemented on `cats.effect.std.Queue`
+  (address, mailbox, one-at-a-time, send/create/designate) — no Akka/Pekko.
 - The **gate** and the four-state read are `claimalgebra.Gate` and `claimalgebra.calculus`.
 
 ## Status

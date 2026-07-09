@@ -12,9 +12,8 @@ Every item below is tagged by whether your actual formalization backs it.
 > Coverage is complete as of that date. The one correction the audit made to THIS document is the
 > supersession item (§Tier 2): it is `refute` (¬), not `strike` — marked ✂️ below.
 >
-> **Updated 2026-07-02** after the adversarial validation of the activation design brief (see the
-> errata header on `claim-object-activation-design-brief.md`): the corner-is-a-presence-read caution
-> is made explicit (Tier 2), a third deliberate non-theorem is recorded (conflict-annihilation in
+> **Updated 2026-07-02** after the adversarial validation of the activation design brief: the
+> corner-is-a-presence-read caution is made explicit (Tier 2), a third deliberate non-theorem is recorded (conflict-annihilation in
 > `⊗ₖ`), and the ⚠️ extensions below now carry their validated status against the shipped carrier
 > and the Scenario-A design of record. One leftover from the 2026-07-01 pass is also fixed: the
 > extensions section still said supersession is `strike(old)`; it is `refute`, matching Tier 2.
@@ -107,8 +106,8 @@ Testing for these would be testing for something your docs deliberately do not c
 These came out of the design brief and our discussion. They may be worth building for the
 imperfect-reader and early-stage-corpus scenarios, but they are **additions to** the object, not
 laws **of** it — give each its own justification and its own tests, and don't fold them in with §4.5.
-Validated 2026-07-02 against the shipped carrier and the Scenario-A design of record
-(`../credit-deal-workbench/in-flight-deal-design.md`); each item now carries its outcome.
+Validated 2026-07-02 against the shipped carrier and the Scenario-A design of record; each item now
+carries its outcome.
 
 - ⚠️ **The phantom-glut firewall** (extraction uncertainty must never become con-support). The docs' `confidence` is derivation strength rendered from provenance; they do **not** model independent-query reader disagreement as a distinct, quarantined thing. The nearest grounded notion is the candidate-map **ambiguity (cardinality ≥ 2)** and `cardinality = 1` in the gate — that is *evidential* rivalry, not *reader* noise. *Validated:* the firewall is **structural** in the shipped carrier — reader disagreement writes rival pro-keys via `corroborate`, and only `refute`/`strike`/`supersede` write the con-channel, so a phantom Belnap `Glut` is unreachable from the reading path. The validation's high finding cuts the other way too: **cross-source** disagreement is *also* ambiguity (rival pro-candidates), not a glut — the brief's "cross-source ⇒ glut" mapping is corrected in its errata header, and populating con from a rival positive assertion would reinstate the removed `corroborateDebt` refute-hack.
 - ⚠️ **Per-source keying of N independent AI queries** (N reads of one clause collapse to one contribution). Related to, but not the same as, per-channel **idempotency** (which only collapses identical *provenance tokens*). *Adopted* by the design of record: `SourceEvidence.toTestimony` mints at most one pro-only token per document, with two one-line provable invariants (`cardinality ≤ 1`, `provCon.isZero`).
