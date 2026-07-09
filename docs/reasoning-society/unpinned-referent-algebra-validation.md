@@ -40,9 +40,9 @@ The initial proposal (add a `subject` field to `Claim`, scope `Testimony` by sub
 
 **Neither type changes.** This is the validated result, and it is *stronger* than the initial proposal:
 
-- The algebra **already** provides the subject (slot key) and **already** provides cross-concept conjunction (`⊗ₖ`, Def 6.5) with **proven** fail-closed propagation (Theorem 6.7).
+- The algebra **already** provides the subject (slot key) and **already** provides cross-concept conjunction (`⊗ₖ`, Def 6.5) with **proven** fail-closed propagation **on gaps** (Theorem 6.7; a *glut* conjunct is NOT blocked by `⊗ₖ` — certify by `∧ₜ`, see errata).
 - So the fix is **not** a new field on `Claim[A]`, **not** a modification to `Testimony`. The type system is already sufficient. The apple/tomato bug is the Twenty Questions **implementation under-using the existing structure** — one slot doing the work of several — not a gap in the algebra.
-- The fix lives entirely in **how the game uses slots**: decompose "the target" into multiple **concept-slots**, and make the final guess a **derivation** (`⊗ₖ`) over them: *"an apple is a thing whose `organism-identity` is apple-tree AND whose `fruit-identity` is apple-fruit."* By Theorem 6.7, if either concept-slot is unresolved or gluted, the conjoined answer is unresolved and the gate blocks — which is exactly the correct behavior, delivered by existing proven machinery.
+- The fix lives entirely in **how the game uses slots**: decompose "the target" into multiple **concept-slots**, and make the final guess a **derivation** (`⊗ₖ`) over them: *"an apple is a thing whose `organism-identity` is apple-tree AND whose `fruit-identity` is apple-fruit."* ~~By Theorem 6.7, if either concept-slot is unresolved or gluted, the conjoined answer is unresolved and the gate blocks — which is exactly the correct behavior, delivered by existing proven machinery.~~ **[RETRACTED — glut half false.** By Theorem 6.7 a *gap* slot blocks the root; a *glut* slot does **not**. `⊗ₖ` is the knowledge-meet and a glut is its identity (`B ⊗ₖ x = x`), so a contested slot conjoined with a clean one launders to a clean `True` and the gate signs (CWS). Certify a contested conjunction with `∧ₜ` (`truthMeet`) or gate each slot independently — never bare `⊗ₖ` at the certification step. See `glut-laundering-correction-instructions.md`.**]**
 
 Under this framing the e-58 refutation stops being a frame-shattering bomb: "harvested and eaten" is simply evidence on the `fruit-identity` slot, not a con on the `organism-identity` slot. The two slots carry their own channels; no false glut forms; the derivation conjoins them fail-closed.
 
@@ -57,7 +57,7 @@ The one thing the algebra does **not** already handle, and the one thing Twenty 
 And introducing it is a **semantic act** (recognizing that "target" is plant-vs-fruit ambiguous). Therefore — consistent with every prior fix — it lives in an **agent**, not in the algebra and not in the (non-generative) librarian. The split holds and sharpens:
 
 - **Agent (generative, semantic):** proposes a new concept-slot / a referent-decomposition ("the target may be compound: an `organism-identity` and a `fruit-identity`"). This is the "generation" half.
-- **Algebra (mechanical, proven):** the resulting multi-slot **derivation** `⊗ₖ` discriminates and conjoins fail-closed (Def 6.5, Theorem 6.7). This is the "discrimination" half — existing machinery, no new operation.
+- **Algebra (mechanical, proven):** the resulting multi-slot **derivation** `⊗ₖ` discriminates and conjoins fail-closed **on gaps** (Def 6.5, Theorem 6.7; certify a *contested* conjunct by `∧ₜ`, not `⊗ₖ` — see errata). This is the "discrimination" half — existing machinery, no new operation.
 - **Trigger:** the **convergence monitor's non-convergence flag** is the natural signal that a referent may be unpinned (a compound referent conflated into one slot produces exactly the thrashing/persistent-glut the monitor detects). The monitor fires → an agent proposes the decomposition → the algebra conjoins the resulting slots.
 
 So the three mechanisms compose: **monitor detects (structural) → agent decomposes the referent (semantic) → algebra conjoins the concept-slots fail-closed (mechanical).**
@@ -65,7 +65,7 @@ So the three mechanisms compose: **monitor detects (structural) → agent decomp
 ## Why this is safe (preliminary — for the committee to break)
 
 - **No type change** means no risk to the proven properties of `Testimony`/`Claim`; the carrier and its laws are untouched.
-- **Uses `⊗ₖ` and Theorem 6.7 as-is** — the fail-closed conjunction is already proven; a multi-concept answer that conjoins concept-slots inherits that proof. A gap or glut on any concept-slot blocks the root (Theorem 6.7), which is the desired behavior.
+- **Uses `⊗ₖ` and Theorem 6.7 as-is** — the fail-closed conjunction is already proven **for gaps only**; a multi-concept answer that conjoins concept-slots inherits that proof for the gap case. ~~A gap or glut on any concept-slot blocks the root (Theorem 6.7), which is the desired behavior.~~ **[RETRACTED — a *gap* blocks the root; a *glut* does not (`⊗ₖ` launders it, `B ⊗ₖ x = x`). Certify with `∧ₜ` or per-slot gating. See `glut-laundering-correction-instructions.md`.]**
 - **The single-writer discipline (Remark 5.4)** already applies per slot; adding slots does not violate it — each new concept-slot is its own serialized position.
 - **The decomposition act is quarantined in an agent** (semantic, generative), keeping the librarian non-generative and the algebra mechanical — the same decide/execute (here decompose/conjoin) split that survived the §C and retirement audits.
 
@@ -79,8 +79,8 @@ So the three mechanisms compose: **monitor detects (structural) → agent decomp
 
 ## Summary for the committee
 
-- **Corrected result:** neither `Testimony` nor `Claim` changes. The algebra already handles referent-decomposition via `(deal, concept)` **slots** + fail-closed `⊗ₖ` **derivation** (Def 6.5, Theorem 6.7). The apple/tomato bug is the toy **collapsing multiple concepts into one slot**, not an algebra gap.
-- **The fix:** decompose "the target" into concept-slots; make the guess a derivation over them; fail-closed propagation (Theorem 6.7) handles unresolved/gluted concept-slots correctly, as proven.
+- **Corrected result:** neither `Testimony` nor `Claim` changes. The algebra already handles referent-decomposition via `(deal, concept)` **slots** + `⊗ₖ` **derivation** (Def 6.5), fail-closed **on gaps** (Theorem 6.7). The apple/tomato bug is the toy **collapsing multiple concepts into one slot**, not an algebra gap.
+- **The fix:** decompose "the target" into concept-slots; make the guess a derivation over them for value, but ~~fail-closed propagation (Theorem 6.7) handles unresolved/gluted concept-slots correctly, as proven.~~ **[RETRACTED — Theorem 6.7 handles *gap* slots (proven), not *glut* slots, which `⊗ₖ` launders to a clean sign. Certify a contested conjunction with `∧ₜ` or per-slot gating. See `glut-laundering-correction-instructions.md`; the shipped `Testimony.conjoin` + `ConjoinSuite` carry the fix and its proof.]**
 - **The new requirement:** **dynamic** slot introduction (concepts unknown in advance, unlike the credit schema) — a **semantic agent act**, triggered by the **convergence monitor**, with the algebra conjoining mechanically. Monitor detects → agent decomposes → algebra conjoins.
 - **The decision was reached by reading the formal definitions, which corrected the initial (type-extension) proposal** — but this write-up is still correlated Claude reasoning. The independent confirmation is the adversarial pressure-test (risks 1–5) and, ultimately, the running system: a decomposed apple game that conjoins organism- and fruit-identity slots and either signs "apple" or blocks fail-closed — never gluts on a conflated slot.
 
