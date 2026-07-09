@@ -245,9 +245,9 @@
     <h1 class="title">When the checker is wrong, where does the loss go?</h1>
     <p class="dek">A controlled study of fail-open risk in AI agent self-verification &mdash; and why stacking redundant checks only buys safety when the checks are independent.</p>
     <div class="meta">
-      <div><span class="k">Date</span><span class="v">2026-07-08</span></div>
+      <div><span class="k">Date</span><span class="v">2026-07-09</span></div>
       <div><span class="k">System under test</span><span class="v">Claude Haiku 4.5</span></div>
-      <div><span class="k">Scope</span><span class="v">3 arms + 3 follow-ups</span></div>
+      <div><span class="k">Scope</span><span class="v">3 arms + 4 follow-ups</span></div>
       <div><span class="k">Verification</span><span class="v ok">committee + adversarial</span></div>
       <div><span class="k">Status</span><span class="v ok">complete</span></div>
     </div>
@@ -259,7 +259,7 @@
   <div class="abstract reveal">
     <div class="lbl">Executive summary</div>
     <p class="lede">Agent systems increasingly trust automated checks &mdash; a test suite, a type checker, one model reviewing another. Every checker is itself fallible, and the premise those systems rest on (a passing check means the work is correct) is exactly what breaks when the check errs.</p>
-    <p>We built a bench where a multi-agent society concludes a task only through a gate, degraded the checker parametrically, and measured where the loss goes. The architecture is broadly <strong>graceful</strong>: as the checker fails, the loss goes overwhelmingly to abstention, not to wrong signatures. The wrong signatures that do occur trace to a <strong>monoculture</strong> at two levels: agents that share blind spots agreeing on the same wrong answer, and redundant confirmations that share a checker failing together. Requiring <span class="mono">k</span> confirmations suppresses the second, but only when the confirmations are independent. Since N Claude-based checks are correlated by construction, the transferable lever is check <span class="kicker">diversity, not quantity</span>. The measurement bears this out (a second same-model check is barely independent), and the weak sign path can be closed outright with a non-generative check &mdash; dropping the perfect-oracle wrong-sign rate to zero.</p>
+    <p>We built a bench where a multi-agent society concludes a task only through a gate, degraded the checker parametrically, and measured where the loss goes. The architecture is broadly <strong>graceful</strong>: as the checker fails, the loss goes overwhelmingly to abstention, not to wrong signatures. The wrong signatures that do occur trace to a <strong>monoculture</strong> at two levels: agents that share blind spots agreeing on the same wrong answer, and redundant confirmations that share a checker failing together. Requiring <span class="mono">k</span> confirmations suppresses the second, but only when the confirmations are independent. Since N Claude-based checks are correlated by construction, the transferable lever is check <span class="kicker">diversity, not quantity</span>. The measurement bears this out (a second same-model check is barely independent), and the weak sign path can be closed outright with a non-generative check &mdash; dropping the perfect-oracle wrong-sign rate to zero <em>without</em> sacrificing the correct signs, which re-route to ground truth and survive the closure. That last cell also retires an earlier worry that the win rate and the wrong signatures were coupled: they were separable, and the coupling was an artifact of the open seam.</p>
   </div>
 
 </div>
@@ -612,7 +612,7 @@
 
       <h3>Trying to fix it, and what the attempt revealed</h3>
       <p>Reading the transcripts changed the diagnosis: the society is a competent player mis-served by the apparatus, not a broken reasoner. It converged on &ldquo;domestic dog&rdquo; for the target &ldquo;dog&rdquo; and the exact-string grader scored it wrong; the truth oracle hedged &ldquo;unknown&rdquo; on answerable category questions; the agents could not see how many questions remained, so they never committed. Three corrections followed: a semantic grader that accepts a refined phrasing, a decisive oracle, and a visible round budget with a nudge to commit before it runs out.</p>
-      <p>The honest outcome is an improvement, not a fix. Sign-correct moved from zero to about 0.15&ndash;0.19, and that gain is not a grading artifact &mdash; on ten held-out targets never used while building the fixes, every win signed the exact target word, and an adversarial review found the semantic grader conservative, declining &ldquo;green apple&rdquo; and &ldquo;guide dog&rdquo; and never crediting a wrong thing. But when the society commits it now signs wrong about as often as right, and at a degraded oracle the win rate falls back to zero.</p>
+      <p>The honest outcome is an improvement, not a fix. Sign-correct moved from zero to about 0.15&ndash;0.19, and that gain is not a grading artifact &mdash; on ten held-out targets never used while building the fixes, every win signed the exact target word, and an adversarial review found the semantic grader conservative, declining &ldquo;green apple&rdquo; and &ldquo;guide dog&rdquo; and never crediting a wrong thing. But seam-open &mdash; the configuration measured here &mdash; when the society commits it signs wrong about as often as right, and at a degraded oracle the win rate falls back to zero. The first half of that turns out to be an artifact of the open seam, resolved next; the second is the genuine remaining limit.</p>
       <figure class="col">
         <div class="fig-frame scroll-x">
           <div style="padding:22px 24px">
@@ -630,9 +630,30 @@
         </div>
         <figcaption><span class="fnum">Table 5</span>Sign-correct moved off zero, but the wrong-sign rate rose with it; on held-out targets the society signs wrong twice as often as right. Held-out exact and loose win counts are equal, so the grader is not the inflator.</figcaption>
       </figure>
+      <h3>The coupling was a seam-open artifact</h3>
+      <p>That reading &mdash; wins and confident-wrongs coupled through the commit nudge &mdash; rested on an inference across two runs with different conditions: the improved endgame was measured with the seam <em>open</em>, while the seam closure was measured earlier on a different, un-improved system, on different targets. The program does not accept a conclusion stitched that way. The composed cell runs the one corner never measured &mdash; the improved endgame with the seam <em>gated</em>, at a perfect oracle, on the improvement's own targets &mdash; and reruns the seam-open arm in the same invocation as a within-run control.</p>
+      <figure class="col">
+        <div class="fig-frame scroll-x">
+          <div style="padding:22px 24px">
+            <table>
+              <caption>The composed cell &mdash; improved endgame &times; seam-gated &times; perfect oracle (live, 52 games per arm)</caption>
+              <thead>
+                <tr><th class="lft">arm / target set</th><th>fail-open</th><th>wrong via 2-backer</th><th>abstain</th><th>correct</th></tr>
+              </thead>
+              <tbody>
+                <tr class="grp"><td class="lft">seam-open, dev-8</td><td class="fo-hi">0.25</td><td>8</td><td>0.59</td><td>0.16</td></tr>
+                <tr class="grp"><td class="lft">seam-open, held-out</td><td class="fo-hi">0.35</td><td>7</td><td>0.65</td><td>0.00</td></tr>
+                <tr class="grp"><td class="lft">seam-gated, dev-8</td><td class="fo-lo">0.00</td><td>0</td><td>0.88</td><td>0.13</td></tr>
+                <tr class="grp"><td class="lft">seam-gated, held-out</td><td class="fo-lo">0.00</td><td>0</td><td>0.90</td><td>0.10</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <figcaption><span class="fnum">Table 6</span>Gating the seam drops the wrong-sign rate to zero on both target sets (pooled 0 of 52) while the correct signs hold (6 of 52 versus 5 seam-open). Every gated correct sign is oracle-confirmed &mdash; the demoted two-agent winners re-route to ground truth and sign there rather than vanishing; the held-out wins are exact identifications.</figcaption>
+      </figure>
       <div class="callout">
-        <div class="lbl">The coupling</div>
-        <p>The wins and the confident-wrongs come from the same lever. The nudge that makes a weak model commit is what generates guesses at all, and also what turns safe abstention into confidently-wrong signatures &mdash; the exact failure the bench measures. A real fix is a stronger reasoner, not more pressure to commit; whether to dial the nudge back, trading win rate for a lower fail-open, is left open.</p>
+        <div class="lbl">The coupling dissolves</div>
+        <p>The confident-wrongs were the open seam, not the commit nudge. Seam-open, every one of the fifteen wrong signs is a two-agent agreement the oracle never checks; gating routes them to ground truth, where the wrong ones are answered &ldquo;no&rdquo; and only the right ones sign. The nudge produces the wins &mdash; through the oracle &mdash; and those survive. Wins and confident-wrongs are separable, not coupled: at perfect check reliability the gated society wins and never lies, by the deduction and by measurement. What stays open is capability <em>under degradation</em> &mdash; a reasoner question, not an architecture one.</p>
       </div>
       <p style="font-size:.92rem; color:var(--muted);">A consequence: the fully-measured verification-spend tradeoff has no live signal. Gating the confirmation as the sole sign path at a degraded oracle, the improved system signs nothing at all, so there is no fail-open and no useful-yield to weigh across spending policies. The tradeoff's clean form stays the hermetic correlation curve read at the measured correlation &mdash; two same-family confirmations buy almost nothing, an independent check approaches the geometric floor.</p>
     </div>
@@ -668,7 +689,7 @@
     <div class="foot-grid">
       <div>
         <h4>Method</h4>
-        <p>Three arms, one gate. The <em>primary</em> arm runs live (Haiku society, Sonnet ground truth) because the search degradation as the checker fails cannot be faithfully scripted; a bounded sweep (12 games per cell) places the architecture on the graceful/catastrophic axis and splits each fail-open by sign path. The <em>correlation</em> arm runs hermetic and large-N (800 games per cell): a scripted lone-hypothesis cohort always reaches the guess, the sealed target differs so every signature is a fail-open, and the confirmation is answered through a correlated error model &mdash; a deterministic (k, &rho;) curve through the real gate and re-pose loop. The <em>partial</em> arm is a hermetic correctness check: an oracle that returns a genuine gap, asserting the gate's gap-only, path-local abstention. The adjudicator is mechanical, no model in the loop; targets are sealed; rates carry Wilson intervals. Three follow-ups extend the arms: an endgame diagnostic (why correct signs are absent), a confirmer-correlation measurement (the real error correlation between two confirmers, same-model and cross-family), and the seam closure (a live A/B gating the corroboration path behind a ground-truth check). The seam closure is a fail-closed-core change, committee-reviewed and adversarially verified.</p>
+        <p>Three arms, one gate. The <em>primary</em> arm runs live (Haiku society, Sonnet ground truth) because the search degradation as the checker fails cannot be faithfully scripted; a bounded sweep (12 games per cell) places the architecture on the graceful/catastrophic axis and splits each fail-open by sign path. The <em>correlation</em> arm runs hermetic and large-N (800 games per cell): a scripted lone-hypothesis cohort always reaches the guess, the sealed target differs so every signature is a fail-open, and the confirmation is answered through a correlated error model &mdash; a deterministic (k, &rho;) curve through the real gate and re-pose loop. The <em>partial</em> arm is a hermetic correctness check: an oracle that returns a genuine gap, asserting the gate's gap-only, path-local abstention. The adjudicator is mechanical, no model in the loop; targets are sealed; rates carry Wilson intervals. Four follow-ups extend the arms: an endgame diagnostic (why correct signs are absent), a confirmer-correlation measurement (the real error correlation between two confirmers, same-model and cross-family), the seam closure (a live A/B gating the corroboration path behind a ground-truth check), and the composed cell (the improved endgame under the closed seam, measured within-run at a perfect oracle against a seam-open control). The seam closure is a fail-closed-core change, committee-reviewed and adversarially verified; the composed cell was pre-registered, committee-reconciled, and adversarially verified before the run.</p>
         <span class="repro">sbt "reasoningSociety/runMain claimalgebra.society.experiment.RunOracleSweep"</span>
       </div>
       <div>
@@ -676,7 +697,8 @@
         <ul>
           <li>Sign-path change: design committee &rarr; adversarial review &rarr; MERGE_SAFE, byte-identical at k=1.</li>
           <li>Result framing: independent epistemic review &rarr; genuine-as-framed, one overclaim softened.</li>
-          <li>235 automated checks green; deterministic and seed-reproducible.</li>
+          <li>Composed cell: pre-registered &rarr; committee-reconciled &rarr; adversarial review MERGE_SAFE; both arms measured within-run, full event logs archived.</li>
+          <li>252 automated checks green; deterministic and seed-reproducible.</li>
           <li>Built on the claim-algebra and reasoning-society modules &mdash; a graded Belnap bilattice with a fail-closed acceptance gate.</li>
         </ul>
       </div>
