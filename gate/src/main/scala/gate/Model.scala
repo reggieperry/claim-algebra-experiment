@@ -3,10 +3,9 @@ package gate
 /** The pure data model of the Scala differential anti-weakening gate: the per-`(file, code)`
   * finding the scanner produces, the snapshot of one tree, and the verdict items a diff reports.
   * The diff and verdict logic live in [[Diff]]; the scanner, git baseline capture, and runner wrap
-  * this pure core in later slices. Ported from the vendored Go gate
-  * (`docs/reference/a-go-original/`): the `(File, Code)` finding model and the closed
-  * Check/Kind/Verdict vocabulary transfer unchanged; only the scanner and runner are
-  * Scala-specific.
+  * this pure core in later slices. Ported from a Go original: the `(File, Code)` finding model
+  * and the closed Check/Kind/Verdict vocabulary transfer unchanged; only the scanner and runner
+  * are Scala-specific.
   */
 
 /** One scanner diagnostic — a scalafix or wartremover finding, or a compiler warning. Its

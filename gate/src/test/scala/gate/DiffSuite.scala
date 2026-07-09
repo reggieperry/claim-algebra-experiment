@@ -6,7 +6,7 @@ import munit.FunSuite
   * finding that already existed at the merge-base does not block; only the net-new deltas a branch
   * introduces do. A finding that merely moved files (the global count unchanged) downgrades to an
   * advisory, because a count cannot tell a real relocation from a coincidental fix-plus-new. Ported
-  * from the vendored Go gate's `diff_test.go`.
+  * from a Go original's diff test.
   */
 class DiffSuite extends FunSuite:
 

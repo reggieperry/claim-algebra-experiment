@@ -191,8 +191,8 @@ lazy val root = (project in file("."))
 // regressions versus the merge-base. It is independent of the experiment (it scans
 // files and runs the toolchain), so it depends on nothing in `root`. The pure diff/
 // verdict engine is dependency-free; the runner/CLI's effect and process libraries are
-// added when those slices land. Ported from the vendored Go gate under
-// `docs/reference/a-go-original/` (reuse the design, replace scanner + runner).
+// added when those slices land. Ported from a Go original — the design reused, the
+// scanner and runner replaced (scalafix/wartremover, sbt/scalafmt/scoverage).
 lazy val gate = (project in file("gate"))
   .settings(
     name := "differential-gate",

@@ -3,7 +3,7 @@ package gate
 /** The gate's output contract: a [[Report]] rendered as JSON for a consuming chain node.
   * Hand-rolled over the closed report shape (no JSON dependency); the verdict is lowercase, the
   * check is its letter (`build` for the precondition), and the kind is snake_case — wire-compatible
-  * with the vendored Go gate's report. Slices are always present as arrays, never absent.
+  * with a Go original's report. Slices are always present as arrays, never absent.
   */
 object ReportJson:
 
