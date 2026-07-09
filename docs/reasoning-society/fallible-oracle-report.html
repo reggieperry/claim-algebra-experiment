@@ -247,7 +247,7 @@
     <div class="meta">
       <div><span class="k">Date</span><span class="v">2026-07-09</span></div>
       <div><span class="k">System under test</span><span class="v">Claude Haiku 4.5</span></div>
-      <div><span class="k">Scope</span><span class="v">3 arms + 4 follow-ups</span></div>
+      <div><span class="k">Scope</span><span class="v">3 arms + 5 follow-ups</span></div>
       <div><span class="k">Verification</span><span class="v ok">committee + adversarial</span></div>
       <div><span class="k">Status</span><span class="v ok">complete</span></div>
     </div>
@@ -654,9 +654,33 @@
       <p>The rise is the interesting part, and the per-game logs explain it. Matching each gated win to its same-game open-arm counterpart splits the six <strong>one re-routed, five resurrected</strong>. Only one gated win also won seam-open (its two-agent winner re-routed to the oracle). The other five are <em>resurrected</em>: seam-open they abstained or <em>signed a lie</em> and the game ended there; gating demoted the premature two-agent sign, the game kept playing, and it won &mdash; two of them are open-arm lies converted to wins on the same target. The held-out arm is the proof re-routing alone cannot give: it had zero seam-open wins, so its two gated wins came from nowhere but resurrection. The inverse prices the cost the expectation was about &mdash; of the five seam-open two-agent wins, only one survives gating; four are lost because they never reach an oracle confirmation in budget. The net is plus one: five resurrected minus four lost.</p>
       <div class="callout">
         <div class="lbl">Fail-closed is productive, not merely safe</div>
-        <p>The confident-wrongs were the open seam, not the commit nudge &mdash; and closing that seam does more than stop the lies. Every wrong sign seam-open is a two-agent agreement the oracle never checks; gating sends each to ground truth, where the wrong ones are answered &ldquo;no.&rdquo; But the game those wrong signs would have ended keeps playing, and some of those games win. So closing the unchecked path zeroes the lies <em>and</em> slightly raises the wins, by recycling would-be-lies into fresh attempts. Wins and confident-wrongs are separable, not coupled: at perfect check reliability the gated society wins and never lies, by the deduction and by measurement. What stays open is capability <em>under degradation</em> &mdash; a reasoner question, not an architecture one.</p>
+        <p>The confident-wrongs were the open seam, not the commit nudge &mdash; and closing that seam does more than stop the lies. Every wrong sign seam-open is a two-agent agreement the oracle never checks; gating sends each to ground truth, where the wrong ones are answered &ldquo;no.&rdquo; But the game those wrong signs would have ended keeps playing, and some of those games win. So closing the unchecked path zeroes the lies <em>and</em> slightly raises the wins, by recycling would-be-lies into fresh attempts. Wins and confident-wrongs are separable, not coupled: at perfect check reliability the gated society wins and never lies, by the deduction and by measurement. What stays open is capability <em>under degradation</em> &mdash; the win rate still collapses at p &lt; 1, which the stronger-closer trial (below) then tested directly.</p>
       </div>
       <p style="font-size:.92rem; color:var(--muted);">A consequence: the fully-measured verification-spend tradeoff has no live signal. Gating the confirmation as the sole sign path at a degraded oracle, the improved system signs nothing at all, so there is no fail-open and no useful-yield to weigh across spending policies. The tradeoff's clean form stays the hermetic correlation curve read at the measured correlation &mdash; two same-family confirmations buy almost nothing, an independent check approaches the geometric floor.</p>
+
+      <h3>A stronger reasoner does not unblock the degraded regime</h3>
+      <p>The natural next move is to throw a stronger reasoner at the degraded corner &mdash; the composed cell called it a reasoner question. So we did, minimally and by allocation: cheap proposer, strong closer and adversary, at p = 0.7, seam-gated, against an all-Haiku baseline, with a third arm that upgrades <em>everything</em> to probe whether the search rather than the closer is the bottleneck. Two tiers, Sonnet then Opus, 64 games per arm.</p>
+      <figure class="col">
+        <div class="fig-frame scroll-x">
+          <div style="padding:22px 24px">
+            <table>
+              <caption>Correct signs at a degraded oracle (p = 0.7, seam-gated, 64 games per arm)</caption>
+              <thead>
+                <tr><th class="lft">tier</th><th>weak (all Haiku)</th><th>strong closer+adversary</th><th>strong everything</th></tr>
+              </thead>
+              <tbody>
+                <tr class="grp"><td class="lft">Sonnet</td><td class="fo-lo">0/64</td><td class="fo-lo">0/64</td><td class="fo-lo">0/64</td></tr>
+                <tr class="grp"><td class="lft">Opus</td><td class="fo-lo">0/64</td><td class="fo-lo">0/64</td><td class="fo-lo">1/64</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <figcaption><span class="fnum">Table 7</span>Neither tier, in the closing roles or across all three, signs distinguishably more correctly than all-Haiku &mdash; every strong-minus-weak interval includes zero, and the lone Opus win is within noise. The society stays abstention-dominated (~95%) at every cell.</figcaption>
+      </figure>
+      <div class="callout">
+        <div class="lbl">The bottleneck is the checker, not the tier</div>
+        <p>Capability under degradation is <em>not</em> a model-tier question at these roles. A stronger reasoner reasons over the same corrupted premises and still needs the same corrupted confirmation to sign, so it cannot convert its strength into a correct signature &mdash; the founding thesis reaching the reasoner axis: past a point, a better reasoner does not buy soundness against a bad checker. And it makes the deferred tradeoff less measurable, not more: the rate at which a wrong guess even reaches confirmation <em>falls</em> as the tier strengthens (0.14 &rarr; 0.06 &rarr; 0.02 at Sonnet), so a strong closer starves the wrong-sign signal the tradeoff would read. (Scope: one degraded p, the development targets, this allocation &mdash; the Haiku&rarr;Sonnet&rarr;Opus ladder does not move the win rate off ~0 here, not that no reasoner ever could.)</p>
+      </div>
     </div>
   </section>
 
@@ -690,7 +714,7 @@
     <div class="foot-grid">
       <div>
         <h4>Method</h4>
-        <p>Three arms, one gate. The <em>primary</em> arm runs live (Haiku society, Sonnet ground truth) because the search degradation as the checker fails cannot be faithfully scripted; a bounded sweep (12 games per cell) places the architecture on the graceful/catastrophic axis and splits each fail-open by sign path. The <em>correlation</em> arm runs hermetic and large-N (800 games per cell): a scripted lone-hypothesis cohort always reaches the guess, the sealed target differs so every signature is a fail-open, and the confirmation is answered through a correlated error model &mdash; a deterministic (k, &rho;) curve through the real gate and re-pose loop. The <em>partial</em> arm is a hermetic correctness check: an oracle that returns a genuine gap, asserting the gate's gap-only, path-local abstention. The adjudicator is mechanical, no model in the loop; targets are sealed; rates carry Wilson intervals. Four follow-ups extend the arms: an endgame diagnostic (why correct signs are absent), a confirmer-correlation measurement (the real error correlation between two confirmers, same-model and cross-family), the seam closure (a live A/B gating the corroboration path behind a ground-truth check), and the composed cell (the improved endgame under the closed seam, measured within-run at a perfect oracle against a seam-open control). The seam closure is a fail-closed-core change, committee-reviewed and adversarially verified; the composed cell was pre-registered, committee-reconciled, and adversarially verified before the run.</p>
+        <p>Three arms, one gate. The <em>primary</em> arm runs live (Haiku society, Sonnet ground truth) because the search degradation as the checker fails cannot be faithfully scripted; a bounded sweep (12 games per cell) places the architecture on the graceful/catastrophic axis and splits each fail-open by sign path. The <em>correlation</em> arm runs hermetic and large-N (800 games per cell): a scripted lone-hypothesis cohort always reaches the guess, the sealed target differs so every signature is a fail-open, and the confirmation is answered through a correlated error model &mdash; a deterministic (k, &rho;) curve through the real gate and re-pose loop. The <em>partial</em> arm is a hermetic correctness check: an oracle that returns a genuine gap, asserting the gate's gap-only, path-local abstention. The adjudicator is mechanical, no model in the loop; targets are sealed; rates carry Wilson intervals. Five follow-ups extend the arms: an endgame diagnostic (why correct signs are absent), a confirmer-correlation measurement (the real error correlation between two confirmers, same-model and cross-family), the seam closure (a live A/B gating the corroboration path behind a ground-truth check), the composed cell (the improved endgame under the closed seam, measured within-run at a perfect oracle against a seam-open control), and the stronger-closer trial (Sonnet and Opus in the reasoning roles at a degraded oracle, against an all-Haiku baseline). The seam closure is a fail-closed-core change, committee-reviewed and adversarially verified; the composed cell and the stronger-closer trial were each pre-registered, committee-reconciled, and adversarially verified before the run.</p>
         <span class="repro">sbt "reasoningSociety/runMain claimalgebra.society.experiment.RunOracleSweep"</span>
       </div>
       <div>
@@ -699,7 +723,8 @@
           <li>Sign-path change: design committee &rarr; adversarial review &rarr; MERGE_SAFE, byte-identical at k=1.</li>
           <li>Result framing: independent epistemic review &rarr; genuine-as-framed, one overclaim softened.</li>
           <li>Composed cell: pre-registered &rarr; committee-reconciled &rarr; adversarial review MERGE_SAFE; both arms measured within-run, full event logs archived.</li>
-          <li>252 automated checks green; deterministic and seed-reproducible.</li>
+          <li>Stronger-closer trial: pre-registered &rarr; committee-reconciled (tradeoff deferred) &rarr; adversarial review MERGE_SAFE (a classifier defect caught + fixed); two tiers under one surface stamp, all arms archived.</li>
+          <li>266 automated checks green; deterministic and seed-reproducible.</li>
           <li>Built on the claim-algebra and reasoning-society modules &mdash; a graded Belnap bilattice with a fail-closed acceptance gate.</li>
         </ul>
       </div>
