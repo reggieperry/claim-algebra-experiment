@@ -10,8 +10,15 @@ package claimalgebra.society
 final case class GameView(
     transcript: List[(String, OracleAnswer)],
     hypotheses: List[(Answer, Int)],
-    definitions: List[Definition]
+    definitions: List[Definition],
+    roundsUsed: Int = 0,
+    roundBudget: Int = 0
 ):
+
+  /** Questions left before the give-up — the endgame clock. Zero budget means "not surfaced" (an
+    * internal `from` call that only needs the hypotheses).
+    */
+  def roundsLeft: Int = if roundBudget <= 0 then 0 else math.max(0, roundBudget - roundsUsed)
 
   /** Render the state as a plain, readable brief for the model. The established definitions are
     * surfaced so an agent grounds every future use of a challenged term to the agreed meaning
@@ -36,7 +43,17 @@ final case class GameView(
         definitions
           .map(d => s"- \"${d.term.value}\" means: ${d.meaning}")
           .mkString("Definitions established this game:\n", "\n", "")
-    s"$qa\n\n$hs\n\n$ds"
+    val clock =
+      if roundBudget <= 0 then ""
+      else
+        val left = roundsLeft
+        val urge =
+          if left <= 3 then
+            " FEW QUESTIONS REMAIN — if any hypothesis fits the answers so far, ASSERT your single" +
+              " best guess NOW instead of asking another question; an unanswered guess scores nothing."
+          else ""
+        s"\n\nRound budget: $roundsUsed of $roundBudget questions used, $left left.$urge"
+    s"$qa\n\n$hs\n\n$ds$clock"
 
 object GameView:
 
@@ -54,7 +71,7 @@ object GameView:
     * A non-retired candidate — including a *contested* live glut, which must stay a target so the
     * disagreement is held, not silenced — is shown.
     */
-  def from(log: Vector[Event]): GameView =
+  def from(log: Vector[Event], roundBudget: Int = 0, roundsUsed: Int = 0): GameView =
     val answers: Map[String, OracleAnswer] =
       log.collect { case Event.AnswerGiven(_, _, qid, ans, _) => qid.value -> ans }.toMap
 
@@ -79,7 +96,7 @@ object GameView:
         .map((c, agents) => c -> agents.size)
         .sortBy((_, n) => -n)
 
-    GameView(transcript, hypotheses, Definitions.established(log))
+    GameView(transcript, hypotheses, Definitions.established(log), roundsUsed, roundBudget)
 
   private def add(
       acc: Map[Answer, Set[AgentId]],

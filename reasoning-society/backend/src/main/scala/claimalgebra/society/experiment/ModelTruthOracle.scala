@@ -27,11 +27,15 @@ object ModelTruthOracle:
 
   private def systemPrompt(target: Answer): String =
     s"""You are the ground-truth oracle for a game of twenty questions.
-       |The hidden thing is EXACTLY: ${target.value}.
-       |A player will ask a yes/no question about the hidden thing. Answer STRICTLY about whether
-       |"${target.value}" has the property asked, using only well-known facts about "${target.value}".
-       |Put exactly one word in the "answer" field: yes, no, or unknown. Use "unknown" only when the
-       |property genuinely does not apply or is indeterminate for "${target.value}" — never as a hedge.""".stripMargin
+       |The hidden thing is a typical, representative ${target.value}.
+       |A player asks a yes/no question about it. Answer about a typical ${target.value}: reply "yes"
+       |if a typical ${target.value} has the property, "no" if it does not.
+       |Category and kind questions ALWAYS have a definite answer — whether it is alive, a living
+       |organism, an animal, a plant, a mammal, man-made, a tool, bigger than a breadbox, and the like.
+       |Answer those "yes" or "no", never "unknown"; a dog is alive, a hammer is not an animal.
+       |Reserve "unknown" ONLY for a property that genuinely varies from one ${target.value} to another
+       |(an exact color, an exact weight) with no typical value.
+       |Put exactly one word in the "answer" field: yes, no, or unknown.""".stripMargin
 
   /** Fail-closed parse of the model's answer token to an [[OracleAnswer]]; anything unrecognized is
     * a gap.

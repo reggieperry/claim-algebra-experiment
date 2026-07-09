@@ -55,7 +55,9 @@ object ExperimentOracle:
   def guessTruth(target: Answer, question: Question): Option[OracleAnswer] =
     Option.when(question.id.value.startsWith(GuessPrefix)) {
       val guessed = question.id.value.drop(GuessPrefix.length)
-      if guessed == target.value then OracleAnswer.Yes else OracleAnswer.No
+      // Match via TargetMatch, not exact string: a guess of "domestic dog" for the sealed target
+      // "dog" is correct (the harness owns this truth). The error model still corrupts on top.
+      if TargetMatch.matchesRaw(target.value, guessed) then OracleAnswer.Yes else OracleAnswer.No
     }
 
   /** One oracle draw: the question, the truthful answer, and what was actually delivered. */

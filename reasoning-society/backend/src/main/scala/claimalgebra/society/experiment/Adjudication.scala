@@ -86,5 +86,8 @@ object Adjudication:
       case Some(truth) =>
         Right(signed(log) match
           case None => PrimaryOutcome.Abstain
-          case Some(c) if c == truth => PrimaryOutcome.SignCorrect
+          // Grade against the sealed target via TargetMatch, not exact equality: signing "domestic
+          // dog" for the target "dog" is a correct answer, not a wrong sign (the endgame diagnostic
+          // showed exact-match mis-scoring the right concept). Hypothesis identity stays exact.
+          case Some(c) if TargetMatch.matches(truth, c) => PrimaryOutcome.SignCorrect
           case Some(_) => PrimaryOutcome.SignWrong)

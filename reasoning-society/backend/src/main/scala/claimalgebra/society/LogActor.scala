@@ -337,12 +337,14 @@ final class LogActor(
     val cohort = s.agents.map((id, _) => id).toSet
     if cohort.isEmpty then endInconclusive(s)
     else
-      val view = GameView.from(s.log)
       val opened = s.copy(
         round = roundId,
         roundsUsed = s.roundsUsed + 1,
         barrier = Barrier(roundId, cohort, Set.empty, closed = false)
       )
+      // The agents SEE the endgame clock (roundsUsed of maxRounds) so they can commit to a guess
+      // before the budget runs out, rather than proposing questions forever (endgame diagnostic).
+      val view = GameView.from(opened.log, deps.config.maxRounds, opened.roundsUsed)
       probeAll(opened.agents, roundId, view) *> armTimeout(roundId).as(opened)
 
   private def closeRound(s: LogState, roundComplete: Boolean): IO[LogState] =
