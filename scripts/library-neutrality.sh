@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # Library neutrality gate — the `claim-algebra/` module (the algebra + calculus library) must carry
-# NO domain vocabulary (credit / product / experiment / model), so it can be excised and reused
-# across domains (audit, tax, advisory, deals — not only credit). This is the definition of DONE for
-# the domain-neutral-library effort; see docs/claim-algebra/library-portability-plan.md.
+# NO domain vocabulary (credit / product / experiment / model), so it can be lifted and reused
+# across domains. This is the definition of DONE for the library-portability work; see the README.
+#
+# The inline VOCAB is the tier-2 domain-vocabulary pattern. An optional, gitignored
+# `scrub-tokens.local` (one extra alternation fragment per line) is unioned in when present, so a
+# consumer can add its own private terms without committing them to this shared gate.
 #
 # Exit 0 iff the library is neutral.
 #   bash scripts/library-neutrality.sh              # full check (all three conjuncts)
@@ -22,7 +25,12 @@ echo "== Conjunct 1: no domain vocabulary in claim-algebra/src =="
 # Deliberately EXCLUDED as neutral (a list including these can never go green): bare
 # verify/verification (the gate's verify axis), bare audit (neutral provenance prose), bare signature
 # (the accept term), bare Kind (the neutral marker `trait Kind` stays), and bare operator.
-VOCAB='credit|covenant|EBITDA|leverage|\bmargin\b|\bdebt\b|\bdeal\b|workbench|operator-facing|operator-view|slide|the firm|EDGAR|experiment|\bCWS\b|falsif|\bLLM\b|Anthropic|OpenAI'
+VOCAB='credit|covenant|EBITDA|leverage|\bmargin\b|\bdebt\b|\bdeal\b|workbench|operator-facing|operator-view|slide|EDGAR|experiment|\bCWS\b|falsif|\bLLM\b|Anthropic|OpenAI'
+# Optional, gitignored: union private terms (one alternation fragment per line) without committing them.
+if [ -f scrub-tokens.local ]; then
+  extra=$(paste -sd'|' scrub-tokens.local)
+  [ -n "$extra" ] && VOCAB="$VOCAB|$extra"
+fi
 IDENT='CreditKind|\bDesk\b|\bRouting\b|deskFor|DataQuality|CreditPolicy|DealLead|Kind\.(Extraction|Definitional|TemporalRetraction|Verification)'
 hits=$( { grep -rIniE "$VOCAB" claim-algebra/src; grep -rInE "$IDENT" claim-algebra/src; } | sort -u )
 if [ -n "$hits" ]; then
@@ -57,5 +65,5 @@ else
 fi
 
 echo
-if [ $fail -eq 0 ]; then echo "NEUTRAL ✓"; else echo "NOT NEUTRAL ✗ — see docs/claim-algebra/library-portability-plan.md"; fi
+if [ $fail -eq 0 ]; then echo "NEUTRAL ✓"; else echo "NOT NEUTRAL ✗ — the library must stay domain-neutral (see the README)"; fi
 exit $fail

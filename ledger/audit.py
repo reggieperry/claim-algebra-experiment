@@ -210,6 +210,29 @@ def warn_claimrate(root: Path, live: list[dict]) -> str | None:
     return f"claimrate: {asserts} model assertions / {commits} recent commits"
 
 
+def git_hookspath(root: Path) -> str | None:
+    """This clone's configured core.hooksPath, or None if unset/unavailable."""
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(root), "config", "--get", "core.hooksPath"],
+            capture_output=True, text=True,
+        )
+        return r.stdout.strip() if r.returncode == 0 else None
+    except Exception:
+        return None
+
+
+def hooks_advisory(root: Path) -> str:
+    """Non-fatal: the commit-path gate is inert until core.hooksPath is wired (see setup-hooks.sh)."""
+    hp = git_hookspath(root)
+    if hp == ".githooks":
+        return "hooks: core.hooksPath -> .githooks (commit-path gate active)"
+    return (
+        "ADVISORY hooks: core.hooksPath is not set to .githooks — the commit-path gate and "
+        "secret scan are inert in this clone; run scripts/setup-hooks.sh"
+    )
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default=".")
@@ -250,6 +273,7 @@ def main() -> int:
         cr = warn_claimrate(root, live)
         if cr:
             print(cr)
+        print(hooks_advisory(root))
 
     names = ["schema", "signed", "coherence", "chains", "trace", "immutable"]
     failed = {v.check for v in hard}

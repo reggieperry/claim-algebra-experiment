@@ -25,3 +25,6 @@ ledger/__pycache__/
 
 # composed-cell run artifacts (full event logs) — kept local, findings go in the docs
 results/
+
+# optional private scrub-token additions for the library-neutrality gate (never committed)
+scrub-tokens.local
