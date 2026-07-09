@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The numbers behind the experiments — a visual guide</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --muted:#666; --paper:#fdfcf9; --line:#d8d4cc;
+    --green:#2e7d32; --red:#c62828; --gray:#9e9e9e;
+    --blue:#1565c0; --orange:#ef6c00; --accent:#5d4037;
+  }
+  body{font-family:Georgia,'Times New Roman',serif;background:var(--paper);color:var(--ink);
+       margin:0;padding:0;line-height:1.55}
+  main{max-width:920px;margin:0 auto;padding:40px 24px 80px}
+  h1{font-size:1.9em;margin:.2em 0 .1em}
+  .sub{color:var(--muted);font-style:italic;margin-bottom:2em}
+  h2{font-size:1.35em;margin-top:2.2em;border-bottom:1px solid var(--line);padding-bottom:.25em}
+  h3{font-size:1.05em;margin-top:1.4em}
+  p{margin:.7em 0}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px 14px 8px;margin:1.2em 0}
+  .cap{font-size:.86em;color:var(--muted);margin:.5em 6px 8px;line-height:1.45}
+  .note{background:#f6f1e7;border-left:4px solid var(--accent);padding:10px 14px;font-size:.93em;margin:1em 0;border-radius:0 6px 6px 0}
+  .physics{background:#eef3f8;border-left:4px solid var(--blue);padding:10px 14px;font-size:.93em;margin:1em 0;border-radius:0 6px 6px 0}
+  details{background:#fff;border:1px dashed var(--line);border-radius:6px;padding:8px 14px;margin:.8em 0;font-size:.92em}
+  summary{cursor:pointer;color:var(--accent);font-weight:bold}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em;background:#f0ece3;padding:1px 5px;border-radius:4px}
+  .kicker{font-variant:small-caps;letter-spacing:.06em;color:var(--accent);font-size:.85em}
+  svg text{font-family:Georgia,serif}
+  .legend{font-size:.85em;color:var(--muted);margin:2px 8px 6px}
+  .sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin:0 4px 0 10px}
+  table.mini{border-collapse:collapse;font-size:.9em;margin:.8em 0}
+  table.mini td,table.mini th{border:1px solid var(--line);padding:4px 10px;text-align:center}
+  table.mini th{background:#f0ece3}
+</style>
+</head>
+<body>
+<main>
+
+<h1>The numbers behind the experiments</h1>
+<div class="sub">A visual guide to the statistics in the fallible-oracle program, written for a reader with freshman math and physics. Every chart below uses the real measured numbers from <code>fallible-oracle-results.md</code>.</div>
+
+<p>The system we built plays a game: a society of small AI models tries to identify a hidden object, and a <b>gate</b> decides whether to officially sign an answer. Every game ends one of three ways, and the entire program is about the balance between them:</p>
+
+<div class="fig" style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;padding:18px">
+  <div style="flex:1;min-width:200px;border:2px solid var(--green);border-radius:8px;padding:10px 14px">
+    <b style="color:var(--green)">CORRECT</b><br><span style="font-size:.9em">The gate signed the true answer. A win.</span>
+  </div>
+  <div style="flex:1;min-width:200px;border:2px solid var(--red);border-radius:8px;padding:10px 14px">
+    <b style="color:var(--red)">FAIL-OPEN</b><br><span style="font-size:.9em">The gate signed a <i>wrong</i> answer. The one outcome the design exists to prevent — a confident lie.</span>
+  </div>
+  <div style="flex:1;min-width:200px;border:2px solid var(--gray);border-radius:8px;padding:10px 14px">
+    <b style="color:var(--gray)">ABSTAIN</b><br><span style="font-size:.9em">The gate declined to sign. "I don't know," said honestly.</span>
+  </div>
+</div>
+
+<p>So every result you've seen is a <i>count</i>: out of N games, how many landed in each bucket. The statistics exist to answer one question about those counts: <b>what do they let us honestly claim about the system's true behavior?</b></p>
+
+<h2>1. A count is not a rate — error bars for proportions</h2>
+
+<p>Suppose the gate signed a wrong answer in 2 games out of 12. The observed rate is 2/12 ≈ 17%. But if you ran 12 <i>more</i> games, you would not get exactly 2 again — the same way 12 coin flips don't give exactly 6 heads. The honest statement is a <b>confidence interval</b>: the range of true rates that could plausibly have produced what you saw.</p>
+
+<p>We use the <b>Wilson interval</b> throughout. You don't need to derive it — you need to read it. Here are the program's headline results drawn as intervals:</p>
+
+<div class="fig">
+<svg viewBox="0 0 880 300" width="100%" role="img" aria-label="Forest plot of key results">
+  <!-- gridlines 0 to 0.6 -->
+  <g stroke="#eee" stroke-width="1">
+    <line x1="120" y1="24" x2="120" y2="248"/><line x1="236.7" y1="24" x2="236.7" y2="248"/>
+    <line x1="353.3" y1="24" x2="353.3" y2="248"/><line x1="470" y1="24" x2="470" y2="248"/>
+    <line x1="586.7" y1="24" x2="586.7" y2="248"/><line x1="703.3" y1="24" x2="703.3" y2="248"/>
+    <line x1="820" y1="24" x2="820" y2="248"/>
+  </g>
+  <g font-size="12" fill="#666" text-anchor="middle">
+    <text x="120" y="266">0%</text><text x="236.7" y="266">10%</text><text x="353.3" y="266">20%</text>
+    <text x="470" y="266">30%</text><text x="586.7" y="266">40%</text><text x="703.3" y="266">50%</text><text x="820" y="266">60%</text>
+  </g>
+  <text x="470" y="292" font-size="13" fill="#444" text-anchor="middle">true fail-open rate consistent with the data (95% Wilson interval)</text>
+
+  <!-- rows -->
+  <!-- row 1: 2/12 primary sweep p=1.0 : 0.167 [0.05,0.45] -->
+  <text x="112" y="49" font-size="13" text-anchor="end">first sweep, perfect oracle — 2/12</text>
+  <line x1="178.3" y1="45" x2="645" y2="45" stroke="#c62828" stroke-width="4" opacity="0.35"/>
+  <circle cx="314.6" cy="45" r="6" fill="#c62828"/>
+  <!-- row 2: E2 open 3/12: 0.25 [0.09,0.53] -->
+  <text x="112" y="94" font-size="13" text-anchor="end">seam open (E2 control) — 3/12</text>
+  <line x1="225" y1="90" x2="738.3" y2="90" stroke="#c62828" stroke-width="4" opacity="0.35"/>
+  <circle cx="411.7" cy="90" r="6" fill="#c62828"/>
+  <!-- row 3: composed open dev 8/32: .25 [.13,.42] -->
+  <text x="112" y="139" font-size="13" text-anchor="end">composed cell, seam open — 8/32</text>
+  <line x1="271.7" y1="135" x2="610" y2="135" stroke="#c62828" stroke-width="4" opacity="0.35"/>
+  <circle cx="411.7" cy="135" r="6" fill="#c62828"/>
+  <!-- row 4: composed gated 0/52 [0,.069] -->
+  <text x="112" y="184" font-size="13" text-anchor="end">composed cell, seam GATED — 0/52</text>
+  <line x1="120" y1="180" x2="200.5" y2="180" stroke="#2e7d32" stroke-width="4" opacity="0.5"/>
+  <circle cx="120" cy="180" r="6" fill="#2e7d32"/>
+  <!-- row 5: S1 0/64 [0,.056] -->
+  <text x="112" y="229" font-size="13" text-anchor="end">stronger-closer S1 — 0/64</text>
+  <line x1="120" y1="225" x2="185.3" y2="225" stroke="#2e7d32" stroke-width="4" opacity="0.5"/>
+  <circle cx="120" cy="225" r="6" fill="#2e7d32"/>
+</svg>
+<div class="cap">Dots are the observed rate; bars are the range of true rates the data can't rule out. Two lessons jump out. First, <b>small N means wide bars</b>: 2/12 looks like "17%" but is really "anywhere from 5% to 45%." Second, <b>zero observed is not zero proven</b> — 0/52 still leaves room for a true rate up to 6.9%. The green results are the seam-closure wins: their whole bar sits below the red results' dots, which is what "the fix worked" means statistically.</div>
+</div>
+
+<div class="physics"><b>Physics translation.</b> This is the same discipline as a lab measurement: never report a value without its uncertainty, and never call two values "different" unless their error bars separate. A proportion from N games has uncertainty that shrinks like 1/&radic;N — the same law as the standard error of a mean.</div>
+
+<details><summary>The Wilson formula, for the curious</summary>
+<p>For x successes in n trials with z = 1.96 (95%):</p>
+<p style="text-align:center"><code>( p&#770; + z²/2n &nbsp;±&nbsp; z·&radic;( p&#770;(1−p&#770;)/n + z²/4n² ) ) / (1 + z²/n)</code></p>
+<p>where p&#770; = x/n. It behaves sensibly at the edges (0 or n successes), which the naive p&#770; ± z&radic;(p&#770;q&#770;/n) does not. Handy special case used constantly in our results: for <b>zero</b> events, the 95% upper bound is <code>z²/(n+z²) ≈ 3.84/(n+3.84)</code>. A rougher classroom version is the <b>rule of three</b>: see 0 events in n trials, and the true rate is very likely below 3/n.</p>
+</details>
+
+<h2>2. Why "we saw zero" means more at N=64 than at N=16</h2>
+
+<p>This one decided a whole experiment. Early on, the all-weak society signed nothing in 16 games at a degraded oracle, and the temptation was to declare "it can't sign at all — any sign from a stronger model proves improvement." The committee refused, and this curve is why:</p>
+
+<div class="fig">
+<svg viewBox="0 0 880 300" width="100%" role="img" aria-label="Upper bound after zero events vs N">
+  <!-- hypothesis band 0.15–0.25 -->
+  <rect x="80" y="88.6" width="760" height="68.5" fill="#ef6c00" opacity="0.12"/>
+  <text x="826" y="106" font-size="12" fill="#ef6c00" text-anchor="end">hypothesized "unblocked" rate: 15–25%</text>
+  <!-- axes -->
+  <line x1="80" y1="260" x2="840" y2="260" stroke="#999"/>
+  <line x1="80" y1="20" x2="80" y2="260" stroke="#999"/>
+  <g font-size="12" fill="#666" text-anchor="middle">
+    <text x="100" y="278">8</text><text x="220" y="278">16</text><text x="340" y="278">32</text>
+    <text x="460" y="278">52</text><text x="580" y="278">64</text><text x="700" y="278">128</text><text x="820" y="278">256</text>
+    <text x="460" y="296">number of games N (all with zero events observed)</text>
+  </g>
+  <g font-size="12" fill="#666" text-anchor="end">
+    <text x="74" y="264">0%</text><text x="74" y="158">15%</text><text x="74" y="92">25%</text><text x="74" y="47">31%</text>
+  </g>
+  <!-- curve points: (100,37.8)(220,127)(340,186.6)(460,212.7)(580,221)(700,240.1)(820,249.7) -->
+  <polyline points="100,37.8 220,127 340,186.6 460,212.7 580,221 700,240.1 820,249.7"
+            fill="none" stroke="#1565c0" stroke-width="3"/>
+  <g fill="#1565c0">
+    <circle cx="100" cy="37.8" r="5"/><circle cx="220" cy="127" r="5"/><circle cx="340" cy="186.6" r="5"/>
+    <circle cx="460" cy="212.7" r="5"/><circle cx="580" cy="221" r="5"/><circle cx="700" cy="240.1" r="5"/><circle cx="820" cy="249.7" r="5"/>
+  </g>
+  <!-- markers -->
+  <line x1="220" y1="20" x2="220" y2="260" stroke="#c62828" stroke-dasharray="5 4"/>
+  <text x="228" y="36" font-size="12" fill="#c62828">0/16: bound 19% — still INSIDE the band. Proves nothing.</text>
+  <line x1="580" y1="20" x2="580" y2="260" stroke="#2e7d32" stroke-dasharray="5 4"/>
+  <text x="588" y="200" font-size="12" fill="#2e7d32">0/64: bound 5.7% — below the band.</text>
+  <text x="588" y="216" font-size="12" fill="#2e7d32">Now zero rules the hypothesis out.</text>
+</svg>
+<div class="cap">The curve is the 95% upper bound on the true rate after observing <b>zero</b> events in N games — roughly 3.84/(N+3.84). At N=16 a true rate of 19% is still possible, so "zero" is compatible with the very effect we were testing for. At N=64, zero pushes the bound to 5.7%, below the whole hypothesized band. Same observation ("nothing happened"), completely different evidential weight. That is why the stronger-closer trial was sized at 64 games per arm — and why its final "0/64 at both tiers" is a genuine finding, not an absence.</div>
+</div>
+
+<h2>3. Telling two rates apart — what "powered" means</h2>
+
+<p>The trial's real question was a <i>comparison</i>: does the strong arm sign correctly more often than the weak arm? Each arm gives you a measured rate with a blur around it, and you can only claim a difference when the blurs separate. More games shrink the blur like 1/&radic;N:</p>
+
+<div class="fig">
+<svg viewBox="0 0 880 250" width="100%" role="img" aria-label="Error bars separating with N">
+  <g font-size="12" fill="#666" text-anchor="middle">
+    <text x="80" y="240">0%</text><text x="244.4" y="240">10%</text><text x="408.9" y="240">20%</text>
+    <text x="573.2" y="240">30%</text><text x="737.7" y="240">40%</text>
+  </g>
+  <line x1="80" y1="222" x2="820" y2="222" stroke="#999"/>
+  <text x="60" y="52" font-size="13" fill="#444" text-anchor="end">N = 16:</text>
+  <!-- W at .06 ±.119 -> [0,.179]; S1 .20 ±.20 -> [0,.40] -->
+  <line x1="80" y1="46" x2="374.3" y2="46" stroke="#9e9e9e" stroke-width="6" opacity=".6"/>
+  <circle cx="178.7" cy="46" r="6" fill="#616161"/>
+  <text x="380" y="41" font-size="12" fill="#616161">weak arm (true 6%)</text>
+  <line x1="80" y1="78" x2="737.7" y2="78" stroke="#ef6c00" stroke-width="6" opacity=".5"/>
+  <circle cx="408.9" cy="78" r="6" fill="#ef6c00"/>
+  <text x="560" y="99" font-size="12" fill="#ef6c00">strong arm (true 20%)</text>
+  <text x="820" y="62" font-size="12" fill="#c62828" text-anchor="end">bars swallow each other → no verdict</text>
+
+  <text x="60" y="152" font-size="13" fill="#444" text-anchor="end">N = 64:</text>
+  <!-- W .06 ±.059 -> [.001,.119]; S1 .20 ±.10 -> [.10,.30] -->
+  <line x1="81" y1="146" x2="275.7" y2="146" stroke="#9e9e9e" stroke-width="6" opacity=".8"/>
+  <circle cx="178.7" cy="146" r="6" fill="#616161"/>
+  <line x1="244.4" y1="178" x2="573.2" y2="178" stroke="#ef6c00" stroke-width="6" opacity=".8"/>
+  <circle cx="408.9" cy="178" r="6" fill="#ef6c00"/>
+  <text x="820" y="162" font-size="12" fill="#2e7d32" text-anchor="end">bars separate → a real difference would show</text>
+</svg>
+<div class="cap">Hypothetical arms with true rates 6% and 20%, shown as dot ± 2 standard errors. At N=16 per arm the intervals overlap almost entirely; even a real effect would be unreadable. At N=64 they separate. <b>"Powered"</b> just means: N was chosen in advance so that, if the effect is real at the size we hypothesized, the bars will separate about 80% of the time. (The pre-registered method for the difference interval was Newcombe's, a Wilson-based version of exactly this picture.)</div>
+</div>
+
+<div class="note"><b>What actually happened:</b> at N=64 the strong arms came in at literally 0 — so instead of separating upward, they proved the hypothesized 15–25% effect absent (section 2's logic). A powered design gives you a real answer <i>either way</i>; an underpowered one gives you noise either way.</div>
+
+<h2>4. Why independent checks multiply safety — and correlated ones don't</h2>
+
+<p>The redundancy experiment asked: if one confirmation of a guess can be wrong 30% of the time, does demanding <i>k</i> confirmations help? If the confirmations fail <b>independently</b>, errors multiply: 0.30, then 0.30² = 0.09, then 0.30³ = 0.027. If they fail <b>together</b> (correlation ρ = 1), asking again is asking the same broken instrument twice:</p>
+
+<div class="fig">
+<svg viewBox="0 0 880 330" width="100%" role="img" aria-label="Fail-open vs k for three correlations">
+  <line x1="120" y1="280" x2="820" y2="280" stroke="#999"/>
+  <line x1="120" y1="30" x2="120" y2="280" stroke="#999"/>
+  <g font-size="12" fill="#666" text-anchor="middle">
+    <text x="220" y="298">k = 1</text><text x="470" y="298">k = 2</text><text x="720" y="298">k = 3 confirmations required</text>
+  </g>
+  <g font-size="12" fill="#666" text-anchor="end">
+    <text x="114" y="64">0.30</text><text x="114" y="222">0.09</text><text x="114" y="268">0.03</text>
+  </g>
+  <!-- rho=1 flat: y=60.6 -->
+  <polyline points="220,60.6 470,60.6 720,60.6" fill="none" stroke="#c62828" stroke-width="3"/>
+  <g fill="#c62828"><circle cx="220" cy="60.6" r="6"/><circle cx="470" cy="60.6" r="6"/><circle cx="720" cy="60.6" r="6"/></g>
+  <text x="740" y="56" font-size="12" fill="#c62828">ρ = 1: flat. Redundancy buys nothing.</text>
+  <!-- rho=0.5: .32,.16,.11 -->
+  <polyline points="220,60.6 470,170.3 720,204.6" fill="none" stroke="#ef6c00" stroke-width="3"/>
+  <g fill="#ef6c00"><circle cx="220" cy="60.6" r="6"/><circle cx="470" cy="170.3" r="6"/><circle cx="720" cy="204.6" r="6"/></g>
+  <text x="740" y="204" font-size="12" fill="#ef6c00">ρ = 0.5</text>
+  <!-- rho=0 measured: .32,.09,.02 -->
+  <polyline points="220,60.6 470,218.3 720,266.3" fill="none" stroke="#1565c0" stroke-width="3"/>
+  <g fill="#1565c0"><circle cx="220" cy="60.6" r="6"/><circle cx="470" cy="218.3" r="6"/><circle cx="720" cy="266.3" r="6"/></g>
+  <text x="740" y="276" font-size="12" fill="#1565c0">ρ = 0: geometric fall</text>
+  <!-- theory dashed (1-p)^k: .3,.09,.027 -->
+  <polyline points="220,74.3 470,218.3 720,261.5" fill="none" stroke="#888" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="300" y="120" font-size="12" fill="#888">dashed: theory (1−p)&#7495;</text>
+</svg>
+<div class="cap">Measured points (800 hermetic games per cell) against the independent-failure theory. Along ρ=0 the data lands on (1−p)<sup>k</sup> almost exactly — 0.09 predicted, 0.09 measured at k=2. Along ρ=1 the curve is flat at the single-check error. The middle curve is the dangerous real world: partial correlation quietly eats most of the benefit.</div>
+</div>
+
+<div class="physics"><b>Physics translation.</b> This is common-mode noise. Two voltmeters sharing a noisy ground don't average their noise away, because it isn't independent between them — the &radic;N improvement you learned for repeated measurements assumes independent errors. Redundant checks are repeated measurements of "is this answer right," and the same assumption is doing all the work.</div>
+
+<h2>5. Measuring the correlation between two graders — ρ</h2>
+
+<p>The curve above <i>dialed</i> ρ. Experiment E3 <b>measured</b> it, by giving 24 deliberately hard yes/no questions to pairs of graders and counting where their errors overlap. Here's the same-model pair (two copies of the same AI), drawn question by question:</p>
+
+<div class="fig">
+<svg viewBox="0 0 880 190" width="100%" role="img" aria-label="Error overlap strip for 24 questions">
+  <text x="84" y="46" font-size="13" text-anchor="end" fill="#444">grader A errs:</text>
+  <text x="84" y="86" font-size="13" text-anchor="end" fill="#444">grader B errs:</text>
+  <text x="84" y="126" font-size="13" text-anchor="end" fill="#444">BOTH err:</text>
+  <!-- 24 cells per row; error positions A:3,7,11,15,19  B:3,7,11,15,22  Both:3,7,11,15 -->
+  <g>
+  <!-- row A y=30 -->
+  <rect x="90" y="30" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="120" y="30" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="150" y="30" width="26" height="22" fill="#c62828" stroke="#ccc"/><rect x="180" y="30" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="210" y="30" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="240" y="30" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="270" y="30" width="26" height="22" fill="#c62828" stroke="#ccc"/><rect x="300" y="30" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="330" y="30" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="360" y="30" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="390" y="30" width="26" height="22" fill="#c62828" stroke="#ccc"/><rect x="420" y="30" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="450" y="30" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="480" y="30" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="510" y="30" width="26" height="22" fill="#c62828" stroke="#ccc"/><rect x="540" y="30" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="570" y="30" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="600" y="30" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="630" y="30" width="26" height="22" fill="#c62828" stroke="#ccc"/><rect x="660" y="30" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="690" y="30" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="720" y="30" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="750" y="30" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="780" y="30" width="26" height="22" fill="#eee" stroke="#ccc"/>
+  <!-- row B y=70 -->
+  <rect x="90" y="70" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="120" y="70" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="150" y="70" width="26" height="22" fill="#c62828" stroke="#ccc"/><rect x="180" y="70" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="210" y="70" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="240" y="70" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="270" y="70" width="26" height="22" fill="#c62828" stroke="#ccc"/><rect x="300" y="70" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="330" y="70" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="360" y="70" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="390" y="70" width="26" height="22" fill="#c62828" stroke="#ccc"/><rect x="420" y="70" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="450" y="70" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="480" y="70" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="510" y="70" width="26" height="22" fill="#c62828" stroke="#ccc"/><rect x="540" y="70" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="570" y="70" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="600" y="70" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="630" y="70" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="660" y="70" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="690" y="70" width="26" height="22" fill="#c62828" stroke="#ccc"/><rect x="720" y="70" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="750" y="70" width="26" height="22" fill="#eee" stroke="#ccc"/><rect x="780" y="70" width="26" height="22" fill="#eee" stroke="#ccc"/>
+  <!-- row Both y=110 -->
+  <rect x="90" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/><rect x="120" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/><rect x="150" y="110" width="26" height="22" fill="#7b1113" stroke="#ddd"/><rect x="180" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/><rect x="210" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/><rect x="240" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/><rect x="270" y="110" width="26" height="22" fill="#7b1113" stroke="#ddd"/><rect x="300" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/><rect x="330" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/><rect x="360" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/><rect x="390" y="110" width="26" height="22" fill="#7b1113" stroke="#ddd"/><rect x="420" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/><rect x="450" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/><rect x="480" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/><rect x="510" y="110" width="26" height="22" fill="#7b1113" stroke="#ddd"/><rect x="540" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/><rect x="570" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/><rect x="600" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/><rect x="630" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/><rect x="660" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/><rect x="690" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/><rect x="720" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/><rect x="750" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/><rect x="780" y="110" width="26" height="22" fill="#f7f7f7" stroke="#ddd"/>
+  </g>
+  <text x="90" y="162" font-size="13" fill="#444">A wrong on 5/24 (21%) · B wrong on 5/24 (21%) · both wrong on <b>4</b>/24 (16.7%). If their errors were independent, "both wrong" should hit about <b>1</b> square (0.21 × 0.21 × 24 ≈ 1.04).</text>
+</svg>
+<div class="cap">Illustrative positions, real counts. Four shared misses where independence predicts one: the two graders aren't two opinions, they're mostly one opinion photocopied. Plugging the counts into the correlation formula gives ρ ≈ 0.75 for same-model pairs, ρ ≈ 0.51 across different AI families — and exactly 0 shared errors when one "grader" is a mechanical check, which never erred at all. That single column is the program's founding thesis as a number: <b>only the non-generative check was independent.</b></div>
+</div>
+
+<details><summary>The ρ formula, for the curious</summary>
+<p>With error rates q<sub>A</sub>, q<sub>B</sub> and joint error rate J (both wrong on the same question):</p>
+<p style="text-align:center"><code>ρ = (J − q_A·q_B) / &radic;( q_A(1−q_A) · q_B(1−q_B) )</code></p>
+<p>ρ = 0 means J equals the independent product; ρ = 1 means they always err together (to the extent their rates allow). Same-model: (0.167 − 0.043)/0.165 ≈ 0.75. Caveat we carry honestly: N = 24, so these are order-of-magnitude estimates; the <i>ordering</i> (same &gt; cross-family &gt; mechanical) is the result, not the second decimal.</p>
+</details>
+
+<h2>6. The physics of asking noisy questions — channel capacity</h2>
+
+<p>The deepest result may be the simplest to state. The game is literally Twenty Questions, and the classic fact about that game is: 20 reliable yes/no answers carry 20 <b>bits</b>, enough to single out one object among 2<sup>20</sup> ≈ a million. But our degraded oracle lies 30% of the time — and Shannon's information theory prices exactly how much each noisy answer is still worth:</p>
+
+<div class="fig">
+<svg viewBox="0 0 880 310" width="100%" role="img" aria-label="Capacity of a noisy yes/no answer">
+  <line x1="100" y1="260" x2="820" y2="260" stroke="#999"/>
+  <line x1="100" y1="20" x2="100" y2="260" stroke="#999"/>
+  <g font-size="12" fill="#666" text-anchor="middle">
+    <text x="100" y="278">50%</text><text x="244" y="278">60%</text><text x="388" y="278">70%</text>
+    <text x="532" y="278">80%</text><text x="676" y="278">90%</text><text x="820" y="278">100%</text>
+    <text x="460" y="298">oracle reliability p (chance an answer is true)</text>
+  </g>
+  <g font-size="12" fill="#666" text-anchor="end">
+    <text x="94" y="264">0</text><text x="94" y="144">0.5</text><text x="94" y="26">1 bit</text>
+  </g>
+  <text x="30" y="150" font-size="12" fill="#666" transform="rotate(-90 30 150)">useful information per answer</text>
+  <polyline points="100,260 172,258.3 244,253 316,244.2 388,231.5 460,214.7 532,193.3 604,166.4 676,132.6 748,88.7 791,53.9 820,20"
+            fill="none" stroke="#5d4037" stroke-width="3"/>
+  <circle cx="388" cy="231.5" r="6" fill="#c62828"/>
+  <text x="396" y="225" font-size="12" fill="#c62828">p = 0.7 → 0.12 bits/answer</text>
+  <circle cx="676" cy="132.6" r="6" fill="#2e7d32"/>
+  <text x="560" y="120" font-size="12" fill="#2e7d32">p = 0.9 → 0.53 bits/answer</text>
+  <text x="150" y="60" font-size="13" fill="#444">C(p) = 1 − H(1−p): every answer pays an</text>
+  <text x="150" y="78" font-size="13" fill="#444">"entropy tax" for the chance it's a lie.</text>
+</svg>
+<div class="cap">A coin-flip oracle (p = 0.5) tells you nothing — capacity 0. A perfect one carries a full bit. The curve between is steep in a way intuition misses: 70% reliable <i>sounds</i> mostly-trustworthy, but is worth barely a tenth of a bit per answer.</div>
+</div>
+
+<div class="fig">
+<svg viewBox="0 0 880 300" width="100%" role="img" aria-label="Total information budget at 16 rounds">
+  <line x1="120" y1="260" x2="820" y2="260" stroke="#999"/>
+  <!-- bars: heights 13.75*bits -->
+  <rect x="170" y="233.9" width="120" height="26.1" fill="#c62828" opacity=".85"/>
+  <rect x="400" y="143.1" width="120" height="116.9" fill="#2e7d32" opacity=".85"/>
+  <rect x="630" y="40" width="120" height="220" fill="#1565c0" opacity=".85"/>
+  <g font-size="13" fill="#444" text-anchor="middle">
+    <text x="230" y="280">p = 0.7</text><text x="460" y="280">p = 0.9</text><text x="690" y="280">p = 1.0</text>
+    <text x="230" y="226">≈ 1.9 bits</text><text x="460" y="135">≈ 8.5 bits</text><text x="690" y="32">16 bits</text>
+  </g>
+  <g font-size="12.5" fill="#666" text-anchor="middle">
+    <text x="230" y="210">→ can distinguish ~4 things</text>
+    <text x="460" y="163">→ ~360 things</text>
+    <text x="690" y="60">→ 65,536 things</text>
+  </g>
+  <text x="460" y="24" font-size="13" fill="#444" text-anchor="middle">total reliable information in a 16-round game (16 × C(p)), and how many candidates that can tell apart (2^bits)</text>
+</svg>
+<div class="cap">The stronger-closer null, possibly explained in one picture. At p = 0.7, sixteen noisy answers carry about 2 bits — enough to tell apart roughly <b>four</b> candidates, while the hidden object could be almost anything. If this estimate survives review, no reasoner of <i>any</i> intelligence could reliably win here: the information simply is not in the channel, the same way no amplifier recovers a signal below the noise floor. That would upgrade "stronger models didn't help" from an observation about two models into a consequence of Shannon's theorem — and it predicts where winning should become possible again (around p = 0.9), which is exactly what the next experiment tests.</div>
+</div>
+
+<div class="physics"><b>Physics translation.</b> H(ε) = −ε log₂ε − (1−ε)log₂(1−ε) is the same entropy function as in statistical mechanics, here measuring the uncertainty a 30%-lying answer leaves behind. Capacity C = 1 − H(ε) is the residue of useful information. And "no reasoner beats capacity" is the information-theoretic cousin of "no engine beats Carnot": a bound set by the channel, not by the cleverness of the machine attached to it.</div>
+
+<div class="note"><b>Honest status:</b> the capacity numbers above are our current back-of-envelope, sent to committee for verification (the guess-confirmation channel adds some capacity; compound questions complicate the per-answer accounting). Treat the shape as right and the exact cutoffs as pending.</div>
+
+<h2>7. The composed cell in one picture</h2>
+
+<p>Finally, the experiment that closed the architecture question. Same improved society, same targets, two arms differing in exactly one thing: whether two agents agreeing could sign on their own (seam <b>open</b>) or every signature had to pass the ground-truth check (seam <b>gated</b>):</p>
+
+<div class="fig">
+<svg viewBox="0 0 880 330" width="100%" role="img" aria-label="Composed cell stacked outcomes">
+  <line x1="80" y1="260" x2="840" y2="260" stroke="#999"/>
+  <!-- open dev: correct 5/32 (225.6-260), fo 8/32 (170.6-225.6), abst (40-170.6) -->
+  <rect x="120" y="225.6" width="120" height="34.4" fill="#2e7d32"/>
+  <rect x="120" y="170.6" width="120" height="55"   fill="#c62828"/>
+  <rect x="120" y="40"    width="120" height="130.6" fill="#bdbdbd"/>
+  <!-- open held: fo 7/20 (183-260), abst (40-183) -->
+  <rect x="320" y="183" width="120" height="77" fill="#c62828"/>
+  <rect x="320" y="40"  width="120" height="143" fill="#bdbdbd"/>
+  <!-- gated dev: correct 4/32 (232.5-260), abst (40-232.5) -->
+  <rect x="520" y="232.5" width="120" height="27.5" fill="#2e7d32"/>
+  <rect x="520" y="40"    width="120" height="192.5" fill="#bdbdbd"/>
+  <!-- gated held: correct 2/20 (238-260), abst (40-238) -->
+  <rect x="720" y="238" width="120" height="22" fill="#2e7d32"/>
+  <rect x="720" y="40"  width="120" height="198" fill="#bdbdbd"/>
+  <g font-size="13" fill="#444" text-anchor="middle">
+    <text x="180" y="280">open · dev-8</text><text x="380" y="280">open · held-out</text>
+    <text x="580" y="280">GATED · dev-8</text><text x="780" y="280">GATED · held-out</text>
+    <text x="480" y="304" fill="#666">the red never survives gating; the green does — and even grew by one</text>
+  </g>
+  <g font-size="12" fill="#fff" text-anchor="middle">
+    <text x="180" y="200">8 lies</text><text x="380" y="228">7 lies</text>
+    <text x="180" y="248">5 wins</text><text x="580" y="252">4 wins</text><text x="780" y="254">2</text>
+  </g>
+</svg>
+<div class="legend"><span class="sw" style="background:#2e7d32"></span>correct <span class="sw" style="background:#c62828"></span>fail-open (a signed lie) <span class="sw" style="background:#bdbdbd"></span>abstain</div>
+<div class="cap">All 15 lies in the open arms came through the two-agents-agree path; the gate that requires ground truth eliminates every one (0/52, bar sits at [0, 6.9%] from section 1). The wins did not just survive — the per-game logs show 5 of the 6 gated wins are <i>resurrected</i> games: games that would have ended in a signed lie kept playing under the gate, and won. Two of them (<code>spoon</code>, <code>pencil</code>) are literally the same game that lied in the open arm converted into a correct signature in the gated one. Closing the lying path was not a tax on winning; it was a small subsidy.</div>
+</div>
+
+<h2>8. The rules that made the numbers trustworthy</h2>
+
+<p>Three habits show up in every experiment above, and they're worth naming because they are what separates these charts from wishful reading:</p>
+
+<p><b>Pre-registration — call the shot before shooting.</b> Success thresholds, the interval method, sample sizes, and even the "if the result is ambiguous, we top up to N=150" rule were written and committed <i>before</i> each run. That's why a null result counts as a finding: the target was painted before the arrow flew.</p>
+
+<p><b>Within-run controls — compare under one stamp.</b> The composed cell reran its own control arm in the same invocation rather than comparing against a months-old run, and every run prints a <i>configuration stamp</i> (a hash of the prompts, budgets, and graders). Comparing across different stamps is comparing different experiments; the stamp makes that mistake visible.</p>
+
+<p><b>Declared deviations and superseded claims stay on the record.</b> When a measurement refuted a pre-registered expectation (gated wins were predicted ≤ open wins; they rose), the old claim was annotated as superseded — not silently edited. The document keeps its own history the way the ledger keeps the system's.</p>
+
+<div class="note"><b>The one-paragraph summary of everything above.</b> Counts come with Wilson error bars, and zero-with-large-N is evidence while zero-with-small-N is nothing (§1–2). Comparisons need enough games for the bars to separate (§3). Redundant checks help exactly as much as they're independent (§4), and we measured that AI checkers — even different brands — are far from independent, while a mechanical check was perfectly so (§5). A noisy oracle has a hard information ceiling no intelligence can beat, which likely explains why stronger models didn't help and predicts where they will (§6). And with all of that in place, closing the one unchecked signing path eliminated every lie without costing a single win (§7) — provable because the rules in §8 were followed.</div>
+
+</main>
+</body>
+</html>
