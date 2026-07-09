@@ -92,6 +92,17 @@ outcome 1 from outcome 2. Pre-register, before the run:
   power; at N = 52 that power is only ~65%).
 - Report dev-8 and held-out-10 separately; per-target N = 2/4 supports set-level reporting only, no
   per-target inference.
+- **Outcome-2 benign-vs-bug boundary, pre-registered before the run.** Run A's historical
+  `GameRecord`s were never persisted (in-memory only; no runner ever printed correct-sign paths), so
+  the correct-`BackerQuorum` count is not recoverable from history — verified, and the committee's
+  code-wiring lens found the same ("presently unknown"). The prior therefore comes from this cell's
+  own **seam-open arm**: split correct signs by sign path in `renderPrimary` (promoted from
+  should-fix to required), run the seam-open arm first, extract its correct-`BackerQuorum` count, and
+  **commit that number to the record before the seam-gated arm's wins are read** — a temporal
+  firewall against motivated reading, still within-version since both arms run under one stamp.
+  Pre-registered rule: the gated-arm correct-sign drop is benign (2a) iff it does not exceed that
+  count — the wins that structurally depended on the standalone 2-backer path; a larger drop is a
+  mechanism bug (2b).
 
 ## The process fix: stamp the config surface, not just the prompts
 
@@ -122,10 +133,11 @@ left out of the hash, say so in the header rather than implying full comparabili
    reliability the system wins sometimes and never lies, by construction and by measurement; the
    open problem is capability under degradation, a reasoner question, not an architecture question.
 2. **Fail-open ~0, wins drop.** Two sub-cases, distinguished by splitting correct signs by sign
-   path (a `renderPrimary` change): (a) the **expected, benign** loss of Run A's 2-backer standalone
-   correct wins that do not reach the oracle in budget — quantify it by counting Run A's correct
-   `BackerQuorum` signs; or (b) a genuine gate/nudge interaction bug in the re-pose loop — read the
-   logs. Outcome 2 is at least as likely as outcome 1, and a drop is not by itself a bug.
+   path (a `renderPrimary` change): (a) the **expected, benign** loss of standalone 2-backer correct
+   wins that do not reach the oracle in budget — measured against the seam-open arm's correct
+   `BackerQuorum` count, pre-registered and committed before the gated read (Run A's own records were
+   never persisted — see Caveats); or (b) a genuine gate/nudge interaction bug in the re-pose loop —
+   read the logs. Outcome 2 is at least as likely as outcome 1, and a drop is not by itself a bug.
 3. **Fail-open above ~0.** A third sign path exists that neither E2 nor the deduction accounts for,
    the sign-path audit is incomplete, and that finding immediately outranks everything else in the
    queue, harness included. The two-path enumeration is asserted by a four-reader seam map, not
@@ -144,6 +156,12 @@ left out of the hash, say so in the header rather than implying full comparabili
 - **Scope of the claim.** "Every route shut" holds only at p = 1.0. Shutting C leaves O, and O is
   the entire fail-open at p < 1.0. This cell certifies the perfect-oracle corner; degradation stays
   open by design.
+- **Run A's records are gone.** Verified against source: no runner persists `GameRecord`s (in-memory
+  only, `OracleSweep.scala:101` computes `signPath` but never writes it), neither `RunWinRate` nor
+  `RunEndgameAudit` prints correct-sign paths, and no captured output exists; the committee found the
+  correct-sign path mix "presently unknown" independently. So the outcome-2 benign-loss prior is
+  taken from this cell's seam-open arm, not from history — which is also the same-config, same-version
+  source, and therefore the better one.
 
 ## Acceptance
 
@@ -151,7 +169,14 @@ left out of the hash, say so in the header rather than implying full comparabili
 - The cell runs both arms (seam-open, seam-gated) × dev-8 × held-out-10 at `ErrorModel.perfect`,
   `maxRounds = 16`, prints per-game and per-set fail-open (split by sign path), sign-correct (split
   by sign path), abstain, with the config-surface stamp in the header.
-- The pre-registered fail-open headline and win band / top-up trigger are stated before the run.
+- The pre-registered fail-open headline, the win band / top-up trigger, and the outcome-2
+  correct-`BackerQuorum` boundary (from the seam-open arm) are all stated and committed before the
+  seam-gated arm's wins are read.
+- **Both arms' full event logs are archived to disk, not only the `GameRecord`s** — keyed by seed,
+  one artifact per game. Outcome 3's trigger is a single instance and its adjudication is the log,
+  not the rate; and persisting the seam-open arm's records is what makes the pre-registered
+  correct-`BackerQuorum` prior auditable. (This is net-new: nothing in the module persists records or
+  logs today, so `RunComposedCell` must write them.)
 - The result is written into `fallible-oracle-results.md` as a measured fourth cell — the fail-open
   contrast within-run and de-stitched; the win result reported to the precision the N supports.
 
@@ -183,3 +208,15 @@ convergence on the core code facts is reassuring but could reflect a shared misr
 divergence is worth trusting: only the adversarial lens caught the `>= p` boundary, which is why
 `ErrorModel.perfect` became blocking. Single-lens findings (the `renderPrimary` pooling, the
 `GameView`-clock stamp gap) are leads verified against source, not settled by vote.
+
+### Pre-run hygiene (2026-07-09)
+
+Two additions before implementation, both pre-registration discipline. First: the outcome-2
+benign-vs-bug boundary needs Run A's correct-`BackerQuorum` count, but that count is not recoverable
+— verification confirmed no runner persists records and none prints correct-sign paths, so the
+historical number is gone. The boundary is therefore taken from this cell's own seam-open arm,
+extracted and committed before the seam-gated wins are read (run the open arm first), which is also
+the same-config source and so the sounder one; the correct-sign-path split in `renderPrimary` is
+promoted from should-fix to required. Second: both arms archive their full event logs to disk, not
+only the `GameRecord`s — outcome 3's trigger is a single instance whose adjudication is the log, and
+this is net-new since the module persists nothing today.
