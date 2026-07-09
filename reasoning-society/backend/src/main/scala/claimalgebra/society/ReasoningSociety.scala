@@ -13,8 +13,8 @@ package claimalgebra.society
   *     `Ledger` (`claimalgebra.calculus`), and live mode is replay with the playhead pinned to the
   *     head (one system, not two);
   *   - agents are light actors — address, mailbox, one message at a time, send/create/designate —
-  *     with the event log as the global serialization point; the mailbox is the design in
-  *     `docs/actors/mailbox-abstraction.md` over `cats.effect.std.Queue` (no Akka/Pekko).
+  *     with the event log as the global serialization point; the mailbox is a lightweight design
+  *     over `cats.effect.std.Queue` (no Akka/Pekko).
   *
   * This module emits the ordered event log; the React observability UI in `../frontend` is a pure
   * viewer of it (the observer gets no vote). Personal research only (brief §7): public/synthetic

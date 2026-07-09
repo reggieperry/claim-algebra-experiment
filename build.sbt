@@ -1,11 +1,11 @@
-// claim-algebra-lab — the falsification experiment for the verifiable claim algebra.
+// claim-algebra-experiment — the verifiable claim algebra, its calculus, and a live testbed.
 //
 // Multi-module: `claim-algebra` is the pure, dependency-minimal library (no cats-effect);
-// `extract` is the shared LLM/grounding infra; `workbench` is the credit product; the root
-// module is the lab (the falsification experiment + its credit `pipeline`); `gate` is the
-// independent differential gate. Packages stay `claimalgebra.*` across modules — the module
-// boundary is the sbt directory, and the hard seam is pure-vs-effectful (the library carries
-// no cats-effect and no SDK).
+// `extract` is the shared LLM/grounding infra; `reasoning-society` is the live agent-society
+// testbed (the fallible-oracle program); `gate` is the independent differential gate. The root
+// is a thin aggregator. Packages stay `claimalgebra.*` across modules — the module boundary is
+// the sbt directory, and the hard seam is pure-vs-effectful (the library carries no cats-effect
+// and no SDK).
 //
 // Dependency versions are recent-stable at setup; confirm/bump on first `sbt update`.
 
@@ -65,7 +65,7 @@ lazy val algebra = "org.typelevel" %% "algebra" % "2.12.0"
 // `LlmCall` facade — a Java artifact, so `%` not `%%`. Version resolved and the API confirmed against
 // the artifact at first wiring (scala-llm.md). API-key auth only.
 lazy val anthropic = "com.anthropic" % "anthropic-java" % "2.47.0"
-// The official OpenAI Java SDK — same boundary, behind the same `LlmCall` facade, so the workbench
+// The official OpenAI Java SDK — same boundary, behind the same `LlmCall` facade, so callers
 // can run GPT as well as Claude. A Java artifact (`%`); version + API confirmed against the resolved
 // jar (scala-llm.md). API-key auth only (OPENAI_API_KEY via OpenAIOkHttpClient.fromEnv()).
 lazy val openai = "com.openai" % "openai-java" % "4.41.0"
@@ -114,32 +114,11 @@ lazy val claimAlgebra = (project in file("claim-algebra"))
     )
   )
 
-// The credit practice's taxonomy — the concrete evidence kinds (`CreditKind`), the desks, and the
-// routing that INTERPRET the library's abstract `Kind` mark. A SIBLING of `extract` (dependsOn the
-// library only — NO `extract -> credit` edge, so the shared grounding infra stays domain-neutral):
-// the exemplar of extending the neutral library from one bounded context. No production consumer
-// today (`SupersessionExtractor` takes the retraction kind by injection, defaulting neutral); a
-// routing path adds `.dependsOn(credit)` when it wires the taxonomy in. `test->test` reuses the
-// library's `Generators`.
-lazy val credit = (project in file("credit"))
-  .dependsOn(claimAlgebra % "compile->compile;test->test")
-  .settings(
-    name := "credit",
-    libraryDependencies ++= Seq(
-      catsCore,
-      algebra,
-      munit,
-      munitScalacheck,
-      scalacheck
-    )
-  )
-
 // The shared model/grounding infrastructure: the `LlmCall` facade + the Anthropic/OpenAI adapters,
 // the pure `Corpus` grounding primitive, the domain value types, and the extractors. Effectful
-// (cats-effect + both SDKs + Jackson for the DTO carriers). Depended on by both the workbench and
-// the experiment, which is why it is its own module rather than folded into either. Domain-neutral:
-// `SupersessionExtractor` takes its retraction kind by injection (default `None`), naming no credit
-// value, so a second practice can reuse this layer.
+// (cats-effect + both SDKs + Jackson for the DTO carriers). Its own module so the pure library
+// stays SDK-free. Domain-neutral: `SupersessionExtractor` takes its retraction kind by injection
+// (default `None`), naming no domain value, so any consumer can reuse this layer.
 lazy val extract = (project in file("extract"))
   .dependsOn(claimAlgebra)
   .settings(
@@ -157,36 +136,13 @@ lazy val extract = (project in file("extract"))
     )
   )
 
-// The credit-deal workbench — the live product over real deals. Depends on the library and the
-// shared extract infra; independent of the experiment. The `test->test` edge reuses the library's
-// generators/law helpers (LedgerLawsSuite is checkAll-shaped, so the discipline stack is carried).
-lazy val workbench = (project in file("workbench"))
-  .dependsOn(claimAlgebra % "compile->compile;test->test", extract)
-  .settings(
-    name := "workbench",
-    libraryDependencies ++= Seq(
-      catsCore,
-      catsEffect,
-      anthropic,
-      openai,
-      jacksonAnnotations,
-      munit,
-      munitScalacheck,
-      scalacheck,
-      munitCatsEffect,
-      catsLaws,
-      algebraLaws,
-      disciplineMunit
-    )
-  )
-
 // The reasoning-society backend — the Scala side of the "Auditable Society of Minds"
 // (docs/reasoning-society/). Runs the cheap, diverse LLM agent society and emits an ordered event
 // log; belief state is a pure fold over it (the calculus `Ledger`). Depends on the library
 // (Ledger/Testimony/Gate) and the shared `extract` infra (the `LlmCall` agents); the React viewer
 // in reasoning-society/frontend is a pure reader of the emitted log. Actors are lightly implemented
-// on cats.effect Queue (docs/actors/mailbox-abstraction.md) — no Akka/Pekko. Independent of the
-// experiment and the workbench. `test->test` reuses the library's generators for the fold suites.
+// on cats.effect Queue — no Akka/Pekko. Self-contained. `test->test` reuses the library's
+// generators for the fold suites.
 lazy val reasoningSociety = (project in file("reasoning-society/backend"))
   .dependsOn(claimAlgebra % "compile->compile;test->test", extract)
   .settings(
@@ -207,37 +163,20 @@ lazy val reasoningSociety = (project in file("reasoning-society/backend"))
     )
   )
 
-// The lab: the falsification experiment and its credit `pipeline` (experiment-private). Aggregates
-// the whole build so `sbt check` / `test` fan out; depends on the library + extract and reuses the
-// library's test helpers via `test->test`. Does NOT depend on the workbench — the experiment never
-// imports it; the lab and the product are separate bounded contexts.
+// A thin aggregating root so `sbt check` / `test` fan out across the module set. It owns no
+// sources; it carries the library-neutrality gate task (below), which the `check` alias runs.
 lazy val libraryNeutrality =
   taskKey[Unit]("Fail if claim-algebra/src carries domain vocabulary (the portability gate)")
 
 lazy val root = (project in file("."))
-  .aggregate(claimAlgebra, extract, credit, workbench, reasoningSociety, gate)
-  .dependsOn(claimAlgebra % "compile->compile;test->test", extract)
+  .aggregate(claimAlgebra, extract, reasoningSociety, gate)
   .settings(
-    name := "claim-algebra-lab",
-    libraryDependencies ++= Seq(
-      catsCore,
-      catsEffect,
-      algebra,
-      anthropic,
-      openai,
-      jacksonAnnotations,
-      munit,
-      munitScalacheck,
-      scalacheck,
-      catsLaws,
-      algebraLaws,
-      disciplineMunit,
-      munitCatsEffect
-    ),
+    name := "claim-algebra-experiment",
+    publish / skip := true,
     // The library-neutrality gate (docs/claim-algebra/library-portability-plan.md): claim-algebra
-    // must carry no domain (credit / product / experiment) vocabulary, so it stays portable for
-    // reuse across practices. Runs the grep-only pass (`--no-build` avoids nesting sbt inside sbt);
-    // wired into `sbt check` so neutrality cannot regress.
+    // must carry no domain vocabulary, so it stays portable for reuse across domains. Runs the
+    // grep-only pass (`--no-build` avoids nesting sbt inside sbt); wired into `sbt check` so
+    // neutrality cannot regress.
     libraryNeutrality := {
       import scala.sys.process.*
       val log = streams.value.log

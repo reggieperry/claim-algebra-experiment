@@ -12,8 +12,8 @@ import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
 /** The live [[LlmCall]] backed by the official OpenAI Java SDK (`com.openai:openai-java`) — the
-  * same model boundary as [[AnthropicLlmCall]], behind the same facade, so callers can run
-  * GPT as well as Claude (and `SelfGrounder` becomes genuinely multi-provider). API-key auth only:
+  * same model boundary as [[AnthropicLlmCall]], behind the same facade, so callers can run GPT as
+  * well as Claude (and `SelfGrounder` becomes genuinely multi-provider). API-key auth only:
   * [[OpenAIOkHttpClient.fromEnv]] reads `OPENAI_API_KEY`, never a literal. The structured call
   * constrains the model to the carrier's JSON schema via `responseFormat(Class[A])` — OpenAI's
   * analogue of Anthropic's `outputConfig` — and parses the first choice's content into `A`; the
