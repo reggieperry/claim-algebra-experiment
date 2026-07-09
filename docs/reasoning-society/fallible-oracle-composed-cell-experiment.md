@@ -63,4 +63,13 @@ Two halves with different epistemic status, per the committee's reframe:
 - Both arms run at the configuration above; the header prints the stamp and declares any unhashed element; per-set and per-path splits print for fail-open and sign-correct.
 - Pre-registration items 1–5 were fixed before the run (this document, committed, is the evidence), the Run A pre-pull number is recorded in it, and the result lands in `fallible-oracle-results.md` as the fourth cell.
 
+## Result — recorded 2026-07-09
+
+`RunComposedCell`, live, stamp `e4666df175ff43e3` (society `claude-haiku-4-5-20251001`, truth `claude-sonnet-5`), exit 0, ~24 min, both arms' full logs archived.
+
+- **Pre-pull (committed before the gated arm was read):** seam-open correct = 5, **all via BackerQuorum** (`co:bk = 5, co:or = 0`) → outcome-2a benign-drop ceiling = 5.
+- **Seam-open control** reproduced the coupling: fail-open 0.25 (dev) / 0.35 (held), **all 15 via 2-backer**, `via-oracle = 0`; wins 0.16 / 0.00.
+- **Seam-gated (the cell):** **fail-open 0/52 = 0.000 [0.000–0.069]** (excludes 0.22); sign-correct **6/52**, all via the **oracle** path; held-out wins exact-graded (2 = 2).
+- **Verdict: OUTCOME 1.** Fail-open ~0, wins held (6 vs 5, drop −1 ≤ ceiling 5, above the 1–5 band → no top-up). The coupling was a seam-open artifact and was misattributed: the confident-wrongs were the open 2-backer seam, not the commit nudge. No outcome-3 fail-open; the two-path enumeration survives. Written into `fallible-oracle-results.md` as the fourth cell.
+
 *End — 2026-07-09.*
