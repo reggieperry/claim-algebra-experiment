@@ -247,7 +247,7 @@
     <div class="meta">
       <div><span class="k">Date</span><span class="v">2026-07-08</span></div>
       <div><span class="k">System under test</span><span class="v">Claude Haiku 4.5</span></div>
-      <div><span class="k">Arms</span><span class="v">primary &middot; correlation &middot; partial</span></div>
+      <div><span class="k">Scope</span><span class="v">3 arms + 3 follow-ups</span></div>
       <div><span class="k">Verification</span><span class="v ok">committee + adversarial</span></div>
       <div><span class="k">Status</span><span class="v ok">complete</span></div>
     </div>
@@ -259,7 +259,7 @@
   <div class="abstract reveal">
     <div class="lbl">Executive summary</div>
     <p class="lede">Agent systems increasingly trust automated checks &mdash; a test suite, a type checker, one model reviewing another. Every checker is itself fallible, and the premise those systems rest on (a passing check means the work is correct) is exactly what breaks when the check errs.</p>
-    <p>We built a bench where a multi-agent society concludes a task only through a gate, degraded the checker parametrically, and measured where the loss goes. The architecture is broadly <strong>graceful</strong> &mdash; as the checker fails, the loss goes overwhelmingly to abstention, not to wrong signatures. The wrong signatures that do occur trace to a <strong>monoculture</strong> at two levels: agents that share blind spots agreeing on the same wrong answer, and redundant confirmations that share a checker failing together. Requiring <span class="mono">k</span> confirmations suppresses the second, but only when the confirmations are independent. Since N Claude-based checks are correlated by construction, the transferable lever is check <span class="kicker">diversity, not quantity</span>.</p>
+    <p>We built a bench where a multi-agent society concludes a task only through a gate, degraded the checker parametrically, and measured where the loss goes. The architecture is broadly <strong>graceful</strong>: as the checker fails, the loss goes overwhelmingly to abstention, not to wrong signatures. The wrong signatures that do occur trace to a <strong>monoculture</strong> at two levels: agents that share blind spots agreeing on the same wrong answer, and redundant confirmations that share a checker failing together. Requiring <span class="mono">k</span> confirmations suppresses the second, but only when the confirmations are independent. Since N Claude-based checks are correlated by construction, the transferable lever is check <span class="kicker">diversity, not quantity</span>. The measurement bears this out (a second same-model check is barely independent), and the weak sign path can be closed outright with a non-generative check &mdash; dropping the perfect-oracle wrong-sign rate to zero.</p>
   </div>
 
 </div>
@@ -462,6 +462,8 @@
         <p>The corroboration floor is the monoculture at the <em>agent</em> level. &ldquo;Two independent backers&rdquo; is only as strong as the agents' independence, and two instances of one model are not independent &mdash; they share blind spots and agree on the same wrong answer, unchecked.</p>
       </div>
 
+      <p>Stated in the gate's terms, the finding is exact. The last requirement of the accept rule is a disjunction (sign on two backers, <em>or</em> on <span class="mono">k</span> confirmations), and a disjunction is only as strong as its weakest satisfiable branch. Oracle confirmation is strong; two-agent agreement is weak, because it can hold when the candidate is false. So the gate signs through the weak branch even where the strong one would have caught the error, and the useful question stops being &ldquo;is the gate fail-closed?&rdquo; It becomes: what does each sign path trust, and can that thing be wrong? Fail-closedness is a property of a path, and the system inherits the weakest one.</p>
+
       <p style="font-size:.92rem; color:var(--muted);">Sign-correct is zero across the sweep: the Haiku society rarely narrows to the true target for these hard targets, so the high abstention is partly the model's difficulty with the task, not only the architecture. The architecture-level readings do not depend on that difficulty: abstention dominance, and the two-source split of the fail-open.</p>
     </div>
   </section>
@@ -515,6 +517,28 @@
         <div class="lbl">The finding</div>
         <p>Redundancy pays for <em>independence</em>, not for <em>quantity</em>. Three correlated confirmations are no safer than one.</p>
       </div>
+
+      <h3>The real &rho;, measured</h3>
+      <p>The curve's <span class="mono">&rho;</span> was dialed. In a separate live experiment we measured the real error correlation between confirmers, on a set of hard questions where capable models actually err. Two instances of the same model err <em>together</em> far more than independence would predict; a different model family helps but does not make them independent; only a non-generative check breaks the correlation entirely.</p>
+      <figure class="col">
+        <div class="fig-frame scroll-x">
+          <div style="padding:22px 24px">
+            <table>
+              <caption>Measured error correlation between two confirmers (24 hard questions)</caption>
+              <thead>
+                <tr><th class="lft">pairing</th><th>joint error (both wrong)</th><th>if independent</th><th>&rho;</th></tr>
+              </thead>
+              <tbody>
+                <tr class="grp"><td class="lft">same model (Haiku &times; Haiku)</td><td class="fo-hi">0.167</td><td>0.043</td><td class="fo-hi">0.75</td></tr>
+                <tr class="grp"><td class="lft">different family (Haiku &times; GPT)</td><td>0.167</td><td>0.069</td><td>0.51</td></tr>
+                <tr class="grp"><td class="lft">model &times; mechanical</td><td class="fo-lo">0.000</td><td>0.000</td><td>&mdash;</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <figcaption><span class="fnum">Table 3</span>Joint error is the fail-open rate under two confirmations. Same-model confirmers sit near the useless end of the curve (&rho;=0.75); a different family moves only partway (0.51); a non-generative check drives joint error to zero. N=24, so the ordering and magnitudes are the result, not the second decimal.</figcaption>
+      </figure>
+      <p><strong>Diversity of model is not diversity of error.</strong> Even different capable model families are correlated on the hard cases where a check matters, so the only genuinely independent check is a non-generative one &mdash; a test, a proof, a lookup, a human. That is the project's founding premise, now measured.</p>
     </div>
   </section>
 
@@ -528,9 +552,42 @@
   </section>
 
   <section class="reveal">
-    <div class="sec-head"><span class="sec-num">08</span><h2>Scope and limits</h2></div>
+    <div class="sec-head"><span class="sec-num">08</span><h2>Closing the seam</h2></div>
     <div class="sec-body col">
-      <p>The curve invites a stronger claim than it supports. An earlier draft called this the monoculture failure mode &ldquo;measured&rdquo;; an internal review flagged that as an overclaim, and it was right. <span class="mono">&rho;</span> is a parameter the bench sets, not one it estimates &mdash; so what follows is a controlled demonstration of what a given correlation does, not a measurement of the correlation that real checks would show.</p>
+      <p>The primary result found a hole: the accept rule signs through a weak branch that never consults ground truth. A finding like that invites its own completion &mdash; close the hole and measure the closure.</p>
+      <p>The fix follows the standing rule: never lower a floor, add a check. We gated the corroboration path so a two-agent agreement can no longer sign on its own; it must obtain a ground-truth confirmation first, exactly as a lone candidate does. In the algebra this narrows the disjunction toward a single checked path. It is a change to the fail-closed core, so it went through the same discipline as the mitigation: a design committee, then an independent adversarial review that traced every sign site and returned merge-safe.</p>
+
+      <figure class="col">
+        <div class="fig-frame scroll-x">
+          <div style="padding:22px 24px">
+            <table>
+              <caption>Perfect-oracle fail-open, seam-open vs seam-gated (live A/B, N=12/arm)</caption>
+              <thead>
+                <tr><th class="lft">arm</th><th>fail-open</th><th>2-backer signs</th><th>abstain</th><th>correct</th></tr>
+              </thead>
+              <tbody>
+                <tr class="grp"><td class="lft">seam-open (two backers <em>or</em> a confirmation)</td><td class="fo-hi">0.25</td><td>3</td><td>0.67</td><td>0.08</td></tr>
+                <tr class="grp"><td class="lft">seam-gated (a confirmation required)</td><td class="fo-lo">0.00</td><td>0</td><td>0.92</td><td>0.08</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <figcaption><span class="fnum">Table 4</span>The perfect-oracle fail-open falls to zero; the correct sign is preserved (0.08 in both arms) &mdash; the control that proves the fix checks the candidate rather than dropping it.</figcaption>
+      </figure>
+
+      <p>At a perfect oracle, closing the seam drops the fail-open from 0.25 to 0.00. The three wrong two-agent signs become abstentions. And the one correct sign <em>survives</em>, which is the control that matters: if the demoted candidates were quietly dropped rather than checked, the correct sign would have vanished too. It did not, so the candidates are genuinely reaching ground truth &mdash; the wrong ones are answered &ldquo;no&rdquo; and held, the right one is confirmed and signs.</p>
+
+      <div class="callout">
+        <div class="lbl">Where the two threads meet</div>
+        <p>The check that closes the seam is the ground-truth oracle, and ground truth is <em>non-generative</em> &mdash; exactly the one confirmer the correlation measurement found to be genuinely independent. The hole is closed by the only kind of check that is not itself a monoculture.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="reveal">
+    <div class="sec-head"><span class="sec-num">09</span><h2>Scope and limits</h2></div>
+    <div class="sec-body col">
+      <p>The correlation curve invites a stronger claim than it supports. An earlier draft called this the monoculture failure mode &ldquo;measured&rdquo;; an internal review flagged that as an overclaim, and it was right. In the <em>curve</em>, <span class="mono">&rho;</span> is dialed, not estimated &mdash; the curve demonstrates what a given correlation does. (The real <span class="mono">&rho;</span> is measured separately, above; the curve itself still only dials it.)</p>
       <div class="scope">
         <div class="scope-col is">
           <h4>What it is</h4>
@@ -543,32 +600,36 @@
         <div class="scope-col isnot">
           <h4>What it is not</h4>
           <ul>
-            <li>A <em>measurement</em> of real check correlation. <span class="mono">&rho;</span> is a dialed input; the bench measures the <em>consequence</em> of correlation, never its real-world magnitude.</li>
-            <li>A numerical discovery &mdash; the curve equals a closed form that a pure unit test already pins. The value here is integration confidence.</li>
-            <li>Evidence that redundancy helps <em>in practice</em> at any particular &rho;; that depends on a correlation this bench does not estimate.</li>
+            <li>A measurement of real check correlation <em>from the curve</em> &mdash; there <span class="mono">&rho;</span> is dialed. A separate experiment does estimate it (same-model <span class="mono">&rho;</span> near 0.75).</li>
+            <li>A numerical discovery &mdash; the curve equals a closed form that a pure unit test already pins. The value there is integration confidence.</li>
+            <li>Evidence that redundancy helps <em>in practice</em> at any single reliability; the primary sweep is small, its intervals wide.</li>
           </ul>
         </div>
       </div>
+
+      <h3>The untested half</h3>
+      <p>One limit governs how far &ldquo;graceful&rdquo; can be pushed. Sign-correct was zero at every cell, including at a perfect oracle on an easy target, so the bench tested only half of fail-closed: it abstains when unsure, but it was never shown to sign correctly when sure. A separate diagnostic settled why &mdash; the society reaches a guess only a quarter of the time and never the correct one, and loosening the round budget does not change that. The endgame and search are structurally weak at this model tier, not merely starved. Until that is fixed, &ldquo;does not lie&rdquo; is the strongest reading the graceful result supports, and a wider reliability sweep would only measure the degradation of a system that does not yet succeed.</p>
     </div>
   </section>
 
   <section class="reveal">
-    <div class="sec-head"><span class="sec-num">09</span><h2>Verification economics, and what remains</h2></div>
+    <div class="sec-head"><span class="sec-num">10</span><h2>Verification economics, and what remains</h2></div>
     <div class="sec-body col">
-      <p>The arm closest to real Claude Code asks where to spend a fixed verification budget: on search (more questions, so a wrong guess is posed less often) or on confirmation (a higher quorum, so a wrong guess is confirmed less often). The measured results settle its direction without a separate run.</p>
-      <p>Most of the fail-open mass sits on the <strong>2-backer path</strong>, which no amount of guess-confirmation budget can reach &mdash; that path never consults the oracle. The part it can reach, the oracle-confirmed fail-open, barely benefits from more confirmations once they are correlated. Spending the budget on re-confirming the final guess misses the dominant source and buys little on the rest.</p>
-      <p>The budget is better spent on an <strong>independent</strong> check of the corroboration itself, where the fail-open mass actually is: a different model family, a mechanical test, a human on the two agents that agreed. A fully-measured version of that tradeoff (fail-open per unit of verification spend, naive versus triage) and a wider reliability sweep at real sample sizes remain live effort; their direction is already fixed by the results above.</p>
+      <p>The arm closest to real Claude Code asks where to spend a fixed verification budget: on search (more questions, so a wrong guess is posed less often) or on confirmation (a higher quorum, so a wrong guess is confirmed less often). The results point its direction, though not its magnitude.</p>
+      <p>One sign path is beyond any guess-confirmation budget: the <strong>2-backer path</strong> never consults the oracle, so spending there cannot touch it. How much of the fail-open lives on that path this run does not establish &mdash; the sampled cells put every fail-open cleanly on one path or the other (all 2-backer at a perfect oracle, all oracle-confirmed at a degraded one), and the good-but-imperfect band where the two compete was never sampled. What the run does show is that the part a budget <em>can</em> reach, the oracle-confirmed fail-open, barely benefits from more confirmations once they are correlated.</p>
+      <p>The direction follows from the seam: a fixed budget is better spent on an <strong>independent</strong> check of the corroboration path than on re-confirming the same guess with the same kind of checker. Pricing it precisely is the object of a further experiment (the good-but-imperfect sweep, where the two sources compete), which is itself gated behind the endgame fix &mdash; it needs a system that wins for its degradation to mean anything. That, and a fully-measured spend-per-fail-open tradeoff, remain live effort.</p>
     </div>
   </section>
 
   <section class="reveal">
-    <div class="sec-head"><span class="sec-num">10</span><h2>Why it matters for Anthropic</h2></div>
+    <div class="sec-head"><span class="sec-num">11</span><h2>Why it matters for Anthropic</h2></div>
     <div class="sec-body col">
       <p>Claude Code already self-verifies, and multi-agent products multiply the pattern: agents proposing, reviewing, and confirming one another's work. This bench qualifies the redundancy intuition &mdash; add another check, and the odds of a wrong sign multiply down.</p>
       <p>The constraint is direct, and the bench shows it at two levels. <strong>Correlated checks do not deliver the geometric safety the intuition promises</strong>, and N Claude-based checks are correlated by construction. It appears in the confirmation quorum, where redundancy flattens as the confirmations correlate, and one layer down in the corroboration floor, where two Haiku agents sharing blind spots agree on the same wrong answer and sign it &mdash; a wrong signature at a perfect oracle, from redundancy that was correlated all along.</p>
       <p>Two levers follow, and they are the ones worth designing toward:</p>
-      <h3>Diversify the checkers, don't multiply them</h3>
-      <p>The safety comes from <em>independent</em> verification paths, not from more instances of the same checker: a different model family, a mechanical oracle, a deterministic test, a human. A confirmation that shares the primary's failure mode is close to free of information, and two instances of one model share every failure mode.</p>
+      <h3>Diversify the checkers, and prefer non-generative ones</h3>
+      <p>The safety comes from <em>independent</em> verification paths, not from more instances of the same checker. And the measurement sharpens what &ldquo;independent&rdquo; has to mean: a second instance of the same model is barely independent (error correlation near 0.75), a different model family helps but only partway (0.51), and only a non-generative check is genuinely uncorrelated: a test, a proof, a lookup, a human. Diversity of model is not diversity of error; the check worth adding is the one that does not itself hallucinate.</p>
+      <p>And the seam can be closed. Gating the weak path with such a check drops the perfect-oracle wrong-sign rate to zero without losing the correct ones, so this is a design lever, not just a caution: enumerate the sign paths, and for each require an independent, ideally non-generative, check.</p>
       <h3>Default to fail-closed</h3>
       <p>The graceful result rests entirely on a gate that abstains under uncertainty. Abstention is what keeps a wrong check from becoming a wrong signature, and it is the outcome the bench found dominant &mdash; worth engineering for even at the cost of throughput.</p>
     </div>
@@ -581,7 +642,7 @@
     <div class="foot-grid">
       <div>
         <h4>Method</h4>
-        <p>Three arms, one gate. The <em>primary</em> arm runs live (Haiku society, Sonnet ground truth) because the search degradation as the checker fails cannot be faithfully scripted; a bounded sweep (12 games per cell) places the architecture on the graceful/catastrophic axis and splits each fail-open by sign path. The <em>correlation</em> arm runs hermetic and large-N (800 games per cell): a scripted lone-hypothesis cohort always reaches the guess, the sealed target differs so every signature is a fail-open, and the confirmation is answered through a correlated error model &mdash; a deterministic (k, &rho;) curve through the real gate and re-pose loop. The <em>partial</em> arm is a hermetic correctness check: an oracle that returns a genuine gap, asserting the gate's gap-only, path-local abstention. The adjudicator is mechanical, no model in the loop; targets are sealed; rates carry Wilson intervals.</p>
+        <p>Three arms, one gate. The <em>primary</em> arm runs live (Haiku society, Sonnet ground truth) because the search degradation as the checker fails cannot be faithfully scripted; a bounded sweep (12 games per cell) places the architecture on the graceful/catastrophic axis and splits each fail-open by sign path. The <em>correlation</em> arm runs hermetic and large-N (800 games per cell): a scripted lone-hypothesis cohort always reaches the guess, the sealed target differs so every signature is a fail-open, and the confirmation is answered through a correlated error model &mdash; a deterministic (k, &rho;) curve through the real gate and re-pose loop. The <em>partial</em> arm is a hermetic correctness check: an oracle that returns a genuine gap, asserting the gate's gap-only, path-local abstention. The adjudicator is mechanical, no model in the loop; targets are sealed; rates carry Wilson intervals. Three follow-ups extend the arms: an endgame diagnostic (why correct signs are absent), a confirmer-correlation measurement (the real error correlation between two confirmers, same-model and cross-family), and the seam closure (a live A/B gating the corroboration path behind a ground-truth check). The seam closure is a fail-closed-core change, committee-reviewed and adversarially verified.</p>
         <span class="repro">sbt "reasoningSociety/runMain claimalgebra.society.experiment.RunOracleSweep"</span>
       </div>
       <div>
