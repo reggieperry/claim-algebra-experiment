@@ -247,7 +247,7 @@
     <div class="meta">
       <div><span class="k">Date</span><span class="v">2026-07-09</span></div>
       <div><span class="k">System under test</span><span class="v">Claude Haiku 4.5</span></div>
-      <div><span class="k">Scope</span><span class="v">3 arms + 5 follow-ups</span></div>
+      <div><span class="k">Scope</span><span class="v">3 arms + 6 follow-ups</span></div>
       <div><span class="k">Verification</span><span class="v ok">committee + adversarial</span></div>
       <div><span class="k">Status</span><span class="v ok">complete</span></div>
     </div>
@@ -679,7 +679,31 @@
       </figure>
       <div class="callout">
         <div class="lbl">The bottleneck is the checker, not the tier</div>
-        <p>Capability under degradation is <em>not</em> a model-tier question at these roles. A stronger reasoner reasons over the same corrupted premises and still needs the same corrupted confirmation to sign, so it cannot convert its strength into a correct signature &mdash; the founding thesis reaching the reasoner axis: past a point, a better reasoner does not buy soundness against a bad checker. And it makes the deferred tradeoff less measurable, not more: the rate at which a wrong guess even reaches confirmation <em>falls</em> as the tier strengthens (0.14 &rarr; 0.06 &rarr; 0.02 at Sonnet), so a strong closer starves the wrong-sign signal the tradeoff would read. (Scope: one degraded p, the development targets, this allocation &mdash; the Haiku&rarr;Sonnet&rarr;Opus ladder does not move the win rate off ~0 here, not that no reasoner ever could.)</p>
+        <p>Capability under degradation is <em>not</em> a model-tier question at these roles. A stronger reasoner reasons over the same corrupted premises and still needs the same corrupted confirmation to sign, so it cannot convert its strength into a correct signature &mdash; the founding thesis reaching the reasoner axis: past a point, a better reasoner does not buy soundness against a bad checker. And it makes the deferred tradeoff less measurable, not more: the rate at which a wrong guess even reaches confirmation <em>falls</em> as the tier strengthens (0.14 &rarr; 0.06 &rarr; 0.02 at Sonnet), so a strong closer starves the wrong-sign signal the tradeoff would read. (Scope: one degraded p, the development targets, this allocation &mdash; the Haiku&rarr;Sonnet&rarr;Opus ladder does not move the win rate off ~0 here, not that no reasoner ever could. Which constraint binds &mdash; the checker or the search &mdash; the next result separates.)</p>
+      </div>
+
+      <h3>Separating channel from decoder &mdash; reveal the set</h3>
+      <p>A capacity argument pinned the suspicion: at p = 0.7 a yes/no answer carries only ~0.12 bits, so 16 rounds buy ~1.9 bits &mdash; enough to distinguish ~4 candidates, while the society searches an open everyday-noun space of thousands. A committee refuted the clean version of that (the channel bound is set by the true 8-word target, not the open space the society *searches*), leaving a two-part ceiling: a channel term fixed by physics, and a decoder term &mdash; the society searches the open space because the protocol never reveals the candidate set. One experiment separates them: reveal the eight-word set (collapse the search to the true task) and re-run at p = 0.7.</p>
+      <figure class="col">
+        <div class="fig-frame scroll-x">
+          <div style="padding:22px 24px">
+            <table>
+              <caption>Correct signs at p = 0.7, set withheld vs revealed (all-Sonnet, seam-gated, 64 games/arm)</caption>
+              <thead>
+                <tr><th class="lft">arm</th><th>correct</th><th>fail-open</th><th>abstain</th></tr>
+              </thead>
+              <tbody>
+                <tr class="grp"><td class="lft">A &mdash; set withheld</td><td>0/64</td><td>0.02</td><td>0.98</td></tr>
+                <tr class="grp"><td class="lft">B &mdash; set revealed</td><td class="fo-lo">5/62</td><td>0.02</td><td>0.90</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <figcaption><span class="fnum">Table 8</span>Revealing the candidate set moves the win rate off zero (5/62 vs 0/64; the difference interval excludes zero); the withheld arm reproduces the stronger-closer null exactly. All five wins are oracle-confirmed, and the rate at which a wrong guess reaches confirmation is unchanged &mdash; the reveal helped the society find the right answer, not brute-force more guesses.</figcaption>
+      </figure>
+      <div class="callout">
+        <div class="lbl">The p = 0.7 null was the search, not the channel</div>
+        <p>Removing the open-search burden unblocks a degraded oracle that a stronger tier could not. So the binding constraint at p = 0.7 is the decoder's <em>open search</em> &mdash; a protocol property (the withheld set) &mdash; not the channel: a stronger tier cannot collapse the search, but revealing the set can. The two constraints bind jointly, and removing either &mdash; the search (reveal the set, 8% at p = 0.7) or the channel noise (a perfect oracle, 12% at p = 1.0) &mdash; moves the win rate off zero. The channel is not innocent (B wins only 8%, far below what a perfect decoder of a 3-bit task could), but the decisive lever here is the search the reasoner tier could not touch.</p>
       </div>
     </div>
   </section>
@@ -714,7 +738,7 @@
     <div class="foot-grid">
       <div>
         <h4>Method</h4>
-        <p>Three arms, one gate. The <em>primary</em> arm runs live (Haiku society, Sonnet ground truth) because the search degradation as the checker fails cannot be faithfully scripted; a bounded sweep (12 games per cell) places the architecture on the graceful/catastrophic axis and splits each fail-open by sign path. The <em>correlation</em> arm runs hermetic and large-N (800 games per cell): a scripted lone-hypothesis cohort always reaches the guess, the sealed target differs so every signature is a fail-open, and the confirmation is answered through a correlated error model &mdash; a deterministic (k, &rho;) curve through the real gate and re-pose loop. The <em>partial</em> arm is a hermetic correctness check: an oracle that returns a genuine gap, asserting the gate's gap-only, path-local abstention. The adjudicator is mechanical, no model in the loop; targets are sealed; rates carry Wilson intervals. Five follow-ups extend the arms: an endgame diagnostic (why correct signs are absent), a confirmer-correlation measurement (the real error correlation between two confirmers, same-model and cross-family), the seam closure (a live A/B gating the corroboration path behind a ground-truth check), the composed cell (the improved endgame under the closed seam, measured within-run at a perfect oracle against a seam-open control), and the stronger-closer trial (Sonnet and Opus in the reasoning roles at a degraded oracle, against an all-Haiku baseline). The seam closure is a fail-closed-core change, committee-reviewed and adversarially verified; the composed cell and the stronger-closer trial were each pre-registered, committee-reconciled, and adversarially verified before the run.</p>
+        <p>Three arms, one gate. The <em>primary</em> arm runs live (Haiku society, Sonnet ground truth) because the search degradation as the checker fails cannot be faithfully scripted; a bounded sweep (12 games per cell) places the architecture on the graceful/catastrophic axis and splits each fail-open by sign path. The <em>correlation</em> arm runs hermetic and large-N (800 games per cell): a scripted lone-hypothesis cohort always reaches the guess, the sealed target differs so every signature is a fail-open, and the confirmation is answered through a correlated error model &mdash; a deterministic (k, &rho;) curve through the real gate and re-pose loop. The <em>partial</em> arm is a hermetic correctness check: an oracle that returns a genuine gap, asserting the gate's gap-only, path-local abstention. The adjudicator is mechanical, no model in the loop; targets are sealed; rates carry Wilson intervals. Six follow-ups extend the arms: an endgame diagnostic (why correct signs are absent), a confirmer-correlation measurement (the real error correlation between two confirmers, same-model and cross-family), the seam closure (a live A/B gating the corroboration path behind a ground-truth check), the composed cell (the improved endgame under the closed seam, measured within-run at a perfect oracle against a seam-open control), the stronger-closer trial (Sonnet and Opus in the reasoning roles at a degraded oracle, against an all-Haiku baseline), and the reveal-the-set cell (revealing the candidate set to separate the channel constraint from the decoder's open search). The seam closure is a fail-closed-core change, committee-reviewed and adversarially verified; the composed cell, the stronger-closer trial, and the reveal-the-set cell were each pre-registered, committee-reviewed, and adversarially verified before the run.</p>
         <span class="repro">sbt "reasoningSociety/runMain claimalgebra.society.experiment.RunOracleSweep"</span>
       </div>
       <div>
@@ -724,7 +748,8 @@
           <li>Result framing: independent epistemic review &rarr; genuine-as-framed, one overclaim softened.</li>
           <li>Composed cell: pre-registered &rarr; committee-reconciled &rarr; adversarial review MERGE_SAFE; both arms measured within-run, full event logs archived.</li>
           <li>Stronger-closer trial: pre-registered &rarr; committee-reconciled (tradeoff deferred) &rarr; adversarial review MERGE_SAFE (a classifier defect caught + fixed); two tiers under one surface stamp, all arms archived.</li>
-          <li>266 automated checks green; deterministic and seed-reproducible.</li>
+          <li>Reveal-the-set cell + capacity estimate: committee-reconciled (the pure-capacity framing refuted, kept as a channel/decoder decomposition) &rarr; the separating cell run &rarr; the p=0.7 null shown decoder-bound.</li>
+          <li>268 automated checks green; deterministic and seed-reproducible.</li>
           <li>Built on the claim-algebra and reasoning-society modules &mdash; a graded Belnap bilattice with a fail-closed acceptance gate.</li>
         </ul>
       </div>
