@@ -108,6 +108,29 @@ class GuessGateSuite extends munit.FunSuite with SocietyFixtures:
       case other => fail(s"k confirmations must NOT sign a contested candidate, got $other")
   }
 
+  // --- fallible-oracle E2: the seam closure (corroborationSigns) ---
+
+  test(
+    "seam-gated: a 2-backer candidate no longer signs standalone — it reads Unconfirmed, but the oracle still signs it"
+  ) {
+    val twoBackers =
+      Vector(mkAssert(1, driller, dog), Event.Corroborate(2, 2L, splitter, dog, "agreed"))
+    // seam-open (default): the two-backer disjunct C signs, exactly as shipped.
+    assertEquals(GameCore.decide(twoBackers, twoBackers.size), GateDecision.Sign(dog))
+    // seam-gated: C is dropped → Unconfirmed, so the winner must reach the oracle.
+    assertEquals(
+      GameCore.decide(twoBackers, twoBackers.size, corroborationSigns = false),
+      GateDecision.Abstain(AbstainReason.Unconfirmed(2)),
+      clue("dropping C narrows verify toward O — a 2-backer alone no longer signs")
+    )
+    // the check is ADDED, not the path removed: an oracle Yes still signs the 2-backer candidate.
+    val confirmed = twoBackers :+ guess(3, dog, OracleAnswer.Yes)
+    assertEquals(
+      GameCore.decide(confirmed, confirmed.size, corroborationSigns = false),
+      GateDecision.Sign(dog)
+    )
+  }
+
   test("alreadyGuessed — the k-pose budget terminates, and stops after any non-Yes") {
     val yes = guess(2, dog, OracleAnswer.Yes)
     val twoYes = Vector(yes, guess(3, dog, OracleAnswer.Yes))

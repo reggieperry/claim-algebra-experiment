@@ -8,6 +8,7 @@
 - **The fail-open has two distinct sources.** The sign-path split separates them cleanly: at a perfect oracle every fail-open is a **2-backer** sign (two agents agreeing on a wrong candidate, which the oracle never checks); at a degraded oracle every fail-open is an **oracle-confirmed** sign (a corrupted guess-confirmation). The first is the monoculture at the *agent* level; the second is what the confirmation quorum targets.
 - **Redundancy pays for independence, not quantity.** The (k, ρ) correlation curve shows the oracle-confirmed fail-open falling as (1−p)^k when confirmations are independent and staying flat at (1−p) when they are correlated — the monoculture at the *confirmation* level.
 - **The gate is only as strong as its weakest sign path.** The accept rule's last requirement is a disjunction — two-agent corroboration *or* oracle confirmation — and it fires through the weak generative branch (corroboration) even where the oracle would have caught the error. The unit of trust is the sign path, not the gate. (Interpretation and next experiments: `fallible-oracle-interpretation-and-next-experiments.md`.)
+- **The weak path can be closed, and the check that closes it must be non-generative.** Gating the corroboration branch with a ground-truth check drops the perfect-oracle fail-open from 0.25 to 0.00 without losing correct signs (E2), and that check has to be non-generative, because even different model families share blind spots on the hard cases (E3: same-model error correlation ρ≈0.75, cross-family ≈0.51, mechanical → 0).
 - **The gate fails closed on gaps, path-locally.** A genuine "don't know" on the question a conclusion depends on forces abstention; a gap off that path does not block. The first running-system exercise of Theorem 6.7.
 - **The transferable lever is check diversity.** Both monocultures — agents that share blind spots, and confirmations that share a checker — say the same thing: stacking correlated checks does not buy the geometric safety the redundancy intuition promises.
 
@@ -55,6 +56,21 @@ The design's triage question is where to spend a fixed verification budget: on s
 - The part a budget *can* reach — the oracle-confirmed fail-open — barely benefits from more confirmations once the confirmations are **correlated**, and N Claude-based confirmations are correlated by construction (the ρ curve).
 
 The direction follows from the seam: a fixed budget is better spent on an **independent** check of the corroboration path — a different model family, a mechanical oracle, a human on the two-backer agreement — than on re-confirming the same guess with the same kind of checker. Pricing it precisely, and a fully-measured two-policy tradeoff (fail-open per unit of verification spend), remain live effort.
+
+## E2 — closing the seam (the fix, and its measure)
+
+The seam is `verify = C ∨ O`: the two-agent corroboration branch C signs without ground truth, so it fails open even at a perfect oracle. E2 closes it with a config flag, `corroborationSigns = false`, that drops the standalone C disjunct — a 2-backer candidate is demoted to an unconfirmed winner and must obtain a ground-truth guess-confirmation to sign, so `verify` narrows toward O alone. Byte-identical at the default; only the experiment sets the flag; a floor is never lowered, a check is added. Committee-approved and adversarially verified.
+
+`RunSeamClosure` · live A/B at a perfect oracle (p=1.0, N=12/arm), fail-open split by sign path.
+
+| arm | fail-open (95% CI) | via 2-backer | via oracle | abstain | sign-correct |
+|---|---|---|---|---|---|
+| seam-open (verify = C ∨ O) | 0.25 [.09–.53] | 3 | 0 | 0.67 | 0.08 |
+| seam-gated (verify → O) | 0.00 [.00–.24] | 0 | 0 | 0.92 | 0.08 |
+
+Closing the seam drops the perfect-oracle fail-open from 0.25 to 0.00: the three wrong 2-backer signs become abstentions — fail-closed, the recoverable outcome. The correct sign survives (0.08 in both arms), which is the decisive control: if the demoted candidates were silently dropped rather than posed to the oracle, the correct sign would have vanished too. It did not, so the candidates reach ground truth — the wrong ones answered No and struck, the right one confirmed and signed. `SeamClosureSuite` proves the same deterministically, plus the structural invariant that under seam-gated every signature is preceded by a Yes confirmation of it (no unchecked sign).
+
+The fix and E3 meet exactly. Gating C with an independent check reduces, in the algebra, to routing C through O (`(C ∧ O) ∨ O = O`) because only ground truth knows the target — there is no realizable third mechanism. And that ground-truth check is non-generative, the one confirmer E3 measured to have joint error zero. The seam closes with the only genuinely independent check the study found.
 
 ## E0 — the endgame diagnostic (why sign-correct is zero)
 

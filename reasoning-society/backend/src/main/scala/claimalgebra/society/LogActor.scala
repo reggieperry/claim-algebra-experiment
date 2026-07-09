@@ -24,7 +24,15 @@ final case class SocietyConfig(
     // degenerate k <= 0 is fail-CLOSED, not fail-open — it disables the oracle-confirmed sign path
     // (the give-up ladder only poses on `Unconfirmed`, and the round path still needs a real Yes or
     // two backers), so it can never sign without a confirmation.
-    k: Int = 1
+    k: Int = 1,
+    // Whether the 2-distinct-backer corroboration path may sign on its own (fallible-oracle E2 — the
+    // seam closure). DEFAULT true keeps every shipped game byte-identical (`verify = C ∨ O`). Set
+    // FALSE (seam-gated) to DROP the standalone `C` disjunct: a 2-backer candidate is then demoted to
+    // an `Unconfirmed` winner and must obtain a ground-truth guess-confirmation before signing (it
+    // flows through the give-up guess ladder like a lone candidate), so `verify` narrows toward `O`
+    // alone. Closes the perfect-oracle fail-open, where two agents agreeing signs unchecked. Only the
+    // experiment sets it false; never weakens a floor — it ADDS the oracle check.
+    corroborationSigns: Boolean = true
 )
 
 /** Where the ordered event log is emitted — stdout for a live run now, an SSE transport in slice 3,
@@ -312,7 +320,12 @@ final class LogActor(
           // the guess handler (a completed round remains the ONLY quorum-sign path).
           answer match
             case OracleAnswer.Yes =>
-              GameCore.decide(s2.log, s2.log.size, deps.config.k) match
+              GameCore.decide(
+                s2.log,
+                s2.log.size,
+                deps.config.k,
+                deps.config.corroborationSigns
+              ) match
                 case GateDecision.Sign(winner) if winner == candidate => sign(s2, winner)
                 case _ => giveUpOrGuess(s2)
             case OracleAnswer.No | OracleAnswer.Unknown => giveUpOrGuess(s2)
@@ -347,7 +360,12 @@ final class LogActor(
       // (the audit/UI trace) but never drives a signature. Idempotent — at most once per stuck
       // episode ([[Convergence.warningToEmit]]).
       maybeWarnNonConvergence(reconciled).flatMap { flagged =>
-        GameCore.nextMove(flagged.log, flagged.log.size, roundComplete) match
+        GameCore.nextMove(
+          flagged.log,
+          flagged.log.size,
+          roundComplete,
+          deps.config.corroborationSigns
+        ) match
           case Move.Sign(winner) => sign(flagged, winner)
           case Move.Abstain =>
             val reason = abstainReason(flagged.log, roundComplete)
@@ -513,7 +531,7 @@ final class LogActor(
     * a value the society never reasoned to.
     */
   private def giveUpOrGuess(s: LogState): IO[LogState] =
-    GameCore.decide(s.log, s.log.size, deps.config.k) match
+    GameCore.decide(s.log, s.log.size, deps.config.k, deps.config.corroborationSigns) match
       case GateDecision.Abstain(AbstainReason.Unconfirmed(_)) =>
         GameCore.slot(s.log, s.log.size).value match
           case Some(candidate) if !GameCore.alreadyGuessed(s.log, candidate, deps.config.k) =>
@@ -620,7 +638,9 @@ final class LogActor(
   private def abstainReason(log: Vector[Event], roundComplete: Boolean): String =
     if !roundComplete then "round incomplete — held (attrition), never signing on a partial round"
     else
-      GameCore.decide(log, log.size) match
+      // Display-only (renders a GateAbstain reason); `k` is moot at round-close (no GuessAnswered yet),
+      // so thread only the seam flag to keep the abstain text consistent with the active predicate.
+      GameCore.decide(log, log.size, corroborationSigns = deps.config.corroborationSigns) match
         case GateDecision.Sign(_) => "signable" // unreachable: nextMove returned Abstain
         case GateDecision.Abstain(AbstainReason.Unconfirmed(n)) =>
           s"unconfirmed — a lone-ish hypothesis backed by $n of ${GameCore.MinCorroboration} needed"

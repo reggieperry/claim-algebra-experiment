@@ -162,7 +162,12 @@ object GameCore:
     * `Unconfirmed`. Every other belief (gap, glut, ambiguity, struck) abstains with the gate's own
     * [[BlockReason]].
     */
-  def decide(log: Vector[Event], upTo: Int, k: Int = 1): GateDecision =
+  def decide(
+      log: Vector[Event],
+      upTo: Int,
+      k: Int = 1,
+      corroborationSigns: Boolean = true
+  ): GateDecision =
     val prefix = log.take(upTo)
     // Mask the defeated candidates before the gate reads the slot, so a *defeated* hypothesis's
     // jamming con can no longer hold a different well-supported live one hostage (the false-glut
@@ -184,8 +189,13 @@ object GameCore:
             // `Yes` signs exactly as before; the redundancy experiment sets `k > 1`. `k` gates ONLY
             // this oracle disjunct — the structural 2-distinct-backer path is untouched.
             val backers = distinctBackers(prefix, winner)
-            if backers >= MinCorroboration || oracleConfirmations(prefix, winner) >= k then
-              GateDecision.Sign(winner)
+            // `verify = C ∨ O`. `corroborationSigns` gates the WEAK disjunct C (2-backer): when false
+            // (fallible-oracle E2, seam-gated) a 2-backer winner is NOT a standalone sign — it reads
+            // `Unconfirmed` and must reach the oracle-confirmed path (the give-up guess ladder poses
+            // it). Narrows `verify` toward `O` alone; never widens it.
+            if (corroborationSigns && backers >= MinCorroboration)
+              || oracleConfirmations(prefix, winner) >= k
+            then GateDecision.Sign(winner)
             else GateDecision.Abstain(AbstainReason.Unconfirmed(backers))
           case Decision.Blocked(reason) =>
             GateDecision.Abstain(AbstainReason.Blocked(reason))
@@ -200,7 +210,12 @@ object GameCore:
     * never be signed on the survivor (actor-abstraction §9). A completed round signs iff [[decide]]
     * signs; otherwise it asks another question.
     */
-  def nextMove(log: Vector[Event], upTo: Int, roundComplete: Boolean): Move =
+  def nextMove(
+      log: Vector[Event],
+      upTo: Int,
+      roundComplete: Boolean,
+      corroborationSigns: Boolean = true
+  ): Move =
     if !roundComplete then Move.Abstain
     else
       // The round path decides at the DEFAULT k = 1, NOT config.k (fallible-oracle Slice 4). This is
@@ -209,8 +224,9 @@ object GameCore:
       // log, and the k-quorum disjunct is vacuous here (it needs a confirmation the round path never
       // sees; a round signs only on the k-invariant ≥2-backer path). If a future change ever opens a
       // round DURING the endgame guess loop, this default must become `config.k` or it would sign
-      // below quorum under k > 1.
-      decide(log, upTo) match
+      // below quorum under k > 1. `corroborationSigns` IS threaded (E2): it gates the ≥2-backer round
+      // sign, so a seam-gated round returns `Abstain(Unconfirmed)` and the winner routes to the guess.
+      decide(log, upTo, corroborationSigns = corroborationSigns) match
         case GateDecision.Sign(winner) => Move.Sign(winner)
         case GateDecision.Abstain(_) => Move.Abstain
 

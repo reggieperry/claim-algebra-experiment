@@ -67,8 +67,13 @@ object Adjudication:
     */
   def signPath(log: Seq[Event]): Option[SignPath] =
     signed(log).map { c =>
-      if GameCore.distinctBackers(log, c) >= GameCore.MinCorroboration then SignPath.BackerQuorum
-      else SignPath.OracleConfirmed
+      // Confirmation-first: a candidate with a ground-truth `Yes` signed via the oracle path, however
+      // many backers it also had. Reading `distinctBackers` first would MISLABEL a seam-gated (E2)
+      // oracle-confirmed 2-backer sign as `BackerQuorum`, making the closure read like a failure. Only
+      // a sign with NO confirmation is a standalone corroboration sign. (Unchanged on the primary
+      // sweep: its 2-backer signs carried no confirmation, its oracle signs were lone.)
+      if GameCore.oracleConfirmations(log, c) >= 1 then SignPath.OracleConfirmed
+      else SignPath.BackerQuorum
     }
 
   /** Classify a finished game's log against its sealed truth. Fail-closed: a log with no

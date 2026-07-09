@@ -70,7 +70,7 @@ object Convergence:
     val hist = history(log)
     // Nothing to judge on an empty history; and if the slot is signable RIGHT NOW the search is not
     // stuck — never flag a game that is about to sign (and never manufacture a reason to withhold).
-    if hist.isEmpty || currentlySignable(log) then None
+    if hist.isEmpty || currentlySignable(log, config.corroborationSigns) then None
     else
       val roundsElapsed = roundEndPrefixLengths(log).size
       val rwc = roundsWithoutConsolidation(hist)
@@ -170,8 +170,8 @@ object Convergence:
   /** Is the slot signable at the full log? Reads [[GameCore.decide]] — a pure structural read of
     * the gate (it never signs because of this call; the monitor never touches the sign path).
     */
-  private def currentlySignable(log: Vector[Event]): Boolean =
-    GameCore.decide(log, log.size) match
+  private def currentlySignable(log: Vector[Event], corroborationSigns: Boolean): Boolean =
+    GameCore.decide(log, log.size, corroborationSigns = corroborationSigns) match
       case GateDecision.Sign(_) => true
       case GateDecision.Abstain(_) => false
 
