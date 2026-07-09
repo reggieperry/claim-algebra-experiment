@@ -25,3 +25,13 @@ if ! "${scan[@]}"; then
   echo "  If it is a genuine false positive, add a gitleaks allowlist entry; do not weaken the hook." >&2
   exit 1
 fi
+
+# --- dev-ledger gate (dev-ledger-gate-harness-build-brief.md §3) ---
+# Forgery guard + mechanical check-discharge + ledger audit, in the commit path. A "done" report is
+# only ever an unverified assertion; nothing acquires a signature except through a check run HERE.
+# If any automation commits via a route that bypasses this hook, close that route (§3 ultracode rule).
+if [ -f ledger/gate.py ]; then
+  if ! python3 ledger/gate.py --pre-commit; then
+    exit 1
+  fi
+fi

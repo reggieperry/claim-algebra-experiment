@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Post-commit: the dev-ledger signer (dev-ledger-gate-harness-build-brief.md §3).
+# The commit sha now exists, so write the `signed` entries the pre-commit gate queued for the checks
+# that passed, and record their line-hashes so the forgery guard admits them. These land UNCOMMITTED
+# and are committed with the next commit — the sha-timing seam: refutations write at block time in
+# pre-commit, signatures write here where the sha is known. Never fails the commit (it has already
+# happened); it only records.
+set -uo pipefail
+if [ -f ledger/gate.py ]; then
+  python3 ledger/gate.py --post-commit || true
+fi
