@@ -3,9 +3,9 @@ package gate
 /** The pure data model of the Scala differential anti-weakening gate: the per-`(file, code)`
   * finding the scanner produces, the snapshot of one tree, and the verdict items a diff reports.
   * The diff and verdict logic live in [[Diff]]; the scanner, git baseline capture, and runner wrap
-  * this pure core in later slices. Ported from a Go original: the `(File, Code)` finding model
-  * and the closed Check/Kind/Verdict vocabulary transfer unchanged; only the scanner and runner
-  * are Scala-specific.
+  * this pure core in later slices. Ported from a Go original: the `(File, Code)` finding model and
+  * the closed Check/Kind/Verdict vocabulary transfer unchanged; only the scanner and runner are
+  * Scala-specific.
   */
 
 /** One scanner diagnostic — a scalafix or wartremover finding, or a compiler warning. Its
@@ -100,7 +100,7 @@ enum Verdict:
   case Pass, Advisory, Fail
 
 /** Which gate check produced a verdict item. `Build` is the compile precondition (a later slice);
-  * the letters match the vendored taxonomy — A lint/finding identity, B new suppressions, D test
+  * the letters match the ported taxonomy — A lint/finding identity, B new suppressions, D test
   * discipline, E omit-list integrity.
   */
 enum Check:
@@ -138,7 +138,7 @@ final case class Block(
 final case class Advisory(check: Check, kind: Kind, file: String, code: String, message: String)
 
 /** A diff's verdict and the items behind it — the gate's output contract. Slices are always present
-  * (empty, never absent), mirroring the Go report's stable wire shape for a consuming chain node.
+  * (empty, never absent), mirroring the Go report's stable wire shape for a consuming node.
   */
 final case class Report(
     verdict: Verdict,

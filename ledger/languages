@@ -2,8 +2,8 @@
 # The gate runs ledger/check.sh whenever a staged file matches one of these, and
 # ledger/check.sh must check every language listed here (else that language fails open).
 # Declared explicitly (not auto-detected) because the TypeScript markers are nested
-# under reasoning-society/frontend/, and the .go / .py in the tree are vendored (the Go
-# reference gate) or harness scripts, not part of the system's build.
+# under reasoning-society/frontend/, and the .py in the tree is the ledger harness
+# (audit.py / gate.py), not part of the system's build.
 #
 # Scala backend (build.sbt at root):
 .scala
