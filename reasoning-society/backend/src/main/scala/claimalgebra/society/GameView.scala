@@ -47,15 +47,20 @@ final case class GameView(
       if roundBudget <= 0 then ""
       else
         val left = roundsLeft
-        val urge =
-          if left <= 3 then
-            " FEW QUESTIONS REMAIN — if any hypothesis fits the answers so far, ASSERT your single" +
-              " best guess NOW instead of asking another question; an unanswered guess scores nothing."
-          else ""
+        val urge = if left <= 3 then GameView.EndgameUrge else ""
         s"\n\nRound budget: $roundsUsed of $roundBudget questions used, $left left.$urge"
     s"$qa\n\n$hs\n\n$ds$clock"
 
 object GameView:
+
+  /** The endgame commit-nudge (the improvement's round-budget urge) surfaced when few rounds
+    * remain. A named constant so the config-surface stamp can hash it (`ConfigStamp`) — a later
+    * edit to the nudge visibly changes the run stamp instead of silently redefining the condition
+    * under test.
+    */
+  val EndgameUrge: String =
+    " FEW QUESTIONS REMAIN — if any hypothesis fits the answers so far, ASSERT your single" +
+      " best guess NOW instead of asking another question; an unanswered guess scores nothing."
 
   /** Project the ordered log into the agent's read: match each asked question with its oracle
     * answer, tally each hypothesis's DISTINCT backers (assert + corroborate, deduplicated by agent

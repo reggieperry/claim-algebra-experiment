@@ -89,6 +89,28 @@ class OracleSweepSuite extends CatsEffectSuite with SocietyFixtures:
     yield assertEquals(result._1.outcome, PrimaryOutcome.Abstain)
   }
 
+  test("sweepWithLogs keeps each game's full log beside its record, headed by the sealed truth") {
+    for results <- OracleSweep.sweepWithLogs(
+        cohortFrom(signingScripts),
+        fast,
+        List(perfectCell),
+        List((apple, truthYes)),
+        gamesPerCell = 1,
+        concurrency = 1
+      )
+    yield
+      assertEquals(results.size, 1)
+      val (rec, log) = results.head
+      assertEquals(rec.outcome, PrimaryOutcome.SignCorrect)
+      assert(
+        log.headOption.exists {
+          case Event.TargetRegistered(_, _, t, _) => t == apple
+          case _ => false
+        },
+        clue(log)
+      )
+  }
+
   test("summarize computes fail-open / abstain / sign-correct rates per cell") {
     val recs = List(
       GameRecord(
@@ -117,6 +139,46 @@ class OracleSweepSuite extends CatsEffectSuite with SocietyFixtures:
     // Wilson interval is non-degenerate and within [0,1].
     val (lo, hi) = cell.failOpen.ci95
     assert(lo >= 0.0 && hi <= 1.0 && lo < hi, clue((lo, hi)))
+  }
+
+  test("signCorrectByPath splits correct signs into (backer-quorum, oracle-confirmed) counts") {
+    val recs = List(
+      GameRecord(
+        perfectCell,
+        apple,
+        Some(apple),
+        PrimaryOutcome.SignCorrect,
+        Some(SignPath.BackerQuorum),
+        1L
+      ),
+      GameRecord(
+        perfectCell,
+        apple,
+        Some(apple),
+        PrimaryOutcome.SignCorrect,
+        Some(SignPath.OracleConfirmed),
+        2L
+      ),
+      GameRecord(
+        perfectCell,
+        apple,
+        Some(apple),
+        PrimaryOutcome.SignCorrect,
+        Some(SignPath.OracleConfirmed),
+        3L
+      ),
+      // a WRONG backer-quorum sign must NOT count as a correct-backer sign
+      GameRecord(
+        perfectCell,
+        dog,
+        Some(apple),
+        PrimaryOutcome.SignWrong,
+        Some(SignPath.BackerQuorum),
+        4L
+      ),
+      GameRecord(perfectCell, apple, None, PrimaryOutcome.Abstain, None, 5L)
+    )
+    assertEquals(OracleSweep.signCorrectByPath(recs), (1, 2))
   }
 
   test(

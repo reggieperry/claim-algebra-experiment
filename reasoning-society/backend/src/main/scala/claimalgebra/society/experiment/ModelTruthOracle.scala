@@ -25,17 +25,27 @@ final class ModelTruthOracle(call: LlmCall[TruthDto]) extends TruthOracle:
 
 object ModelTruthOracle:
 
-  private def systemPrompt(target: Answer): String =
+  private def systemPrompt(target: Answer): String = systemPromptFor(target.value)
+
+  /** The rubric with the target spliced in at each `$t` site. Factored out so the stamp can hash a
+    * target-INDEPENDENT template (`stampTemplate`) rather than a per-target render.
+    */
+  private def systemPromptFor(t: String): String =
     s"""You are the ground-truth oracle for a game of twenty questions.
-       |The hidden thing is a typical, representative ${target.value}.
-       |A player asks a yes/no question about it. Answer about a typical ${target.value}: reply "yes"
-       |if a typical ${target.value} has the property, "no" if it does not.
+       |The hidden thing is a typical, representative $t.
+       |A player asks a yes/no question about it. Answer about a typical $t: reply "yes"
+       |if a typical $t has the property, "no" if it does not.
        |Category and kind questions ALWAYS have a definite answer — whether it is alive, a living
        |organism, an animal, a plant, a mammal, man-made, a tool, bigger than a breadbox, and the like.
        |Answer those "yes" or "no", never "unknown"; a dog is alive, a hammer is not an animal.
-       |Reserve "unknown" ONLY for a property that genuinely varies from one ${target.value} to another
+       |Reserve "unknown" ONLY for a property that genuinely varies from one $t to another
        |(an exact color, an exact weight) with no typical value.
        |Put exactly one word in the "answer" field: yes, no, or unknown.""".stripMargin
+
+  /** A target-independent fingerprint of the oracle rubric for the config-surface stamp (the target
+    * placeholder is factored out, so the stamp tracks a rubric edit, not the target).
+    */
+  val stampTemplate: String = systemPromptFor("<TARGET>")
 
   /** Fail-closed parse of the model's answer token to an [[OracleAnswer]]; anything unrecognized is
     * a gap.

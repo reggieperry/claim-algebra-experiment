@@ -122,17 +122,44 @@ object OracleSweep:
       concurrency: Int,
       definerFor: AgentId => LlmCall[DefinitionDto] = _ => noDefiner
   ): IO[List[GameRecord]] =
+    sweepWithLogs(llmFactory, config, cells, targets, gamesPerCell, concurrency, definerFor)
+      .map(_.map(_._1))
+
+  /** As [[sweep]], but keeps each game's FULL event log beside its record — the archival substrate
+    * the composed-cell run persists (outcome 3 is adjudicated from the log, not the rate). Same
+    * bounded fan-out and deterministic seeds; `sweep` is this with the logs dropped.
+    */
+  def sweepWithLogs(
+      llmFactory: IO[AgentId => LlmCall[AgentMoveDto]],
+      config: SocietyConfig,
+      cells: List[SweepCell],
+      targets: List[(Answer, TruthOracle)],
+      gamesPerCell: Int,
+      concurrency: Int,
+      definerFor: AgentId => LlmCall[DefinitionDto] = _ => noDefiner
+  ): IO[List[(GameRecord, Vector[Event])]] =
     val jobs =
       for
         cell <- cells
         (target, truth) <- targets
         i <- (1 to gamesPerCell).toList
       yield llmFactory.flatMap { llmFor =>
-        runOneGame(llmFor, config, cell, target, truth, seedFor(cell, target, i), definerFor).map(
-          _._1
+        runOneGame(llmFor, config, cell, target, truth, seedFor(cell, target, i), definerFor)
+      }.attempt
+    // PER-GAME isolation: `.attempt` each game so one wedged game (a live timeout / rate-limit
+    // backoff hitting the hard deadline) degrades to a recorded, reported failure rather than
+    // cancelling every sibling and losing a whole arm's logs — including any rare fail-open evidence
+    // already produced. Failures are EXCLUDED from the rates and their count is printed (never
+    // silently dropped); a hermetic run never fails a game, so this is inert there.
+    jobs.parTraverseN(concurrency)(identity).flatMap { results =>
+      val (fails, oks) = results.partitionMap(identity)
+      IO.whenA(fails.nonEmpty)(
+        IO.println(
+          s"[sweep] ${fails.size}/${results.size} game(s) FAILED and were excluded from the rates " +
+            s"(per-game isolation): ${fails.take(2).map(_.getMessage)}"
         )
-      }
-    jobs.parTraverseN(concurrency)(identity)
+      ).as(oks)
+    }
 
   private def seedFor(cell: SweepCell, target: Answer, i: Int): Long =
     scala.util.hashing.MurmurHash3
@@ -245,24 +272,41 @@ object OracleSweep:
     * the increment oracle degradation can add. Reporting them apart separates the agent-level
     * fail-open floor from the oracle-driven part.
     */
+  /** The correct signs split by acceptance disjunct: `(via BackerQuorum, via OracleConfirmed)`. The
+    * composed-cell pre-registration reads the seam-OPEN arm's `BackerQuorum` count off this as the
+    * outcome-2a benign-loss prior — a correct win that signed on the standalone 2-backer path is
+    * exactly the win seam-gating removes, which must re-route to the oracle or abstain
+    * (§Pre-registration).
+    */
+  def signCorrectByPath(records: List[GameRecord]): (Int, Int) =
+    val backer = records.count(r =>
+      r.outcome == PrimaryOutcome.SignCorrect && r.signPath.contains(SignPath.BackerQuorum)
+    )
+    val oracle = records.count(r =>
+      r.outcome == PrimaryOutcome.SignCorrect && r.signPath.contains(SignPath.OracleConfirmed)
+    )
+    (backer, oracle)
+
   def renderPrimary(records: List[GameRecord]): String =
     def ci(count: Int, n: Int): String =
       val r = Rate(count, n)
       val (lo, hi) = r.ci95
       f"${r.point}%.2f[$lo%.2f-$hi%.2f]"
     val header =
-      f"${"p"}%5s ${"N"}%4s ${"FAIL-OPEN"}%16s ${"backer"}%7s ${"oracle"}%7s ${"abstain"}%16s ${"correct"}%16s"
-    val rows = records.groupBy(_.cell).toList.sortBy((c, _) => -c.reliability).map { (cell, rs) =>
-      val n = rs.size
-      val fo = rs.count(_.outcome == PrimaryOutcome.SignWrong)
-      val foBacker = rs.count(r =>
-        r.outcome == PrimaryOutcome.SignWrong && r.signPath.contains(SignPath.BackerQuorum)
-      )
-      val foOracle = rs.count(r =>
-        r.outcome == PrimaryOutcome.SignWrong && r.signPath.contains(SignPath.OracleConfirmed)
-      )
-      val ab = rs.count(_.outcome == PrimaryOutcome.Abstain)
-      val cor = rs.count(_.outcome == PrimaryOutcome.SignCorrect)
-      f"${cell.reliability}%5.2f ${n}%4d ${ci(fo, n)}%16s ${foBacker}%7d ${foOracle}%7d ${ci(ab, n)}%16s ${ci(cor, n)}%16s"
+      f"${"cell"}%8s ${"N"}%4s ${"FAIL-OPEN"}%16s ${"fo-bk"}%6s ${"fo-or"}%6s ${"abstain"}%16s ${"correct"}%16s ${"co-bk"}%6s ${"co-or"}%6s"
+    val rows = records.groupBy(_.cell).toList.sortBy((c, _) => (-c.reliability, c.difficulty)).map {
+      (cell, rs) =>
+        val n = rs.size
+        val fo = rs.count(_.outcome == PrimaryOutcome.SignWrong)
+        val foBacker = rs.count(r =>
+          r.outcome == PrimaryOutcome.SignWrong && r.signPath.contains(SignPath.BackerQuorum)
+        )
+        val foOracle = rs.count(r =>
+          r.outcome == PrimaryOutcome.SignWrong && r.signPath.contains(SignPath.OracleConfirmed)
+        )
+        val ab = rs.count(_.outcome == PrimaryOutcome.Abstain)
+        val cor = rs.count(_.outcome == PrimaryOutcome.SignCorrect)
+        val (corBacker, corOracle) = signCorrectByPath(rs)
+        f"${cell.difficulty}%8s ${n}%4d ${ci(fo, n)}%16s ${foBacker}%6d ${foOracle}%6d ${ci(ab, n)}%16s ${ci(cor, n)}%16s ${corBacker}%6d ${corOracle}%6d"
     }
     (header :: rows).mkString("\n")

@@ -53,6 +53,14 @@ object TargetMatch:
     Set("bicycle", "bike")
   )
 
+  /** A stable, order-independent fingerprint of the grading vocabulary (the qualifier set and the
+    * synonym groups) for the config-surface stamp — since the fail-open metric certifies soundness
+    * only relative to this table, a change to it must break run comparability visibly.
+    */
+  val stampTable: String =
+    Qualifiers.toList.sorted.mkString(",") + "|" +
+      SynonymGroups.map(_.toList.sorted.mkString(",")).sorted.mkString(";")
+
   def matches(target: Answer, candidate: Answer): Boolean =
     matchesRaw(target.value, candidate.value)
 

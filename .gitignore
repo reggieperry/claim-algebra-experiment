@@ -22,3 +22,6 @@ project/project/
 ledger/.hook-signed
 ledger/.pending-sign
 ledger/__pycache__/
+
+# composed-cell run artifacts (full event logs) — kept local, findings go in the docs
+results/
