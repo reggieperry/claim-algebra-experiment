@@ -45,6 +45,15 @@ def sh(cmd: list[str], **kw) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, **kw)
 
 
+def clean_env() -> dict:
+    """Strip the GIT_* vars git sets for a hook (GIT_INDEX_FILE=.git/index, GIT_DIR, …)
+    before running the check. The check may itself run git — a project whose tests do
+    `git worktree add` / `git commit` in scratch repos — and inheriting the hook's
+    transient index both FAILS those tests and can CORRUPT the main repo (worktree and
+    commit ops land on the wrong index). The check must see the normal repo."""
+    return {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+
+
 def now() -> str:
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -126,7 +135,7 @@ def pre_commit() -> int:
         ref = f"{CHECK_NAME}@{parent}+{patch}"
         sys.stderr.write(f"dev-ledger gate: running `{CHECK_CMD}` "
                          f"({'code staged' if code else 'pending claims'})…\n")
-        r = sh(CHECK_CMD.split())
+        r = sh(CHECK_CMD.split(), env=clean_env())
         if r.returncode != 0:
             append_entry({
                 "claim": STANDARD_CLAIM, "subject": "verification-surface", "source": "hook",
