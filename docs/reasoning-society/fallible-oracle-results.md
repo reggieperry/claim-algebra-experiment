@@ -9,6 +9,7 @@
 - **Redundancy pays for independence, not quantity.** The (k, ρ) correlation curve shows the oracle-confirmed fail-open falling as (1−p)^k when confirmations are independent and staying flat at (1−p) when they are correlated — the monoculture at the *confirmation* level.
 - **The gate is only as strong as its weakest sign path.** The accept rule's last requirement is a disjunction — two-agent corroboration *or* oracle confirmation — and it fires through the weak generative branch (corroboration) even where the oracle would have caught the error. The unit of trust is the sign path, not the gate. (Interpretation and next experiments: `fallible-oracle-interpretation-and-next-experiments.md`.)
 - **The weak path can be closed, and the check that closes it must be non-generative.** Gating the corroboration branch with a ground-truth check drops the perfect-oracle fail-open from 0.25 to 0.00 without losing correct signs (E2), and that check has to be non-generative, because even different model families share blind spots on the hard cases (E3: same-model error correlation ρ≈0.75, cross-family ≈0.51, mechanical → 0).
+- **The endgame can be nudged off zero, but not fixed — the wins and the confident-wrongs are coupled.** Correcting the grader and the oracle and making the society commit before its budget runs out moved sign-correct from 0 to ~0.15–0.19 (the grading correction is verified not to inflate it), but the same commit pressure that produces guesses produces confident-wrong signatures (held-out 3 correct : 6 wrong, fail-open 0.30), and the win rate collapses at a degraded oracle. Pushing a weak model to commit trades safe abstention for CWS; a real fix needs a stronger reasoner. The fully-live verification-spend tradeoff has no signal as a result.
 - **The gate fails closed on gaps, path-locally.** A genuine "don't know" on the question a conclusion depends on forces abstention; a gap off that path does not block. The first running-system exercise of Theorem 6.7.
 - **The transferable lever is check diversity.** Both monocultures — agents that share blind spots, and confirmations that share a checker — say the same thing: stacking correlated checks does not buy the geometric safety the redundancy intuition promises.
 
@@ -98,6 +99,29 @@ An earlier run on common-misconception questions (tomato, whale, spider) returne
 The measured ρ turns the redundancy curve's dialed correlation into a number. Two instances of the same model err together far more than independence predicts (ρ ≈ 0.75; joint error 0.167 against an independent 0.043), so a second same-model confirmation buys almost nothing. A different model family lowers the correlation (ρ ≈ 0.51) but does not remove it — Haiku and GPT still share blind spots on the hard items, so cross-family diversity buys some but not all of the geometric benefit. Only the non-generative check drives the joint error to zero: the mechanical confirmer never errs, so requiring it catches every model error.
 
 The deeper reading, and the one that vindicates the project's founding thesis: **diversity of model is not diversity of error.** Even different capable model families are correlated on the hard cases where a check matters; the only genuinely independent check is a non-generative one — a test, a proof, a lookup, a human. (N=24, so the ρ estimates are noisy; the ordering same-model > cross-family > mechanical, and the magnitudes, are the result, not the second decimal.)
+
+## The endgame improvement — measured, not "fixed"
+
+E0 found sign-correct = 0 and read it as structural. Live transcripts showed the society is a competent player mis-served by the apparatus, not a broken reasoner: it converged on "domestic dog" for target "dog" and the exact-string grader scored it wrong; the truth oracle returned UNKNOWN to answerable category questions ("is a dog a living organism?"), starving the search; the agents could not see the round budget, so never committed; and an agent asserted a compound "domestic dog or cat" that the skeptic refuted into a persistent glut.
+
+Three corrections followed — semantic grading (`TargetMatch`: drop a leading qualifier, a pre-registered synonym set; grading only, hypothesis identity unchanged), a decisive truth oracle (answer category questions yes/no about a representative instance), and round-budget awareness with an endgame commit nudge. The result, stated plainly:
+
+| target set | correct | wrong (fail-open) | abstain |
+|---|---|---|---|
+| dev-overlapping (8 targets, N=4, p=1.0) | 0.19 | 0.22 | 0.59 |
+| held-out (10 unseen targets, N=2, p=1.0) | 0.15 | 0.30 | 0.55 |
+
+Sign-correct moved off zero (0 → ~0.15–0.19). Two guards say this is not a grading rig: on the held-out targets exact-correct equals loose-correct (all three wins — hammer, kite, drum — signed the exact target word), so `TargetMatch` changed no held-out outcome; and an adversarial review found `TargetMatch` conservative (it fails to credit "green apple", "guide dog", "notebook" and never credits a wrong thing) with no sealed-target leak.
+
+But this is an improvement, not a fix. When the society commits it signs wrong about as often as right (held-out 3 correct to 6 wrong; fail-open 0.30), and at a degraded oracle the win rate collapses to zero (below). The wins and the confident-wrongs are **coupled through the commit nudge**: pushing a weak model to commit trades safe abstention for more confidently-wrong signatures — the very outcome the study measures. A proper fix needs a stronger reasoner, not more commitment pressure, which the weak-model-under-test design excludes.
+
+> **Deferred decision — the commit nudge.** The round-budget nudge is what produces guesses at all, and also what manufactures the confident-wrongs; whether to dial it back (trading win rate for a lower fail-open) is left open. Reproducibility caveat: the nudge is unconditional, so the post-fix society asserts more than the pre-fix baseline, and prompts are not versioned in the trial record — pre- and post-fix numbers are not directly comparable.
+
+## The verification-spend tradeoff — no live signal
+
+The intended experiment was to run the winning system at a degraded oracle and compare fail-open per unit of verification spend — more same-family confirmations versus an independent check. Seam-gated (so the confirmation is the sole sign path) at p = 0.7, under three policies — k=1, k=2 correlated at ρ=0.75 (redundancy, E3's same-family value), k=2 at ρ=0 (diversity) — it returned nothing to compare: every policy signed nothing (fail-open 0.00, correct 0.00, abstain 1.00 across 16 games each). The improved system does not win reliably enough at a degraded oracle to generate confirmed signs, so there is no live tradeoff to measure — the endgame weakness E0 found, only partly remedied.
+
+The clean characterization of the tradeoff is therefore the hermetic correlation curve (fail-open vs k and ρ) read at E3's measured correlation: at ρ ≈ 0.75 (two same-family confirmations) redundancy buys almost nothing, while an independent check (ρ → 0) approaches the geometric floor (1−p)^k. Every input is measured — the correlation (E3), the reliability p — but the combination is the hermetic curve, not a live sweep, because the live system cannot supply the confirmations.
 
 ## Threats to validity
 

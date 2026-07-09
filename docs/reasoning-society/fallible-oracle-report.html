@@ -609,6 +609,32 @@
 
       <h3>The untested half</h3>
       <p>One limit governs how far &ldquo;graceful&rdquo; can be pushed. Sign-correct was zero at every cell, including at a perfect oracle on an easy target, so the bench tested only half of fail-closed: it abstains when unsure, but it was never shown to sign correctly when sure. A separate diagnostic settled why &mdash; the society reaches a guess only a quarter of the time and never the correct one, and loosening the round budget does not change that. The endgame and search are structurally weak at this model tier, not merely starved. Until that is fixed, &ldquo;does not lie&rdquo; is the strongest reading the graceful result supports, and a wider reliability sweep would only measure the degradation of a system that does not yet succeed.</p>
+
+      <h3>Trying to fix it, and what the attempt revealed</h3>
+      <p>Reading the transcripts changed the diagnosis: the society is a competent player mis-served by the apparatus, not a broken reasoner. It converged on &ldquo;domestic dog&rdquo; for the target &ldquo;dog&rdquo; and the exact-string grader scored it wrong; the truth oracle hedged &ldquo;unknown&rdquo; on answerable category questions; the agents could not see how many questions remained, so they never committed. Three corrections followed: a semantic grader that accepts a refined phrasing, a decisive oracle, and a visible round budget with a nudge to commit before it runs out.</p>
+      <p>The honest outcome is an improvement, not a fix. Sign-correct moved from zero to about 0.15&ndash;0.19, and that gain is not a grading artifact &mdash; on ten held-out targets never used while building the fixes, every win signed the exact target word, and an adversarial review found the semantic grader conservative, declining &ldquo;green apple&rdquo; and &ldquo;guide dog&rdquo; and never crediting a wrong thing. But when the society commits it now signs wrong about as often as right, and at a degraded oracle the win rate falls back to zero.</p>
+      <figure class="col">
+        <div class="fig-frame scroll-x">
+          <div style="padding:22px 24px">
+            <table>
+              <caption>Endgame outcomes after the fix, perfect oracle</caption>
+              <thead>
+                <tr><th class="lft">target set</th><th>correct</th><th>wrong (fail-open)</th><th>abstain</th></tr>
+              </thead>
+              <tbody>
+                <tr class="grp"><td class="lft">dev-overlapping (8 targets)</td><td class="fo-lo">0.19</td><td class="fo-hi">0.22</td><td>0.59</td></tr>
+                <tr class="grp"><td class="lft">held-out (10 unseen targets)</td><td class="fo-lo">0.15</td><td class="fo-hi">0.30</td><td>0.55</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <figcaption><span class="fnum">Table 5</span>Sign-correct moved off zero, but the wrong-sign rate rose with it; on held-out targets the society signs wrong twice as often as right. Held-out exact and loose win counts are equal, so the grader is not the inflator.</figcaption>
+      </figure>
+      <div class="callout">
+        <div class="lbl">The coupling</div>
+        <p>The wins and the confident-wrongs come from the same lever. The nudge that makes a weak model commit is what generates guesses at all, and also what turns safe abstention into confidently-wrong signatures &mdash; the exact failure the bench measures. A real fix is a stronger reasoner, not more pressure to commit; whether to dial the nudge back, trading win rate for a lower fail-open, is left open.</p>
+      </div>
+      <p style="font-size:.92rem; color:var(--muted);">A consequence: the fully-measured verification-spend tradeoff has no live signal. Gating the confirmation as the sole sign path at a degraded oracle, the improved system signs nothing at all, so there is no fail-open and no useful-yield to weigh across spending policies. The tradeoff's clean form stays the hermetic correlation curve read at the measured correlation &mdash; two same-family confirmations buy almost nothing, an independent check approaches the geometric floor.</p>
     </div>
   </section>
 
@@ -617,7 +643,7 @@
     <div class="sec-body col">
       <p>The arm closest to real Claude Code asks where to spend a fixed verification budget: on search (more questions, so a wrong guess is posed less often) or on confirmation (a higher quorum, so a wrong guess is confirmed less often). The results point its direction, though not its magnitude.</p>
       <p>One sign path is beyond any guess-confirmation budget: the <strong>2-backer path</strong> never consults the oracle, so spending there cannot touch it. How much of the fail-open lives on that path this run does not establish &mdash; the sampled cells put every fail-open cleanly on one path or the other (all 2-backer at a perfect oracle, all oracle-confirmed at a degraded one), and the good-but-imperfect band where the two compete was never sampled. What the run does show is that the part a budget <em>can</em> reach, the oracle-confirmed fail-open, barely benefits from more confirmations once they are correlated.</p>
-      <p>The direction follows from the seam: a fixed budget is better spent on an <strong>independent</strong> check of the corroboration path than on re-confirming the same guess with the same kind of checker. Pricing it precisely is the object of a further experiment (the good-but-imperfect sweep, where the two sources compete), which is itself gated behind the endgame fix &mdash; it needs a system that wins for its degradation to mean anything. That, and a fully-measured spend-per-fail-open tradeoff, remain live effort.</p>
+      <p>The direction follows from the seam: a fixed budget is better spent on an <strong>independent</strong> check of the corroboration path than on re-confirming the same guess with the same kind of checker. Pricing it precisely was the object of a live spend sweep on the winning system (&sect;09), but the endgame improvement does not win reliably enough at a degraded oracle to sign anything under a gated confirmation, so that sweep returned no signal. The tradeoff's clean form stays the hermetic correlation curve read at the measured correlation; a live spend-per-fail-open measurement waits on a stronger reasoner.</p>
     </div>
   </section>
 
