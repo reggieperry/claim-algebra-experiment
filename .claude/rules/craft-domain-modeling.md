@@ -7,7 +7,7 @@ paths:
 
 # Domain modeling
 
-Building code around a rigorous model of the problem domain. Source: Eric Evans, *Domain-Driven Design*. Calibrated for a modest domain (beads/stories, chain nodes, the node lifecycle, gate verdicts, handoff routing) — favor the tactical and supple-design rules, and use bounded contexts as a primary guide to module boundaries (below), not as enterprise-only machinery.
+Building code around a rigorous model of the problem domain. Source: Eric Evans, *Domain-Driven Design*. Calibrated for a modest domain (work items, build nodes, a node lifecycle, gate verdicts, task routing) — favor the tactical and supple-design rules, and use bounded contexts as a primary guide to module boundaries (below), not as enterprise-only machinery.
 
 > See `craft-abstraction.md` for value objects as abstract data types, and the language overlay (`scala-types.md` / `scala-modules.md`) for encoding them and for packages as domain modules.
 
