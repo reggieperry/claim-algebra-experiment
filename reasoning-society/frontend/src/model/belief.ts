@@ -64,7 +64,7 @@ export interface CurrentQuestion {
   // claims beside the question (§4). Empty when the question was never challenged.
   readonly definitions: readonly DefinitionClaim[];
   // An OPEN challenge: the human challenged a term and the asking agent has not defined it yet, so
-  // answering is GATED until the definition arrives (the load-bearing UX rule, §3). `undefined` when
+  // answering is GATED until the definition arrives (the critical UX rule, §3). `undefined` when
   // no challenge is outstanding (never challenged, the latest challenge already answered by a
   // definition, or the question already answered). Derived, never stored.
   readonly pendingChallenge: PendingChallenge | undefined;

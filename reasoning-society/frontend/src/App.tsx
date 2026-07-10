@@ -62,7 +62,7 @@ function clamp(value: number, lo: number, hi: number): number {
 // that stream is down the App falls back to the scripted `MOCK_EVENTS` demo, so the UI never breaks with
 // the backend off. Every panel is a pure reader of `fold(events, playhead)` and its sibling projections;
 // nothing below mirrors the belief state (brief §1). Crucially the belief fold runs over the FULL log —
-// the selected agent scopes only what the panels DISPLAY, never what is computed (the load-bearing safety
+// the selected agent scopes only what the panels DISPLAY, never what is computed (the critical safety
 // rule). Live mode is the playhead pinned to the head of the growing log.
 export function App(): ReactElement {
   const live = useLiveEvents();

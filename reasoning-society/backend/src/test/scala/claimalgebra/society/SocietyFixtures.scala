@@ -21,7 +21,7 @@ trait SocietyFixtures:
   val termPool: List[Term] = List("alive", "animal").map(mkTerm)
 
   // Terms whose VALUE collides with a candidate label (e.g. "dog") — a definition's term/meaning is
-  // now load-bearing (a grounded answer's `governing` cites terms), so the belief-inertness
+  // now critical (a grounded answer's `governing` cites terms), so the belief-inertness
   // generator must exercise a definition that LOOKS like a candidate value, to confirm it still
   // never becomes a phantom backer or corroboration of that candidate.
   val collidingTermPool: List[Term] = candidatePool.map(c => mkTerm(c.value))

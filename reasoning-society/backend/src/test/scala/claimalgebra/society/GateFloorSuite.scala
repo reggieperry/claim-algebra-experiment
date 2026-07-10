@@ -5,8 +5,8 @@ import org.scalacheck.Gen
 import org.scalacheck.Prop.forAll
 
 /** The gate reduced to `corner = True ∧ cardinality = 1` (θ/verify wired off) and the no-lone-sign
-  * FLOOR — the load-bearing safety of this slice. The floor counts DISTINCT agents from the events
-  * (not the algebra's `Prov` lineage), so a lone-agent winner can never be signed.
+  * FLOOR — the critical safety of this slice. The floor counts DISTINCT agents from the events (not
+  * the algebra's `Prov` lineage), so a lone-agent winner can never be signed.
   */
 class GateFloorSuite extends munit.ScalaCheckSuite with SocietyFixtures:
 

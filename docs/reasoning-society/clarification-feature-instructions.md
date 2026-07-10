@@ -80,6 +80,6 @@ Do not introduce mutable side state for the exchange — it all goes in the log,
 
 ## 8. First move
 
-Add the event types (`clarification_requested`, `definition_given`, and the definition-reference on `answer_given`) and the definition-as-claim structure first — that is the load-bearing change. Then add the **Challenge** control to the human turn, wire the asking-agent response, surface the definitions-this-game list, and confirm replay shows the exchange. Then re-play the apple: ask "is it alive?", challenge it, get the agent's meaning, answer against it — and watch the society reason from a correctly-grounded answer, with the whole negotiation visible in replay.
+Add the event types (`clarification_requested`, `definition_given`, and the definition-reference on `answer_given`) and the definition-as-claim structure first — that is the critical change. Then add the **Challenge** control to the human turn, wire the asking-agent response, surface the definitions-this-game list, and confirm replay shows the exchange. Then re-play the apple: ask "is it alive?", challenge it, get the agent's meaning, answer against it — and watch the society reason from a correctly-grounded answer, with the whole negotiation visible in replay.
 
 *End of instructions — 2026-07-07.*

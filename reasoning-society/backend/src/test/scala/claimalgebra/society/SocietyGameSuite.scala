@@ -402,7 +402,7 @@ class SocietyGameSuite extends CatsEffectSuite:
       // SELF-WITHDRAWAL — and a second refuter (splitter) stands, so dog is a DEFEATED hypothesis,
       // not a live glut. The lifecycle predicate retires it (masks both channels), so the slot reads
       // a clean Gap and the gate abstains for the correct reason. It still never signs — the
-      // load-bearing safety. (Pre-lifecycle this jammed as a false Glut for the rest of the game.)
+      // critical safety. (Pre-lifecycle this jammed as a false Glut for the rest of the game.)
       val corner = Testimony.corner(GameCore.slot(events, events.size))
       assertEquals(
         corner,

@@ -255,7 +255,7 @@ object OracleSweep:
       val indep = math.pow(1.0 - p, cell.k.toDouble)
       f"${cell.k}%3d ${cell.rho}%5.2f ${n}%6d ${obs}%29s ${indep}%9.3f ${1.0 - p}%7.3f"
     }
-    // Guard the load-bearing invariant: a BackerQuorum sign is k-invariant and would pollute the curve.
+    // Guard the critical invariant: a BackerQuorum sign is k-invariant and would pollute the curve.
     val bogus = records.count(_.signPath.contains(SignPath.BackerQuorum))
     val note =
       if bogus == 0 then Nil

@@ -15,7 +15,7 @@ This is a **personal research toy**, built for delight and learning, **not** a p
 
 ---
 
-## 1. The one load-bearing architectural decision (get this right; everything hangs off it)
+## 1. The one critical architectural decision (get this right; everything hangs off it)
 
 **The entire UI is a pure function of `(event_log, playhead_position)`.**
 
@@ -119,7 +119,7 @@ Architect for all four requirements from the start (log everything, pure fold). 
   - **Do not rely on opening a browser on the build machine.** Any "take a screenshot to critique" step won't work headlessly — critique visually **from the laptop browser** instead, or add a lightweight way to dump state.
   - Running under **tmux over SSH** is right — keep the dev server (and the agent process) in named tmux windows so they survive disconnects; document the window layout in the repo README so a reconnect is trivial.
 - **Vite** for the dev server (fast HMR, trivial `--host`). Keep the whole thing dependency-light; this is a toy to iterate on, not a product to harden.
-- **No browser storage APIs** for anything load-bearing — the event log is the source of truth and should live in the running process / on disk, not in localStorage.
+- **No browser storage APIs** for anything critical — the event log is the source of truth and should live in the running process / on disk, not in localStorage.
 
 ---
 

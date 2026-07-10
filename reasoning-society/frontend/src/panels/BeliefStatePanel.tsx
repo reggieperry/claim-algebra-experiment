@@ -19,7 +19,7 @@ interface BeliefStatePanelProps {
   // The agent filter, applied as a VIEW only (build2-ui-design §4): when an agent is selected, the
   // candidates it did not touch dim (highlight-over-hide) — but every candidate is still rendered, and
   // `state` is the full unfiltered fold. `null`/omitted = nothing scoped. The belief fold NEVER sees
-  // this; muting an agent changes display, never the computed beliefs (the load-bearing safety rule).
+  // this; muting an agent changes display, never the computed beliefs (the critical safety rule).
   readonly scopedCandidates?: ReadonlySet<CandidateId> | null;
 }
 

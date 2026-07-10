@@ -31,7 +31,7 @@ So consistency-checking applies against the **evidence layer**, never against th
 Validation against the log showed a single "check refutation against grounded facts" rule is **insufficient**, because the Skeptic's false premise was about *apples in general* ("apples have pits"), not about the *target* — and apple-facts are not in the ledger. So:
 
 ### Mechanism 1 (PRIMARY — this is what catches the hallucination): a refutation's factual basis must be grounded, not merely asserted.
-The Skeptic's premise "apple trees have a single large pit" is a **bare factual assertion with no grounding** — the agent hallucinating a fact about the world. Under the core law, an ungrounded generator-assertion gets **low `h`**. Therefore a refutation whose load-bearing premise is an ungrounded factual assertion is a **low-grade (weak) refutation**.
+The Skeptic's premise "apple trees have a single large pit" is a **bare factual assertion with no grounding** — the agent hallucinating a fact about the world. Under the core law, an ungrounded generator-assertion gets **low `h`**. Therefore a refutation whose critical premise is an ungrounded factual assertion is a **low-grade (weak) refutation**.
 - This catches the actual error because the false premise's defining property is that it is **ungrounded** — detectable without any external botanical knowledge.
 - Implementation: when an agent refutes, its stated basis should be classifiable as either (a) grounded in oracle answers / prior established facts, or (b) a bare factual assertion the agent is introducing. Case (b) → low grade for the refutation. (The agent's refutation text already states its basis; the grader evaluates whether that basis traces to evidence or is newly asserted.)
 

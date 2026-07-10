@@ -122,7 +122,7 @@ Plot fail-open against `k` at fixed `p`, one line per correlation `ρ`.
 - **Predicted at `ρ = 0`:** geometric fall in fail-open with `k` (`(1 − p)^k` per wrong guess) — redundant confirmation is a strong mitigation when checks are independent.
 - **Predicted as `ρ → 1`:** the lines flatten; at `ρ = 1` the `k > 1` benefit vanishes entirely.
 
-The interpretation is Part V made concrete and quantitative: **redundancy buys fail-closed safety in exact proportion to the independence of the checks.** If the run shows the `ρ = 1` line flat — redundancy useless under full correlation — that is the monoculture failure demonstrated on the bench, and it becomes the load-bearing caution for the real system: **stacking correlated Claude-based checks does not buy the safety the geometric intuition promises.** This single plot is the strongest argument in the whole program for check *diversity* over check *quantity*.
+The interpretation is Part V made concrete and quantitative: **redundancy buys fail-closed safety in exact proportion to the independence of the checks.** If the run shows the `ρ = 1` line flat — redundancy useless under full correlation — that is the monoculture failure demonstrated on the bench, and it becomes the critical caution for the real system: **stacking correlated Claude-based checks does not buy the safety the geometric intuition promises.** This single plot is the strongest argument in the whole program for check *diversity* over check *quantity*.
 
 ### Partial oracle (the 6.7 correctness result)
 
@@ -130,7 +130,7 @@ Binary, per scenario: does an on-path gap always block, and does an off-path gap
 
 ### Expensive oracle (verification economics)
 
-Compare fail-open per unit verification spend, naive vs triage. The predicted and desired result: **triage keeps fail-open low at far lower spend** — spending verification budget on the final guess (the load-bearing check) rather than on every intermediate property question. If triage does *not* help — if fail-open per unit spend is the same either way — that says the intermediate checks carry as much fail-open risk as the final one, which would itself reshape where `verify()` needs to sit. This is the arm whose result most directly prices the real question: *given a limited testing budget, which checks are worth running?*
+Compare fail-open per unit verification spend, naive vs triage. The predicted and desired result: **triage keeps fail-open low at far lower spend** — spending verification budget on the final guess (the critical check) rather than on every intermediate property question. If triage does *not* help — if fail-open per unit spend is the same either way — that says the intermediate checks carry as much fail-open risk as the final one, which would itself reshape where `verify()` needs to sit. This is the arm whose result most directly prices the real question: *given a limited testing budget, which checks are worth running?*
 
 ### Secondary: inspect the fail-open logs (the discovery loop)
 

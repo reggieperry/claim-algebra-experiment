@@ -126,7 +126,7 @@ store the rendered grade — render from the fold each tick.
 - **Coordination rules (CMV):** highlight-over-hide everywhere; instant and reversible (click-empty
   clears); **filtering is a *view* over the fold, never a re-fold — the belief fold always runs over
   the full unfiltered log; muting an agent changes display only, never the computed beliefs** (the
-  load-bearing safety rule). Hover-to-correlate is the lightweight cross-highlight (hover a log row →
+  critical safety rule). Hover-to-correlate is the lightweight cross-highlight (hover a log row →
   light the candidate it moved and its memory fact).
 
 ## 5. Do / Don't / Defer

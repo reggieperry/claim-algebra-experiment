@@ -7,7 +7,7 @@ import scala.concurrent.duration.*
 /** The librarian's convergence monitor (librarian-convergence-monitor) — the PURE, STRUCTURAL,
   * NON-GENERATIVE detector of non-convergence.
   *
-  * The load-bearing property is NON-GENERATIVITY, pinned by the metamorphic check (done FIRST): the
+  * The critical property is NON-GENERATIVITY, pinned by the metamorphic check (done FIRST): the
   * monitor reads the SHAPE of support over time, never what any claim MEANS. Permuting the claims'
   * content — consistently renaming every candidate, scrambling every note/content, flipping every
   * oracle answer — while holding the belief-state STRUCTURE fixed leaves the fire/no-fire decision

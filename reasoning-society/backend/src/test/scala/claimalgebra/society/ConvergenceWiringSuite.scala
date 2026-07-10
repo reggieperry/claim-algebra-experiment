@@ -10,7 +10,7 @@ import scala.concurrent.duration.*
 
 /** The convergence monitor wired into the single-writer LogActor (librarian-convergence-monitor):
   * driven through the effectful shell, a genuinely stuck game emits the belief-inert
-  * `ConvergenceWarning` through the one writer, at most once per episode, and — the load-bearing
+  * `ConvergenceWarning` through the one writer, at most once per episode, and — the critical
   * property — the gate/sign path is UNCHANGED: the flag never manufactures a signature, and belief
   * is byte-identical with the marker stripped.
   *

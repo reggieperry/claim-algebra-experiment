@@ -78,6 +78,6 @@ Do **not** add general cross-game memory in this pass — no episodic "remember 
 
 ## 8. First move
 
-Add the scope distinction to the event/data model first (§1, §3) — that is the load-bearing change; the two buttons are thin wrappers over it. Then wire **New Game** to reset working scope only, add **Full Reset** for both, surface a small **definitions panel** so persistent memory is visible, and confirm the challenge-a-retrieved-definition path works. Then play a second game and check the payoff: it should *not* re-ask what "alive" means — and if you challenge the remembered definition, the new meaning should supersede cleanly.
+Add the scope distinction to the event/data model first (§1, §3) — that is the critical change; the two buttons are thin wrappers over it. Then wire **New Game** to reset working scope only, add **Full Reset** for both, surface a small **definitions panel** so persistent memory is visible, and confirm the challenge-a-retrieved-definition path works. Then play a second game and check the payoff: it should *not* re-ask what "alive" means — and if you challenge the remembered definition, the new meaning should supersede cleanly.
 
 *End of instructions — 2026-07-07.*

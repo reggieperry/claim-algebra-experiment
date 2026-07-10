@@ -4,7 +4,7 @@ import claimalgebra.BlockReason
 import org.scalacheck.Gen
 import org.scalacheck.Prop.forAll
 
-/** The clarification feature, slice 1 (the pure model + fold). The load-bearing safety is
+/** The clarification feature, slice 1 (the pure model + fold). The critical safety is
   * belief-INERTNESS: a challenge, a definition, and an answer's governing reference are grounding
   * context/audit — they must NEVER move the answer-slot, so the fail-closed sign path (the Gate,
   * the no-lone-sign floor, the glut-on-contradiction) is provably unchanged by their presence. The
@@ -38,7 +38,7 @@ class ClarificationSuite extends munit.ScalaCheckSuite with SocietyFixtures:
       merged <- spliceInto(base, inerts)
     yield (base, merged)
 
-  // --- the load-bearing safety: belief-inertness ---
+  // --- the critical safety: belief-inertness ---
 
   property(
     "clarification/definition events are belief-inert: project/belief/decide/nextMove unchanged"

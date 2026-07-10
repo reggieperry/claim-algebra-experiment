@@ -10,7 +10,7 @@ import type { SocietyGraph } from './graph';
 // The society navigator's data (build2-ui-design §2): one dense summary per agent — its verb counts,
 // when it last spoke, and its dominant epistemic corner now — plus the society-level diversity scalar
 // and the monoculture warning. A PURE projection of the fold: it takes no selection, so the agent
-// filter can never perturb it (the load-bearing safety rule — filtering is a VIEW, never a re-fold).
+// filter can never perturb it (the critical safety rule — filtering is a VIEW, never a re-fold).
 
 export interface AgentSummary {
   readonly id: AgentId;

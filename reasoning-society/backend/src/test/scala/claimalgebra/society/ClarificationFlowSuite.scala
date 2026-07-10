@@ -10,7 +10,7 @@ import scala.concurrent.duration.*
 
 /** The EFFECTFUL two-move human turn end to end (clarification-feature slice 2), over real actors
   * and the LogActor round loop, driven by a hermetic stub `LlmCall` + a scripted [[Oracle]]. The
-  * load-bearing safety is the GROUNDING PAUSE: a `Challenge` emits NO `AnswerGiven` and closes no
+  * critical safety is the GROUNDING PAUSE: a `Challenge` emits NO `AnswerGiven` and closes no
   * round; grounding resumes only when the human ANSWERS, and the answer records the `governing`
   * terms it was grounded to. Determinism comes from `Ref`/`Deferred` synchronization inside the
   * substrate and from injecting the round-timeout scheduler (no sleep-as-sync): in the clean-order

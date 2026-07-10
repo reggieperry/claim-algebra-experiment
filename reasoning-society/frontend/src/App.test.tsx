@@ -100,7 +100,7 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: /^skeptic/i }));
     expect(screen.getByText(/scoped to:\s*skeptic/i)).toBeInTheDocument();
 
-    // The load-bearing safety rule: the belief fold ran over the FULL log, so the candidate the
+    // The critical safety rule: the belief fold ran over the FULL log, so the candidate the
     // Skeptic never touched is still on the board (dimmed, not deleted) and the cardinality is
     // unchanged. Muting an agent changes display, never the computed beliefs.
     expect(within(belief()).getByText("It's a dog.")).toBeInTheDocument();

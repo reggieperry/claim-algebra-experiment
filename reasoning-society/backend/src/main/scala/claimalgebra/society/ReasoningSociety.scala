@@ -8,7 +8,7 @@ package claimalgebra.society
   * and `docs/reasoning-society/twenty-questions-build-brief.md` (the first buildable window — a
   * browser observability tool watching a small society play Twenty Questions).
   *
-  * Two load-bearing decisions from the brief map onto already-shipped `claimalgebra` code:
+  * Two critical decisions from the brief map onto already-shipped `claimalgebra` code:
   *   - the belief state is a pure fold over an ordered event log — that fold is the calculus
   *     `Ledger` (`claimalgebra.calculus`), and live mode is replay with the playhead pinned to the
   *     head (one system, not two);
