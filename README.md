@@ -45,8 +45,8 @@ sbt gate/assembly      # the standalone differential-gate.jar
 ```
 
 `sbt check` is the one gate the build must pass — formatting, the Scalazzi/Scala-3 scalafix rules,
-the library-neutrality gate (`claim-algebra` stays domain-neutral), then the law-first suites — 872
-tests in all (claim-algebra 514, extract 29, reasoning-society 268, gate 61). The frontend has its
+the library-neutrality gate (`claim-algebra` stays domain-neutral), then the law-first suites — 880
+tests in all (claim-algebra 514, extract 29, reasoning-society 276, gate 61). The frontend has its
 own checks: `cd reasoning-society/frontend && npm ci && npm run build` (and `npm run check`).
 
 ## Run the Twenty Questions observability tool
@@ -89,6 +89,7 @@ scripts/setup-hooks.sh    # sets core.hooksPath to .githooks
 - `fallible-oracle-experiment-design.md` — the experiment design.
 - `fallible-oracle-results.md` — the measured results and the threats-to-validity ledger.
 - `fallible-oracle-report.html` and `statistics-visual-guide.html` — the visual readers.
+- `verify-results-check-design.md` — the verify-results check: a munit suite (in `sbt check`) recomputes each headline result table from a committed receipt under `receipts/`, so the published numbers reproduce on any machine, and the dev-ledger signs the tables only when they do.
 
 ## Provenance
 
