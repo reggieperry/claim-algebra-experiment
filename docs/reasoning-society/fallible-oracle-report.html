@@ -607,6 +607,14 @@
         </div>
       </div>
 
+      <h3>The reveal cell</h3>
+      <p>One cell, not a curve, and three limits ride with it.</p>
+      <ul>
+        <li><strong>The dropped games.</strong> B is scored over 62 (<em>cup</em> and <em>tree</em>, one seed each, mid-run API errors, no completed record); A completed all 64. Any disposition of the two preserves the exclusion &mdash; 5/64 gives [0.006, 0.170], 7/64 gives [0.030, 0.209].</li>
+        <li><strong>Single-cell scope.</strong> p = 0.7, all-Sonnet, k = 1, N = 64/arm, unreplicated. It establishes the sign &mdash; the win rate moves off an exact-zero baseline &mdash; not a magnitude; a frontier-p estimate would need N &asymp; 150&ndash;200 per cell.</li>
+        <li><strong>The truthful-reveal assumption.</strong> The reveal is a trusted preamble naming the eight candidates truthfully; it both collapses the open search and reframes the task, so the cell isolates decoder-bound versus channel-bound, not recognition versus reframing. A mis-stated or adversarial reveal would confound it; the unchanged wrong-guess-reach rate (w = 0.016 in both arms) argues it collapses the search rather than inducing more guessing.</li>
+      </ul>
+
       <h3>The untested half</h3>
       <p>One limit governs how far &ldquo;graceful&rdquo; can be pushed. Sign-correct was zero at every cell, including at a perfect oracle on an easy target, so the bench tested only half of fail-closed: it abstains when unsure, but it was never shown to sign correctly when sure. A separate diagnostic settled why &mdash; the society reaches a guess only a quarter of the time and never the correct one, and loosening the round budget does not change that. The endgame and search are structurally weak at this model tier, not merely starved. Until that is fixed, &ldquo;does not lie&rdquo; is the strongest reading the graceful result supports, and a wider reliability sweep would only measure the degradation of a system that does not yet succeed.</p>
 
@@ -699,11 +707,11 @@
             </table>
           </div>
         </div>
-        <figcaption><span class="fnum">Table 8</span>Revealing the candidate set moves the win rate off zero (5/62 vs 0/64; the difference interval excludes zero); the withheld arm reproduces the stronger-closer null exactly. All five wins are oracle-confirmed, and the rate at which a wrong guess reaches confirmation is unchanged &mdash; the reveal helped the society find the right answer, not brute-force more guesses.</figcaption>
+        <figcaption><span class="fnum">Table 8</span>Revealing the candidate set moves the win rate off zero (5/62 vs 0/64; Newcombe difference [0.008, 0.175], excluding zero); the withheld arm reproduces the stronger-closer null exactly. All five wins are oracle-confirmed, and the rate at which a wrong guess reaches confirmation is unchanged &mdash; the reveal helped the society find the right answer, not brute-force more guesses.</figcaption>
       </figure>
       <div class="callout">
         <div class="lbl">The p = 0.7 null was the search, not the channel</div>
-        <p>Removing the open-search burden unblocks a degraded oracle that a stronger tier could not. So the binding constraint at p = 0.7 is the decoder's <em>open search</em> &mdash; a protocol property (the withheld set) &mdash; not the channel: a stronger tier cannot collapse the search, but revealing the set can. The two constraints bind jointly, and removing either &mdash; the search (reveal the set, 8% at p = 0.7) or the channel noise (a perfect oracle, 12% at p = 1.0) &mdash; moves the win rate off zero. The channel is not innocent (B wins only 8%, far below what a perfect decoder of a 3-bit task could), but the decisive lever here is the search the reasoner tier could not touch. The margin is thin &mdash; five wins, the difference interval's lower bound a hair above zero &mdash; so read it as a direction, not a precise 8%; the sign is robust nonetheless, since even the most conservative disposition of the two dropped B games (both as losses) keeps the interval above zero.</p>
+        <p>Removing the open-search burden unblocks a degraded oracle that a stronger tier could not. So the binding constraint at p = 0.7 is the decoder's <em>open search</em> &mdash; a protocol property (the withheld set) &mdash; not the channel: a stronger tier cannot collapse the search, but revealing the set can. The two constraints bind jointly, and removing either &mdash; the search (reveal the set, 8% at p = 0.7) or the channel noise (a perfect oracle, 12% at p = 1.0) &mdash; moves the win rate off zero. The channel is not innocent (B wins only 8%, far below what a perfect decoder of a 3-bit task could), but the decisive lever here is the search the reasoner tier could not touch. B ran the same 64 games as A (8 targets &times; 8 seeds); two &mdash; <em>cup</em> and <em>tree</em>, one seed each &mdash; errored mid-run against the live API and produced no completed record, so B is scored over the 62 that finished; A completed all 64. Any disposition of the two dropped games preserves the exclusion: both as non-wins gives 5/64 with Newcombe [0.006, 0.170]; both as wins gives 7/64 with [0.030, 0.209]; neither touches zero. The margin is nonetheless thin &mdash; five wins, a lower bound of 0.008 &mdash; so the finding is directional: revealing the set moves the win rate off an <em>exact</em> zero, which is the claim; 0.08 is not a precise rate, and pinning the magnitude would need a larger N.</p>
       </div>
     </div>
   </section>
