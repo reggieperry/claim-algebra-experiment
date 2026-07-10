@@ -11,6 +11,8 @@ It is research code, developed in the open method it documents: every substantiv
 system is checked mechanically before it is believed, and the review discipline travels with the repo
 (`.claude/`, `ledger/`).
 
+**Start here:** [`docs/reasoning-society/building-jarvis.html`](docs/reasoning-society/building-jarvis.html) — *Building JARVIS using a game of twenty questions*, the essay: five measured findings about when to believe an AI.
+
 ## Components (the sbt modules)
 
 The build is multi-module; packages stay `claimalgebra.*` across modules, and the hard seam is

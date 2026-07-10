@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building JARVIS using a game of twenty questions</title>
+<style>
+  :root {
+    --paper:#f2f4f5; --surface:#ffffff;
+    --ink:#141a20; --text:#2a333b; --muted:#5e6b75;
+    --line:#e0e5e8; --accent:#0f6274; --accent-2:#2f8ba0; --accent-soft:#e3eef1;
+    --danger:#b03a34; --safe:#3f7d5c;
+    --font-sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --font-mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --maxw:66ch;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:#0f141a; --surface:#161d25;
+      --ink:#eef2f5; --text:#c4cdd4; --muted:#8b98a3;
+      --line:#25303a; --accent:#41b4c8; --accent-2:#5cc3d4; --accent-soft:#122e37;
+      --danger:#e2766d; --safe:#71b58b;
+    }
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--paper); color:var(--text);
+    font:17px/1.65 var(--font-sans);
+    -webkit-font-smoothing:antialiased;
+  }
+  main { max-width:var(--maxw); margin:0 auto; padding:56px 20px 96px; }
+  h1 { color:var(--ink); font-size:1.9em; line-height:1.2; margin:0 0 6px; letter-spacing:-0.015em; }
+  .sub { color:var(--muted); margin:0 0 4px; }
+  .byline { color:var(--muted); font-family:var(--font-mono); font-size:0.78em; margin:0 0 40px; }
+  h2 { color:var(--ink); font-size:1.22em; margin:44px 0 10px; letter-spacing:-0.01em; }
+  p { margin:0 0 16px; }
+  a { color:var(--accent); text-decoration:none; border-bottom:1px solid var(--accent-soft); }
+  a:hover { border-bottom-color:var(--accent); }
+  .stat {
+    background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--accent);
+    border-radius:6px; padding:12px 16px; margin:20px 0;
+    font-family:var(--font-mono); font-size:0.82em; color:var(--ink);
+  }
+  .stat b { color:var(--accent); }
+  em { font-style:italic; }
+  hr { border:0; border-top:1px solid var(--line); margin:40px 0; }
+  .foot { color:var(--muted); font-size:0.85em; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Building JARVIS using a game of twenty questions</h1>
+<p class="sub">Five measured findings about when to believe an AI.</p>
+<p class="byline">Reggie Perry · July 9, 2026</p>
+
+<p>I wanted the system to be like the movies. Not the voice or the wit: the moment where it says "done, sir" and Tony simply believes it. An assistant you have to double-check is a coworker; an assistant you can believe is a force multiplier. So the question I set out to answer wasn't "how do I make a model smarter." It was: what would it take to believe an LLM when it says <em>done</em>?</p>
+
+<p>The industry thinks that if you keep making the model smarter, trust will arrive as a byproduct. I decided to measure instead of assume. Most of the measurements surprised me, and the best one refuted a theory I posited in a presentation.</p>
+
+<h2>The smallest world with the whole problem in it</h2>
+
+<p>To measure trust you need a world where lying is detectable, so I built the smallest one that contains the full problem: a society of LLM agents playing twenty questions. One agent proposes candidates, another drills into properties, an oracle answers yes or no, and the oracle can be configured to lie, with a dial. <code>p</code> is the oracle's per-answer reliability: the probability that any single yes/no answer it gives is true. At p&nbsp;=&nbsp;1.0 every answer is true; at p&nbsp;=&nbsp;0.7 nearly a third of the evidence is false. The game is small enough to run hundreds of times and score exactly: a win is naming the target, a lie is confidently naming the wrong thing, and abstaining is admitting you don't know.</p>
+
+<p>Underneath the game sits a claim algebra with one constitutional rule: <em>the model asserts; it never certifies.</em> Every statement any agent makes is a claim with a status, and a claim gets signed only when something non-generative (a check, not another LLM opinion) discharges it. The experiments then asked: does that rule cost you? What actually buys trust? Does intelligence?</p>
+
+<h2>Finding 1 — agreement is not verification</h2>
+
+<p>The intuition everyone carries: if a second model confirms the first, you can be more confident. Measured: I posed 24 deliberately hard yes/no questions to pairs of graders. Two fresh sessions of the <em>same</em> model each got 5 wrong, and they shared 4 of those 5 errors. A different vendor's model still shared errors at the same joint rate on that set. The only checker that shared zero errors with any model was a mechanical one.</p>
+
+<div class="stat">same-model pair: 5/24 errors each, <b>4 shared</b> · joint error 0.167 vs 0.043 if independent · mechanical check: <b>0 shared</b></div>
+
+<p>Fresh context removes inherited reasoning — the second session can't see the first one's excuses. It does not remove shared blind spots, because the weights are the same. A committee of same-family models is one model with variance. Diversity of model is not diversity of error; the thing that has different failure modes from a model is a check.</p>
+
+<h2>Finding 2 — honesty turned out to be free</h2>
+
+<p>The society originally had a seam: two agents agreeing on a candidate could sign it without the oracle ever confirming. That's the multi-agent version of believing "done" because two instances said so. I closed it — under the gated rule, agreement gets you demoted to "unconfirmed" and the game keeps playing until a real confirmation lands. Then I ran the two designs head to head, 52 paired games, same targets, same oracle draws, expecting to pay for the safety in lost wins.</p>
+
+<div class="stat">gated arm: <b>0 confidently-wrong signatures</b> in 52 games · wins <b>6/52 gated vs 5/52 open</b> · mechanism traced: 5 games resurrected, 4 lost to re-confirmation attrition, net <b>+1</b></div>
+
+<p>The gate cost nothing. Zero confidently-wrong signatures, and the win column I expected to shrink went up by one (noise as a margin, decisive as a sign). The traced mechanism is the finding: in the open design, a wrong agreement <em>ends the game</em>; a confident lie is terminal. In the gated design the same moment becomes a demotion, the game stays alive, and some of those extended games find the truth. Two of the gated wins were lies in the open design: same target, same random seed, but where the open version signed the wrong answer and stopped, the gated version refused, kept asking, and got oracle confirmation on the right one. The refusal is the movie beat, as an event trace: "I don't have enough information at this time" — followed by continued work, followed by the answer. Forced honesty didn't make the system weaker. It kept the question alive.</p>
+
+<h2>Finding 3 — a smarter model doesn't fix a lying judge</h2>
+
+<p>Next, degrade the oracle to p&nbsp;=&nbsp;0.7 and try to buy your way out with intelligence. The baseline society (a small, cheap model in every seat) wins zero of 64. Put a mid-tier model in the closing and adversarial roles: zero of 64. Put the frontier model there: zero of 64. Put the frontier model in <em>every</em> seat: one win in 64 — noise.</p>
+
+<div class="stat">p = 0.7, set withheld · cheap tier <b>0/64</b> · mid tier <b>0/64</b> · frontier tier <b>0/64</b> and <b>1/64</b> · the tier ladder buys nothing</div>
+
+<p>A stronger reasoner reasons over the same corrupted premises and still needs the same corrupted confirmation to sign. Past a point, model quality cannot compensate for check quality. If your verification is bad, the upgrade budget is going to the wrong line item.</p>
+
+<h2>Finding 4 — the beautiful theory, refuted by the machinery built to refute it</h2>
+
+<p>I thought I knew why. Information theory prices what a noisy channel can carry: at p&nbsp;=&nbsp;0.7, sixteen yes/no answers hold about 1.9 bits, and the everyday-noun search space needs ten or more. I wrote it up as a ceiling (no reasoner of <em>any</em> intelligence could win here; physics forbids it), and I liked that theory a great deal.</p>
+
+<p>The program's standing review process reproduced every number and refuted the conclusion. I had conflated two quantities: the true target set was 8 words (3.0 bits), and the ten-plus bits belonged to the <em>search space the protocol imposed</em> by withholding the candidate list. Against the real 3-bit task, 1.9 bits doesn't forbid winning at all. The channel term was real (it's why the tier ladder nulled), but the binding constraint was something else. The corrected accounting even predicted the data: it puts the chance of the observed 0-for-64 at about 0.79. The refutation is published with the theory, under a header that says REFUTED, because a program that hides its dead theories can't be trusted about its live ones.</p>
+
+<h2>Finding 5 — one sentence of information did what intelligence couldn't</h2>
+
+<p>The refutation implied a decisive test: if the constraint was the withheld candidate list, then <em>revealing</em> it should unblock the game — same cheap-to-mid model, same lying oracle, no other change. One arm played as before. The other was told, in a single sentence, the eight words the answer could be.</p>
+
+<div class="stat">set withheld: <b>0/64</b> · set revealed: <b>5/62</b> · difference CI [0.008, 0.175], excludes zero · wrong-guess rate unchanged (0.016 both arms)</div>
+
+<p>The withheld arm reproduced the null exactly. The revealed arm started winning, and the unchanged wrong-guess rate shows the sentence didn't make the society guess more, it made the society find the <em>right</em> candidate. Intelligence wasn't the constraint. Information was. Every model upgrade in Finding 3 bought zero wins; one sentence of task framing bought five. If you have ever upgraded to a bigger model to fix what was actually a vague ticket, this experiment is about you, and me.</p>
+
+<h2>What it adds up to</h2>
+
+<p>Four clauses, each one measured: model agreement is not verification. Closing the unchecked path costs nothing and pays a win, because refusal keeps questions alive. Model tier cannot buy soundness against a bad checker. And task information unblocks what tier cannot. Between them they invert the JARVIS roadmap. Trust was never going to arrive as a byproduct of scale, because trust and capability turn out to be different axes — capability lives in the model, trust lives in the checks, and the leverage lives in what you tell the model before it starts.</p>
+
+<p>So the assistant worth building is not a mind with tools. It's an instrument panel with a rentable mind: a ledger where every claim carries a status and the name of the check that signed it; a gate where mechanical checks are the only signers and agreement between models is demoted to what it is, testimony; a frame compiler whose job is the Finding 5 move, telling the model what the system already knows before asking it to think; and an honest map of jurisdiction, where "I don't know" is a first-class answer and the list of unverified claims is, literally, the roadmap. The model slots into that fabric and can be swapped out next quarter. The fabric is the asset. Less Iron Man's confidant, more the Enterprise's library computer — given a metabolism, and made to show its work.</p>
+
+<h2>The receipts</h2>
+
+<p>Everything above is reproducible. Each experiment was pre-registered in a committed spec before it ran; every result table carries a configuration stamp and a confidence interval; the refuted theory ships with its refutation; the full statistical treatment, the game, the claim algebra, and the ledger tooling are public under Apache-2.0 at <a href="https://github.com/reggieperry/claim-algebra-experiment">github.com/reggieperry/claim-algebra-experiment</a>, with the detailed results in <code>docs/reasoning-society/</code>. The same discipline, applied to shipping production code with LLM agents, is the sibling project: the <a href="https://github.com/reggieperry/sdlc-discipline-pack">SDLC discipline pack</a>.</p>
+
+<p>The next chapter is the metabolism — teaching the system skills one session at a time, each one graduating only when its own checks sign it. The first words of a trustworthy assistant aren't "done, sir." They're "I don't know how to do that." Everything after that gets a receipt.</p>
+
+<hr>
+<p class="foot">Written July 9, 2026. If you rerun the experiments and get different numbers, that's a finding — file an issue.</p>
+
+</main>
+</body>
+</html>

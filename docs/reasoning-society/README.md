@@ -11,6 +11,8 @@ outputs — so the program measures **where confidence attaches when the checker
 (the *fallible oracle*), and what a lawful gate does about it. The headline concern is *fail-open*: a
 gate signing a wrong answer.
 
+**▸ The essay — [building-jarvis.html](building-jarvis.html)** — *Building JARVIS using a game of twenty questions*: five measured findings about when to believe an AI, in narrative form. The best entry point; everything below is the record behind it.
+
 ## Start here
 
 1. **[auditable-society-of-minds-v1.md](auditable-society-of-minds-v1.md)** — the architecture of record: what the society is and why.
