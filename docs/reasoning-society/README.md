@@ -11,14 +11,14 @@ outputs — so the program measures **where confidence attaches when the checker
 (the *fallible oracle*), and what a lawful gate does about it. The headline concern is *fail-open*: a
 gate signing a wrong answer.
 
-**▸ The essay — [building-jarvis.html](building-jarvis.html)** — *Building JARVIS using a game of twenty questions*: five measured findings about when to believe an AI, in narrative form. The best entry point; everything below is the record behind it.
+**▸ The essay — [building-jarvis.html](https://reggieperry.github.io/claim-algebra-experiment/docs/reasoning-society/building-jarvis.html)** — *Building JARVIS using a game of twenty questions*: five measured findings about when to believe an AI, in narrative form. The best entry point; everything below is the record behind it.
 
 ## Start here
 
 1. **[auditable-society-of-minds-v1.md](auditable-society-of-minds-v1.md)** — the architecture of record: what the society is and why.
 2. **[twenty-questions-build-brief.md](twenty-questions-build-brief.md)** — the first buildable window: Twenty Questions as an oscilloscope for a reasoning society.
 3. **[fallible-oracle-results.md](fallible-oracle-results.md)** — the measured results and the live threats-to-validity ledger. The single most important document here.
-4. **[statistics-visual-guide.html](statistics-visual-guide.html)** and **[fallible-oracle-report.html](fallible-oracle-report.html)** — the two visual readers: the statistics explained for a general reader, and the engineering report on fail-open risk.
+4. **[statistics-visual-guide.html](https://reggieperry.github.io/claim-algebra-experiment/docs/reasoning-society/statistics-visual-guide.html)** and **[fallible-oracle-report.html](https://reggieperry.github.io/claim-algebra-experiment/docs/reasoning-society/fallible-oracle-report.html)** — the two visual readers: the statistics explained for a general reader, and the engineering report on fail-open risk.
 
 ## The architecture and the build
 
@@ -31,8 +31,8 @@ gate signing a wrong answer.
 ## The experiment: results and reports
 
 - **[fallible-oracle-results.md](fallible-oracle-results.md)** — every measured finding, arm by arm, with the threats-to-validity ledger kept live.
-- **[fallible-oracle-report.html](fallible-oracle-report.html)** — "Fail-open risk in AI self-verification," the engineering report.
-- **[statistics-visual-guide.html](statistics-visual-guide.html)** — "The numbers behind the experiments," a visual guide (Wilson intervals, power, correlation, channel capacity).
+- **[fallible-oracle-report.html](https://reggieperry.github.io/claim-algebra-experiment/docs/reasoning-society/fallible-oracle-report.html)** — "Fail-open risk in AI self-verification," the engineering report.
+- **[statistics-visual-guide.html](https://reggieperry.github.io/claim-algebra-experiment/docs/reasoning-society/statistics-visual-guide.html)** — "The numbers behind the experiments," a visual guide (Wilson intervals, power, correlation, channel capacity).
 - **[fallible-oracle-interpretation-and-next-experiments.md](fallible-oracle-interpretation-and-next-experiments.md)** — interpretation and the questions that came next.
 
 ## The experiment cells (the individual studies)
@@ -56,3 +56,5 @@ The "how it was built" trail — each a spec or a committee decision behind a sl
 - **[hypothesis-lifecycle-design.md](hypothesis-lifecycle-design.md)**, **[hypothesis-lifecycle-instructions.md](hypothesis-lifecycle-instructions.md)**, **[hypothesis-lifecycle-decision-record.md](hypothesis-lifecycle-decision-record.md)**, **[hypothesis-lifecycle-review-addendum.md](hypothesis-lifecycle-review-addendum.md)** — the hypothesis-lifecycle work (channel-asymmetry retirement + gate scoping §C) and its adversarial review.
 - **[sec-C-pressure-test-focusing-note.md](sec-C-pressure-test-focusing-note.md)** — the focusing note for the §C pressure-test.
 - **[unpinned-referent-decision-record.md](unpinned-referent-decision-record.md)** and **[unpinned-referent-algebra-validation.md](unpinned-referent-algebra-validation.md)** — the unpinned-referent (multi-slot) committee decision and its validation against the algebra.
+
+The algebra the society runs on: [../claim-algebra/](../claim-algebra/README.md) — the canonical note, and the operational calculus with its proved meta-theorems.

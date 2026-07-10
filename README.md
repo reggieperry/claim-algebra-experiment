@@ -12,6 +12,9 @@ system is checked mechanically before it is believed, and the review discipline 
 (`.claude/`, `ledger/`).
 
 **Read online** — three rendered pages (GitHub Pages):
+
+> Links to HTML documents point at the rendered site; in a local clone, open the same paths under `docs/` directly.
+
 - **[Building JARVIS using a game of twenty questions](https://reggieperry.github.io/claim-algebra-experiment/docs/reasoning-society/building-jarvis.html)** — the essay: five measured findings about when to believe an AI. *Start here.*
 - **[Fail-open risk in AI self-verification](https://reggieperry.github.io/claim-algebra-experiment/docs/reasoning-society/fallible-oracle-report.html)** — the engineering report.
 - **[The numbers behind the experiments](https://reggieperry.github.io/claim-algebra-experiment/docs/reasoning-society/statistics-visual-guide.html)** — the visual guide to the statistics.

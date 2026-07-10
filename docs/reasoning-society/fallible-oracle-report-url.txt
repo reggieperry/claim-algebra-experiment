@@ -1,6 +1,2 @@
-Fallible-oracle experiment — engineering report
 https://reggieperry.github.io/claim-algebra-experiment/docs/reasoning-society/fallible-oracle-report.html
-
-Served via GitHub Pages (main, root). The former Claude Artifact URL is retired.
-Source HTML (committed): docs/reasoning-society/fallible-oracle-report.html
-Design + results: fallible-oracle-experiment-design.md, fallible-oracle-build-plan.md, fallible-oracle-results.md
+Superseded the 2026-07-08 artifact link; the committed HTML is the source of truth.

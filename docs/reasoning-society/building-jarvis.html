@@ -62,7 +62,7 @@
 
 <p>To measure trust you need a world where lying is detectable, so I built the smallest one that contains the full problem: a society of LLM agents playing twenty questions. One agent proposes candidates, another drills into properties, an oracle answers yes or no, and the oracle can be configured to lie, with a dial. <code>p</code> is the oracle's per-answer reliability: the probability that any single yes/no answer it gives is true. At p&nbsp;=&nbsp;1.0 every answer is true; at p&nbsp;=&nbsp;0.7 nearly a third of the evidence is false. The game is small enough to run hundreds of times and score exactly: a win is naming the target, a lie is confidently naming the wrong thing, and abstaining is admitting you don't know.</p>
 
-<p>Underneath the game sits a claim algebra with one constitutional rule: <em>the model asserts; it never certifies.</em> Every statement any agent makes is a claim with a status, and a claim gets signed only when something non-generative (a check, not another LLM opinion) discharges it. The experiments then asked: does that rule cost you? What actually buys trust? Does intelligence?</p>
+<p>Underneath the game sits a <a href="../claim-algebra/claim-algebra.html">claim algebra</a> with one constitutional rule: <em>the model asserts; it never certifies.</em> Every statement any agent makes is a claim with a status, and a claim gets signed only when something non-generative (a check, not another LLM opinion) discharges it. The experiments then asked: does that rule cost you? What actually buys trust? Does intelligence?</p>
 
 <h2>Finding 1 — agreement is not verification</h2>
 

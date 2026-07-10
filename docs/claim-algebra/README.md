@@ -6,10 +6,10 @@ The core of what these documents describe is implemented in the Scala library mo
 
 ## The algebra — read in this order
 
-1. **[`claim-algebra.html`](claim-algebra.html)** — **start here.** The canonical note: the inter-agent message as a bilattice-graded object, presented as a three-level tower (category → algebra → Scala type) and worked through credit analysis, cost routing, and Diplomacy. It consolidates the two earlier drafts; everything else companions it.
-2. **[`claim-algebra-general.html`](claim-algebra-general.html)** — the same design in pictures: the candidate-map carrier (G1), the never-stored rendered grade (G2), kinded citations (G3), the four combiners, and the gate. Read alongside the canonical note.
-3. **[`claim-algebra-foundations.html`](claim-algebra-foundations.html)** — the formal corpus: 123 properties stated as theorems with proofs, and the **relaxation table** — the essential-versus-relaxable contract between the mathematics and the code. The reference when deciding what an implementation may vary.
-4. **[`claim-calculus.html`](claim-calculus.html)** — the operational meta-theory: a small reduction system over evidence-event sequences, with eight proved meta-theorems (determinacy, normalization, confluence, fail-closed propagation, and more) and two deliberate non-theorems. The semantics behind the Ledger fold and the signing gate.
+1. **[`claim-algebra.html`](https://reggieperry.github.io/claim-algebra-experiment/docs/claim-algebra/claim-algebra.html)** — **start here.** The canonical note: the inter-agent message as a bilattice-graded object, presented as a three-level tower (category → algebra → Scala type) and worked through credit analysis, cost routing, and Diplomacy. It consolidates the two earlier drafts; everything else companions it.
+2. **[`claim-algebra-general.html`](https://reggieperry.github.io/claim-algebra-experiment/docs/claim-algebra/claim-algebra-general.html)** — the same design in pictures: the candidate-map carrier (G1), the never-stored rendered grade (G2), kinded citations (G3), the four combiners, and the gate. Read alongside the canonical note.
+3. **[`claim-algebra-foundations.html`](https://reggieperry.github.io/claim-algebra-experiment/docs/claim-algebra/claim-algebra-foundations.html)** — the formal corpus: 123 properties stated as theorems with proofs, and the **relaxation table** — the essential-versus-relaxable contract between the mathematics and the code. The reference when deciding what an implementation may vary.
+4. **[`claim-calculus.html`](https://reggieperry.github.io/claim-algebra-experiment/docs/claim-algebra/claim-calculus.html)** — the operational meta-theory: a small reduction system over evidence-event sequences, with eight proved meta-theorems (determinacy, normalization, confluence, fail-closed propagation, and more) and two deliberate non-theorems. The semantics behind the Ledger fold and the signing gate.
 
 ## The experiment
 
@@ -17,18 +17,17 @@ The algebra was put to a falsification test — a controlled three-arm experimen
 
 ## Around the algebra
 
-- **[`library-overview.html`](library-overview.html)** — the plain-language overview (non-technical).
-- **[`claim-algebra-novelty.html`](claim-algebra-novelty.html)** — a citation-verified prior-art assessment: the novelty is a synthesis of settled parts, not an invention.
-- **[`diplomacy-agent-game.html`](diplomacy-agent-game.html)** — the algebra's third, adversarial instance (seven LLM powers playing Diplomacy over a trust semiring).
-- **[`july-1914-claim-ledger.html`](july-1914-claim-ledger.html)** — an interactive replay of the July Crisis as a fold over evidence events: a 1914 board, the bilattice diamond (position = rendered grade, badge = structural corner), and a steppable decision ledger. Six claims exercise the machinery natively — scope Ambiguity (the blank cheque), a glut with a CWS signature (the Serbian reply), a clean supersession (Russian mobilization), an absorbing strike (the Lichnowsky telegram), a decade-old commitment glut (Italy), and the betrayal corner (Belgium). Adversarially verified for history, algebra faithfulness, and code; self-contained, no external dependencies.
+- **[`claim-algebra-novelty.html`](https://reggieperry.github.io/claim-algebra-experiment/docs/claim-algebra/claim-algebra-novelty.html)** — a citation-verified prior-art assessment: the novelty is a synthesis of settled parts, not an invention.
+- **[`diplomacy-agent-game.html`](https://reggieperry.github.io/claim-algebra-experiment/docs/claim-algebra/diplomacy-agent-game.html)** — the algebra's third, adversarial instance (seven LLM powers playing Diplomacy over a trust semiring).
+- **[`july-1914-claim-ledger.html`](https://reggieperry.github.io/claim-algebra-experiment/docs/claim-algebra/july-1914-claim-ledger.html)** — an interactive replay of the July Crisis as a fold over evidence events: a 1914 board, the bilattice diamond (position = rendered grade, badge = structural corner), and a steppable decision ledger. Six claims exercise the machinery natively — scope Ambiguity (the blank cheque), a glut with a CWS signature (the Serbian reply), a clean supersession (Russian mobilization), an absorbing strike (the Lichnowsky telegram), a decade-old commitment glut (Italy), and the betrayal corner (Belgium). Adversarially verified for history, algebra faithfulness, and code; self-contained, no external dependencies.
 - **[`claim-algebra-law-audit-checklist.md`](claim-algebra-law-audit-checklist.md)** — the law & property audit checklist, reconciled against the algebra (§§3–5) and the calculus (§§4–8): every law/theorem tagged by whether the formalization backs it, which test covers it, and the two deliberate non-theorems not to test. Audited against the suite 2026-07-01 — coverage complete.
 
 ## Superseded drafts — kept for history
 
-These predate the canonical note and are retained only for design history. **Read [`claim-algebra.html`](claim-algebra.html) instead.**
+These predate the canonical note and are retained only for design history. **Read [`claim-algebra.html`](https://reggieperry.github.io/claim-algebra-experiment/docs/claim-algebra/claim-algebra.html) instead.**
 
-- **[`verifiable-claim-algebra.html`](verifiable-claim-algebra.html)** — Revision 1, the original single-channel semiring design.
-- **[`claim-algebra-belnap.html`](claim-algebra-belnap.html)** — Revision 2, which completed Rev 1 into the two-channel Belnap bilattice. Both are consolidated into the canonical note.
+- **[`verifiable-claim-algebra.html`](https://reggieperry.github.io/claim-algebra-experiment/docs/claim-algebra/verifiable-claim-algebra.html)** — Revision 1, the original single-channel semiring design.
+- **[`claim-algebra-belnap.html`](https://reggieperry.github.io/claim-algebra-experiment/docs/claim-algebra/claim-algebra-belnap.html)** — Revision 2, which completed Rev 1 into the two-channel Belnap bilattice. Both are consolidated into the canonical note.
 
 ## Findings worth knowing
 
