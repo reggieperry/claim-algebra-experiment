@@ -11,7 +11,10 @@ It is research code, developed in the open method it documents: every substantiv
 system is checked mechanically before it is believed, and the review discipline travels with the repo
 (`.claude/`, `ledger/`).
 
-**Start here:** [`docs/reasoning-society/building-jarvis.html`](docs/reasoning-society/building-jarvis.html) — *Building JARVIS using a game of twenty questions*, the essay: five measured findings about when to believe an AI.
+**Read online** — three rendered pages (GitHub Pages):
+- **[Building JARVIS using a game of twenty questions](https://reggieperry.github.io/claim-algebra-experiment/docs/reasoning-society/building-jarvis.html)** — the essay: five measured findings about when to believe an AI. *Start here.*
+- **[Fail-open risk in AI self-verification](https://reggieperry.github.io/claim-algebra-experiment/docs/reasoning-society/fallible-oracle-report.html)** — the engineering report.
+- **[The numbers behind the experiments](https://reggieperry.github.io/claim-algebra-experiment/docs/reasoning-society/statistics-visual-guide.html)** — the visual guide to the statistics.
 
 ## Components (the sbt modules)
 
