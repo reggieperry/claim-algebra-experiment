@@ -1,43 +1,48 @@
 # claim-algebra-experiment
 
-A verifiable **claim algebra** for inter-agent messages — a small, lawful object that carries a
-value together with everything a downstream agent needs to trust or distrust it: where it came from,
-how strongly it is supported, whether anything refutes it, and whether it reproduces against its
-sources. The premise is that language models are not trustworthy — they produce confidently-wrong
-outputs — so the interesting question is what agents should *say to each other* given that. This
-repository is the algebra, its operational calculus, and a live testbed that measures whether the
-structure actually buys anything.
+A verifiable **claim algebra** for inter-agent messages — a small, lawful object that carries a value
+together with everything a downstream agent needs to trust or distrust it: where it came from, how
+strongly it is supported, whether anything refutes it, and whether it reproduces against its sources.
+The premise is that language models are not trustworthy — they produce confidently-wrong outputs — so
+the question is what agents should *say to each other* given that. This repository is the algebra, its
+operational calculus, and a live testbed that measures whether the structure actually buys anything.
 
 It is research code, developed in the open method it documents: every substantive claim about the
-system is checked mechanically before it is believed, and the review discipline travels with the
-repo (`.claude/`, `ledger/`).
+system is checked mechanically before it is believed, and the review discipline travels with the repo
+(`.claude/`, `ledger/`).
 
-## What is inside
+## Components (the sbt modules)
 
-- **The library** (`claim-algebra/`) — the pure core. A graded distributive bilattice (Belnap's four
-  values — true, false, both/glut, neither/gap — over a for/against twist), a free provenance
-  semiring ℕ[X] whose grade is *rendered* on demand rather than stored, and the acceptance `Gate`
-  that signs a value only when it is unambiguously true, clears a threshold, and verifies. On top of
-  that sits the operational **calculus** (`claimalgebra.calculus`): belief state is a pure fold over
-  an append-only event log, with the meta-theorems proven as tests. Depends only on cats-core and
-  `algebra` — no cats-effect, no SDK — so the pure/effectful seam is structural, and the library is
-  domain-neutral by a committed gate (`scripts/library-neutrality.sh`).
+The build is multi-module; packages stay `claimalgebra.*` across modules, and the hard seam is
+pure-versus-effectful — the library carries no cats-effect and no SDK.
 
-- **The reasoning-society testbed** (`reasoning-society/`) and the **fallible-oracle program**
-  (`docs/reasoning-society/`) — a society of small LLM agents that plays Twenty Questions with its
-  reasoning always visible: competing hypotheses, grades rising and falling, contradictions held
-  explicit rather than averaged away, and a gate that refuses to guess until confidence is earned.
-  The experiment program stress-tests it against a *deliberately unreliable* oracle and reports what
-  survives — including a negative result and a refuted-then-corrected one.
+| Module | Dir | Role | Depends on |
+|---|---|---|---|
+| **claim-algebra** | `claim-algebra/` | The pure library: the graded distributive bilattice (Belnap's four values — true, false, both/glut, neither/gap — over a for/against twist), the free provenance semiring ℕ[X] whose grade is rendered on demand rather than stored, the acceptance `Gate`, and the operational **calculus** (`claimalgebra.calculus` — the event-fold `Ledger` and the four-state read). cats-core + `algebra` only, and domain-neutral by a committed gate (`scripts/library-neutrality.sh`). | — |
+| **extract** | `extract/` | Shared model/grounding infrastructure: the `LlmCall` facade + Anthropic/OpenAI adapters, the pure `Corpus` grounder, the domain value types, and the extractors. Effectful (cats-effect + both SDKs). | claim-algebra |
+| **reasoning-society** | `reasoning-society/backend/` | The reasoning-society testbed (the "auditable society of minds") and the **fallible-oracle program**: a society of small LLM agents that plays Twenty Questions with its reasoning visible — competing hypotheses, grades rising and falling, contradictions held explicit — and a gate that refuses to guess until confidence is earned. Emits an ordered event log; belief state is a pure fold over it. | claim-algebra, extract |
+| *(its UI)* | `reasoning-society/frontend/` | The React + Vite observability UI — a pure reader of the backend's event log. | — (TypeScript) |
+| **gate** | `gate/` | The Scala differential gate (anti-weakening): blocks regressions versus the merge-base (net-new lint findings, new suppressions, deleted or skipped tests, coverage drops). A standalone fat jar; a clean-room port of a Go original not included here. | — |
 
-- **The differential gate** (`gate/`) — a self-contained Scala port of an anti-weakening gate that
-  blocks regressions versus the merge-base (net-new lint findings, new suppressions, deleted or
-  skipped tests, coverage drops). Ships as a standalone fat jar. It is a clean-room Scala port — the
-  Go original it descends from is not included here.
+Also in the tree: `ledger/` — the dev-ledger commit-path harness (a claim ledger over this repo's own
+development; a "done" report is an *unverified* claim, and only a mechanical check signs); `.claude/`
+— the coding and review discipline (craft-\* language-neutral + the scala-\* overlay, plus the review
+workflows), which travels with the repo; `docs/` — the algebra, calculus, and experiment write-ups.
 
-- **The dev-ledger harness** (`ledger/`) — a claim ledger over this repo's own development, gated at
-  commit: a "done" report is an *unverified* claim; only a mechanical check signs; review is
-  testimony. See `ledger/README.md`.
+## Build and test
+
+Scala 3 (LTS) + sbt.
+
+```bash
+sbt check              # scalafmt + scalafix (Scalazzi) + library-neutrality + the full suite
+sbt test               # munit + ScalaCheck (property/law-first)
+sbt gate/assembly      # the standalone differential-gate.jar
+```
+
+`sbt check` is the one gate the build must pass — formatting, the Scalazzi/Scala-3 scalafix rules,
+the library-neutrality gate (`claim-algebra` stays domain-neutral), then the law-first suites — 872
+tests in all (claim-algebra 514, extract 29, reasoning-society 268, gate 61). The frontend has its
+own checks: `cd reasoning-society/frontend && npm ci && npm run build` (and `npm run check`).
 
 ## Run the Twenty Questions observability tool
 
@@ -51,8 +56,19 @@ sbt "reasoningSociety/runMain claimalgebra.society.RunServer"
 cd reasoning-society/frontend && npm install && npm run dev
 ```
 
-An `ANTHROPIC_API_KEY` in the environment is required for the live agents (API-key auth only).
-`reasoning-society/README.md` and `reasoning-society/frontend/README.md` carry the details.
+The fallible-oracle experiment mains live in `claimalgebra.society.experiment` (e.g. `RunRevealSet`,
+`RunComposedCell`, `RunStrongerCloser`) for reproducing the measured results. An `ANTHROPIC_API_KEY`
+in the environment is required for the live agents (API-key auth only); `reasoning-society/README.md`
+and `reasoning-society/frontend/README.md` carry the details.
+
+## Git hooks (dev-ledger + secret scan)
+
+The commit-path gate and the ledger live in `.githooks/` and `ledger/` but are wired into no clone's
+config by default. To enable them:
+
+```bash
+scripts/setup-hooks.sh    # sets core.hooksPath to .githooks
+```
 
 ## Reading map
 
@@ -69,28 +85,6 @@ An `ANTHROPIC_API_KEY` in the environment is required for the live agents (API-k
 - `fallible-oracle-results.md` — the measured results and the threats-to-validity ledger.
 - `fallible-oracle-report.html` and `statistics-visual-guide.html` — the visual readers.
 
-## Build and test
-
-Scala 3 (LTS) + sbt.
-
-```bash
-sbt check     # scalafmt + scalafix (Scalazzi) + library-neutrality + the full suite
-sbt test      # munit + ScalaCheck (property/law-first)
-```
-
-The public module set is `claim-algebra` (the pure library), `extract` (the shared LLM-call and
-grounding layer), `reasoning-society` (the testbed), and `gate` (the differential gate) — 872 tests
-in all (claim-algebra 514, extract 29, reasoning-society 268, gate 61).
-
-## Git hooks (dev-ledger + secret scan)
-
-The commit-path gate and the ledger live in `.githooks/` and `ledger/` but are wired into no clone's
-config by default. To enable them:
-
-```bash
-scripts/setup-hooks.sh    # sets core.hooksPath to .githooks
-```
-
 ## Provenance
 
 Developed privately 2026-06-24 → 2026-07-09; the internal commit dates and ordering are preserved in
@@ -100,6 +94,6 @@ proof; the repository's *public* timestamps begin at this push.
 
 ## License
 
-Code is licensed under **Apache-2.0** (see `LICENSE`); its explicit patent grant makes the
-timestamped disclosure legible as a defensive publication. The research documents under `docs/` may
-alternatively be used under **CC-BY-4.0** — cite the repository and tag.
+Code is licensed under **Apache-2.0** (see `LICENSE`); its explicit patent grant makes the timestamped
+disclosure legible as a defensive publication. The research documents under `docs/` may alternatively
+be used under **CC-BY-4.0** — cite the repository and tag.
