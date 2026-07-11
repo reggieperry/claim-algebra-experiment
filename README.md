@@ -85,6 +85,7 @@ scripts/setup-hooks.sh    # sets core.hooksPath to .githooks
 - `claim-calculus.html` — the operational calculus: the event fold and the four-state read.
 - `claim-algebra-foundations.html` / `claim-algebra-general.html` — the formal foundations and the general structure.
 - `claim-algebra-novelty.md` — how it sits against prior four-valued-logic and provenance work.
+- `trio-rules.html` / `diplomacy-program-brief.html` — the Diplomacy/Trio commitment-calculus program: promises as a claim kind, discharged at their horizon, measured on a three-power Diplomacy variant.
 
 **The reasoning-society testbed and the fallible-oracle program** (`docs/reasoning-society/`)
 - `auditable-society-of-minds-v1.md` — the architecture of record.
