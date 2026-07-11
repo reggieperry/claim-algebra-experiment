@@ -79,9 +79,10 @@ Every event — press message (verbatim), commitment event, submitted orders, ad
   - **6.C circular movement, 6.C.1–.3** — including **6.C.3**, the *disrupted*-circular case that R5.7's "unless broken by a standoff" exception governs (previously omitted).
   - **6.D supports and cuts, the army-only subset of 6.D.1–.34** — the heart of Trio.
   - **6.E head-to-head and beleaguered garrison, army cases.** Head-to-head is the early 6.E cases; the *beleaguered-garrison* cases begin at **6.E.7**, so the army-only members are **6.E.7 / .9 / .13** (and their head-to-head neighbours) — the earlier "6.E.1–.6, beleaguered garrison" label was wrong in both the index and the title.
+  - **6.H retreating, army-only subset** — hand-authored expected-outcome fixtures (not transcribed ids, since DATC is not vendored), listed so the enumeration matches the fixtures: R6.1 legality (adjacent, vacant, not the dislodger's source, not a standoff site), R6.2 mutual-destination double-disband, R6.3 voluntary disband.
 
   Each translated case is a fixture (board, orders, expected resolution); the M0 gate is the fixture suite passing, not this prose.
-- **Property tests:** adjudication is a pure function (same inputs, same output, across JVM runs and hosts); at most one unit per province after every phase; no self-dislodgement (R5.5); every dislodged unit retreats legally or disbands; SC counts and unit counts agree after every Winter; the annihilator is total (any garbage order set resolves).
+- **Property tests:** adjudication is a pure function (same inputs, same output, across JVM runs and hosts); at most one unit per province after every phase; no self-dislodgement (R5.5); every dislodged unit retreats legally or disbands; `unit_count ≤ SC_count` for every power after every Winter — equality only when builds are unblocked, since R7.2's blocked-build clause (home occupied or not owned; builds do not accrue) means a power gaining centers may not reach parity in one Winter; the annihilator is total (any garbage order set resolves).
 - **Map integrity:** the adjacency table in code equals rules R1.2 (a test literally diffs the two — the rules file is the source of truth; parse it or mirror it as a reviewed fixture).
 
 ## 7. Determinism, seeds, and cost

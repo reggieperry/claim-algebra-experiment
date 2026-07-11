@@ -41,6 +41,10 @@ Motivating incident: a refuted glut-laundering claim sat live in project knowled
 
 Recovery is allowed — a traced entry can return via a new entry that cites it — but the traced original is immutable.
 
+## The public-mirror policy (the byte-identical property is conditional)
+
+The lab is the master; a filtered derivative is published to `claim-algebra-experiment`. The two ledgers are byte-identical **through the latest publicly-verifiable subject, and no further**: the public ledger carries the lab ledger's prefix up to the last entry whose receipts are public, and an entry whose `discharged_by.run` names a commit that is not in the public repo waits for the mirror that publishes its subject — mirroring it earlier would put an unverifiable signature in the public record. So when the two ledgers diverge at the tail, read it as **conditional-by-policy, not drifted-by-accident**: the prefix is identical, the suffix awaits publication. Example: `clm-0066`–`clm-0068` (the Trio M0 engine, signed against a lab-only commit) are lab-only; the public ledger stops at `clm-0065` on purpose until the engine is published.
+
 ## Acceptance run (2026-07-09)
 
 Observed, not argued (brief §8 items 2–4; items 1, 5 and §9 are out of scope for the install):
