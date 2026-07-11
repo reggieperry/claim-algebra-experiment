@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trio — rules of the game</title>
+<style>
+  :root {
+    --paper:#f2f4f5; --surface:#ffffff; --ink:#141a20; --text:#2a333b; --muted:#5e6b75;
+    --line:#e0e5e8; --accent:#0f6274; --accent-soft:#e3eef1; --danger:#b03a34; --safe:#3f7d5c; --warn:#9a6b1f;
+    --font-sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --font-mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --maxw:72ch;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --paper:#0f141a; --surface:#161d25; --ink:#eef2f5; --text:#c4cdd4; --muted:#8b98a3;
+      --line:#25303a; --accent:#41b4c8; --accent-soft:#122e37; --danger:#e2766d; --safe:#71b58b; --warn:#d4a94e; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--text); font:16.5px/1.6 var(--font-sans); }
+  main { max-width:var(--maxw); margin:0 auto; padding:48px 20px 90px; }
+  h1 { color:var(--ink); font-size:1.7em; margin:0 0 6px; letter-spacing:-0.015em; }
+  .sub { color:var(--muted); margin:0 0 4px; }
+  .byline { color:var(--muted); font-family:var(--font-mono); font-size:0.76em; margin:0 0 34px; }
+  h2 { color:var(--ink); font-size:1.18em; margin:38px 0 10px; }
+  h3 { color:var(--ink); font-size:1.0em; margin:22px 0 6px; }
+  p { margin:0 0 14px; }
+  ul,ol { margin:0 0 14px; padding-left:1.25em; } li { margin-bottom:6px; }
+  code { font-family:var(--font-mono); font-size:0.85em; background:var(--accent-soft); padding:1px 5px; border-radius:4px; color:var(--ink); }
+  pre { font-family:var(--font-mono); font-size:0.82em; background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:12px 14px; overflow-x:auto; color:var(--ink); }
+  table { border-collapse:collapse; width:100%; margin:16px 0; font-size:0.88em; }
+  th { text-align:left; color:var(--muted); font-weight:600; border-bottom:2px solid var(--line); padding:6px 10px 6px 0; }
+  td { border-bottom:1px solid var(--line); padding:7px 10px 7px 0; vertical-align:top; }
+  .fig { background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:16px 14px 6px; margin:20px 0; }
+  .fig figcaption { color:var(--muted); font-size:0.82em; padding:10px 4px 8px; }
+  .callout { background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:6px; padding:11px 15px; margin:18px 0; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Trio — rules of the game</h1>
+<p class="sub">The minimal Diplomacy variant for the commitment-calculus program: three powers, thirteen provinces, armies only.</p>
+<p class="byline">v1 · 2026-07-10 · constitution for the D-cells · companion to the program brief and diplomacy-implementation.md · derived from standard Diplomacy (Calhamer), reduced to the smallest world in which support, alliance, and betrayal still decide games</p>
+
+<p>This document is the game's complete rule set: an implementation that satisfies every numbered rule below is a correct referee, and any two correct referees given the same orders produce the same board. Design rationale, the algebra mapping, and the experiment ladder live elsewhere (see §12); this file is only the law.</p>
+
+<h2>1 · The map</h2>
+
+<p><strong>R1.1</strong> The board has thirteen provinces: three <em>home supply centers</em> (Aval, Brum, Cind — one per power), three <em>neutral supply centers</em> (Nord, Oste, Sude), one <em>crossroads</em> (Meridia — not a supply center), and six <em>connectors</em> (Quor, Rill, Vex, Wyn, Yar, Zel). Six supply centers in all. The map is 3-fold symmetric: every power sees the same geometry.</p>
+
+<figure class="fig">
+<svg width="100%" viewBox="0 0 680 340" role="img" aria-label="The Trio map">
+  <title>Trio map</title>
+  <!-- adjacency edges first (under nodes) -->
+  <g stroke="var(--line)" stroke-width="1.3">
+    <line x1="340" y1="76" x2="290" y2="118"/><line x1="340" y1="76" x2="390" y2="118"/>
+    <line x1="290" y1="133" x2="256" y2="148"/><line x1="390" y1="133" x2="424" y2="148"/>
+    <line x1="248" y1="167" x2="222" y2="185"/><line x1="432" y1="167" x2="458" y2="185"/>
+    <line x1="212" y1="208" x2="196" y2="230"/><line x1="468" y1="208" x2="484" y2="230"/>
+    <line x1="240" y1="162" x2="322" y2="186"/><line x1="440" y1="162" x2="358" y2="186"/>
+    <line x1="212" y1="200" x2="322" y2="196"/><line x1="468" y1="200" x2="358" y2="196"/>
+    <line x1="330" y1="212" x2="282" y2="278"/><line x1="350" y1="212" x2="398" y2="278"/>
+    <line x1="270" y1="292" x2="222" y2="278"/><line x1="410" y1="292" x2="458" y2="278"/>
+    <line x1="286" y1="292" x2="325" y2="296"/><line x1="394" y1="292" x2="355" y2="296"/>
+  </g>
+  <!-- home SCs -->
+  <circle cx="340" cy="52" r="26" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="340" y="49" font-size="11.5" fill="var(--ink)" text-anchor="middle" font-weight="600">AVAL</text>
+  <text x="340" y="63" font-size="8.5" fill="var(--muted)" text-anchor="middle">home SC · A</text>
+  <circle cx="186" cy="252" r="26" fill="var(--accent-soft)" stroke="var(--danger)" stroke-width="2"/>
+  <text x="186" y="249" font-size="11.5" fill="var(--ink)" text-anchor="middle" font-weight="600">BRUM</text>
+  <text x="186" y="263" font-size="8.5" fill="var(--muted)" text-anchor="middle">home SC · B</text>
+  <circle cx="494" cy="252" r="26" fill="var(--accent-soft)" stroke="var(--warn)" stroke-width="2"/>
+  <text x="494" y="249" font-size="11.5" fill="var(--ink)" text-anchor="middle" font-weight="600">CIND</text>
+  <text x="494" y="263" font-size="8.5" fill="var(--muted)" text-anchor="middle">home SC · C</text>
+  <!-- neutral SCs -->
+  <circle cx="238" cy="156" r="20" fill="none" stroke="var(--ink)" stroke-width="1.8"/>
+  <text x="238" y="153" font-size="10" fill="var(--ink)" text-anchor="middle" font-weight="600">NORD</text>
+  <text x="238" y="165" font-size="8" fill="var(--muted)" text-anchor="middle">SC</text>
+  <circle cx="442" cy="156" r="20" fill="none" stroke="var(--ink)" stroke-width="1.8"/>
+  <text x="442" y="153" font-size="10" fill="var(--ink)" text-anchor="middle" font-weight="600">OSTE</text>
+  <text x="442" y="165" font-size="8" fill="var(--muted)" text-anchor="middle">SC</text>
+  <circle cx="340" cy="298" r="20" fill="none" stroke="var(--ink)" stroke-width="1.8"/>
+  <text x="340" y="295" font-size="10" fill="var(--ink)" text-anchor="middle" font-weight="600">SUDE</text>
+  <text x="340" y="307" font-size="8" fill="var(--muted)" text-anchor="middle">SC</text>
+  <!-- crossroads -->
+  <circle cx="340" cy="196" r="22" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <text x="340" y="193" font-size="10" fill="var(--ink)" text-anchor="middle" font-weight="600">MERIDIA</text>
+  <text x="340" y="205" font-size="8" fill="var(--muted)" text-anchor="middle">crossroads</text>
+  <!-- connectors -->
+  <circle cx="290" cy="126" r="13" fill="none" stroke="var(--muted)" stroke-width="1"/><text x="290" y="130" font-size="8.5" fill="var(--muted)" text-anchor="middle">quor</text>
+  <circle cx="390" cy="126" r="13" fill="none" stroke="var(--muted)" stroke-width="1"/><text x="390" y="130" font-size="8.5" fill="var(--muted)" text-anchor="middle">rill</text>
+  <circle cx="207" cy="197" r="13" fill="none" stroke="var(--muted)" stroke-width="1"/><text x="207" y="201" font-size="8.5" fill="var(--muted)" text-anchor="middle">vex</text>
+  <circle cx="473" cy="197" r="13" fill="none" stroke="var(--muted)" stroke-width="1"/><text x="473" y="201" font-size="8.5" fill="var(--muted)" text-anchor="middle">wyn</text>
+  <circle cx="276" cy="286" r="13" fill="none" stroke="var(--muted)" stroke-width="1"/><text x="276" y="290" font-size="8.5" fill="var(--muted)" text-anchor="middle">yar</text>
+  <circle cx="404" cy="286" r="13" fill="none" stroke="var(--muted)" stroke-width="1"/><text x="404" y="290" font-size="8.5" fill="var(--muted)" text-anchor="middle">zel</text>
+</svg>
+<figcaption><strong>The Trio board.</strong> Solid circles: supply centers (filled = home). Dashed circle: Meridia, the SC-free crossroads — highest connectivity, zero score. Small circles: connectors. Lines are the complete adjacency graph of R1.2.</figcaption>
+</figure>
+
+<p><strong>R1.2 (adjacency).</strong> The complete, symmetric adjacency relation. An army may move only along these edges.</p>
+
+<table>
+<tr><th>Province</th><th>Adjacent to</th></tr>
+<tr><td>Aval (home A)</td><td>quor, rill</td></tr>
+<tr><td>Brum (home B)</td><td>vex, yar</td></tr>
+<tr><td>Cind (home C)</td><td>wyn, zel</td></tr>
+<tr><td>Nord (SC)</td><td>quor, vex, meridia</td></tr>
+<tr><td>Oste (SC)</td><td>rill, wyn, meridia</td></tr>
+<tr><td>Sude (SC)</td><td>yar, zel, meridia</td></tr>
+<tr><td>Meridia</td><td>nord, oste, sude, quor, rill, vex, wyn, yar, zel (all six connectors and all three neutral SCs)</td></tr>
+<tr><td>quor</td><td>aval, nord, meridia</td></tr>
+<tr><td>rill</td><td>aval, oste, meridia</td></tr>
+<tr><td>vex</td><td>brum, nord, meridia</td></tr>
+<tr><td>wyn</td><td>cind, oste, meridia</td></tr>
+<tr><td>yar</td><td>brum, sude, meridia</td></tr>
+<tr><td>zel</td><td>cind, sude, meridia</td></tr>
+</table>
+
+<p>Consequences worth knowing (derivable, not additional rules): each home is two moves from its two nearest neutral SCs and from Meridia; each neutral SC is contested by exactly two powers at equal distance; homes are never adjacent to Meridia, so no home falls in one move.</p>
+
+<h2>2 · Powers, units, and the start</h2>
+
+<p><strong>R2.1</strong> Three powers: A, B, C. <strong>R2.2</strong> All units are armies; there are no fleets, coasts, or convoys in Trio. <strong>R2.3</strong> Opening position: each power owns its home supply center and has one army standing on it. Neutral SCs start unowned and vacant. <strong>R2.4</strong> At most one unit ever occupies a province.</p>
+
+<h2>3 · The calendar</h2>
+
+<p><strong>R3.1</strong> A game year has: Spring movement, Spring retreats, Fall movement, Fall retreats, Winter adjustments. The first year is 1901. <strong>R3.2</strong> Each movement phase is preceded by a press window (§8). <strong>R3.3 (game end)</strong> The game ends immediately when one power owns four or more supply centers after a Winter adjustment (<em>solo victory</em>), when only one power remains uneliminated (solo), or at the end of Winter 1904 (<em>the cap</em>), whichever comes first. At the cap, the outcome of record is the final supply-center count per power. <strong>R3.4</strong> A power is eliminated when it owns zero supply centers after a Winter adjustment; its units are removed.</p>
+
+<h2>4 · Orders</h2>
+
+<p><strong>R4.1</strong> During a movement phase every power secretly submits exactly one order per unit it owns. The order alphabet:</p>
+
+<pre>Hold(at)                       the unit at `at` holds
+Move(from, to)                 the unit at `from` attacks/moves to `to` (must be adjacent)
+Support(at, Hold(x))           the unit at `at` supports the unit at `x` to hold
+Support(at, Move(x, y))        the unit at `at` supports a move from `x` into `y`</pre>
+
+<p><strong>R4.2 (legality)</strong> A move must target an adjacent province. A support is legal only if the supporter is adjacent to the <em>destination</em> of the supported action (for supported holds, adjacent to <code>x</code>; for supported moves, adjacent to <code>y</code>). Any illegal, unparseable, duplicate, or missing order — including a power submitting nothing at all (NMR) — is replaced by <code>Hold</code> for the unit in question. This is the fail-closed annihilator; it is not a penalty, it is the type system.</p>
+
+<p><strong>R4.3</strong> Support may be given to any power's unit, including another player's — cross-power support is the game's alliance primitive and, in the opening year when each power has one army, the <em>only</em> way any contested attack can succeed.</p>
+
+<h2>5 · Adjudication</h2>
+
+<p>Movement resolves simultaneously by strength comparison, per standard Diplomacy semantics restricted to armies (the DATC 6.A and 6.D families are the reference test set; where this section and DATC agree, DATC's edge-case rulings are law).</p>
+
+<ul>
+<li><strong>R5.1 (strength)</strong> An action's strength is 1 plus the number of its valid, uncut supports.</li>
+<li><strong>R5.2 (cutting)</strong> A support is cut if the supporting unit's province is attacked by any unit from any province other than the one the support is directed against. A dislodged supporter's support is always cut.</li>
+<li><strong>R5.3 (resolution)</strong> A move succeeds if its strength exceeds the strength of every competing move into the same province and exceeds the hold strength of the province's occupant (if any). Equal top strengths produce a standoff: no competing move enters, and occupants stay.</li>
+<li><strong>R5.4 (dislodgement)</strong> An occupant whose hold strength is exceeded by a successful incoming move is dislodged and must retreat (§6).</li>
+<li><strong>R5.5 (no self-dislodgement)</strong> A power's move or support never dislodges, nor supports the dislodgement of, that same power's own unit.</li>
+<li><strong>R5.6 (head-to-head)</strong> Two units moving into each other's provinces compare strengths; the stronger succeeds and dislodges, equal strengths bounce both.</li>
+<li><strong>R5.7 (circular movement)</strong> A cycle of moves in which every destination is being vacated by its occupant all succeed together (standard circular-movement rule), unless broken by a standoff.</li>
+<li><strong>R5.8 (determinism)</strong> Adjudication is a pure function of (board, order set). No randomness, no tie-breaking by chance, no order of evaluation may be observable in the result.</li>
+</ul>
+
+<h2>6 · Retreats</h2>
+
+<p><strong>R6.1</strong> A dislodged unit must immediately (in the retreat phase) retreat to an adjacent province that is vacant, was not the source of the dislodging attack, and was not the site of a standoff this phase; otherwise it disbands. <strong>R6.2</strong> Two units ordered to retreat to the same province both disband. <strong>R6.3</strong> A power may always choose to disband instead of retreating.</p>
+
+<h2>7 · Winter adjustments</h2>
+
+<p><strong>R7.1 (ownership)</strong> Supply-center ownership updates in Winter: a power owns each SC its unit occupies at that moment; unoccupied SCs keep their previous owner (neutrals stay neutral until first occupied in Winter). <strong>R7.2 (count)</strong> Each power's unit count is adjusted to equal its SC count: excess units are disbanded (owner's choice), and new units are built one per Winter in the power's <em>home</em> SC, only if the power owns it and it is vacant. A power that cannot build banks nothing — builds do not accrue. <strong>R7.3</strong> Maximum units per power is therefore 6 in principle and 4 in any game that hasn't already ended (R3.3).</p>
+
+<h2>8 · Press — the negotiation channel</h2>
+
+<p><strong>R8.1</strong> Before each movement phase there are exactly <code>R</code> press rounds (default <code>R = 2</code>; a game parameter, fixed per game and recorded in its stamp). In each round every power may send at most one message to each other power (bilateral, private) and at most one broadcast. <strong>R8.2</strong> Message bodies are free text with a length cap (game parameter, default 600 characters). The referee never interprets free text. <strong>R8.3</strong> Every message — private or broadcast — is logged verbatim to the Chronicle. Privacy is against <em>other powers</em>, never against the record. <strong>R8.4</strong> Press never changes the board. Only orders change the board.</p>
+
+<h2>9 · Commitments — the formal layer of press</h2>
+
+<p>A message may carry, alongside its free text, zero or more <em>commitment blocks</em> in the grammar below. Commitment blocks are the only part of press the referee parses, and the only part that ever touches the ledger.</p>
+
+<pre>COMMIT  id=&lt;fresh-id&gt; by=&lt;power&gt; to=&lt;power&gt; horizon=&lt;season-year&gt;
+        order=&lt;exact order from §4, over the committer's own units&gt;
+        [if=&lt;exact order by `to` (the counterparty), same horizon&gt;]
+
+ACCEPT  id=&lt;commitment-id&gt;          (by `to`; bilateral message only)
+RESCIND id=&lt;commitment-id&gt;          (by the committer, before acceptance only)
+SUPERSEDE old=&lt;id&gt; new=&lt;fresh-id&gt; … (a COMMIT block that names its predecessor; the new block
+                                     must carry the SAME to= as the predecessor, and requires
+                                     that counterparty's ACCEPT to take effect)</pre>
+
+<ul>
+<li><strong>R9.1 (truthmaker control)</strong> A <code>COMMIT</code> is well-formed only if its <code>order</code> pattern is over the committing power's own units (<em>truthmaker control</em>) and it names a counterparty <code>to</code> with <code>to ≠ by</code>. A promise about another power's orders is not a commitment; it is free text. The <code>to</code> field is the party the promise is made to: acceptance, any guard (R9.3), and supersession (R9.4) all bind to it.</li>
+<li><strong>R9.2 (lifecycle)</strong> A commitment is PROPOSED when sent and ACTIVE when <code>to</code>'s <code>ACCEPT</code> is logged. <em>Only an ACTIVE commitment resolves</em> at its horizon's adjudication: KEPT if the committer's <em>resolved submitted order set</em> contains an order matching the pattern exactly; BROKEN otherwise. A PROPOSED commitment never accepted, and a RESCINDED one, retire without resolving and enter no reputation statistic — so unaccepted self-promises cannot pad a record. Matching is structural equality against submitted orders after legality substitution: a promised order that the annihilator dropped to Hold (R4.2) was not submitted as promised and resolves BROKEN. This measures <em>delivery, not intent</em>, and it closes the self-inflicted-illegality laundering channel — a committer cannot relocate its own unit to force its own promise to Hold and slip the record. If the game ends, or either party is eliminated, before the horizon, the commitment retires VOID with the reason recorded (<code>solo-unmatured</code>, <code>elimination</code>, or <code>cap</code>); a guarded commitment whose guard does not appear at the horizon retires VOID with reason <code>guard-unmet</code> (R9.3). VOID commitments enter no reputation count; their reasons are part of the game record and are reportable per power. When more than one retirement condition holds, the commitment retires at the earliest phase any condition first holds, and the recorded reason follows the fixed priority <code>elimination</code> &gt; <code>solo-unmatured</code> &gt; <code>cap</code> &gt; <code>guard-unmet</code> — so a betrayal that eliminates the counterparty is never masked by a coincident solo. (Resolution to KEPT or BROKEN is reserved for ordinary adjudication at the horizon — an untested promise is never scored, which is deliberately blunt: see R9.5 and the program brief. The causation-attributed alternative is the recorded v2 design.) A commitment still PROPOSED at its horizon retires unresolved with no reputation entry, and an <code>ACCEPT</code> logged after the horizon has adjudicated is ignored (fail-closed, logged) — so every commitment terminates.</li>
+<li><strong>R9.3 (conditional)</strong> If an <code>if</code> guard is present it is an order by <code>to</code> (the counterparty), at the same horizon; guard-appearance uses the same submitted-after-legality test as the pattern in R9.2. The commitment resolves KEPT/BROKEN only when the guard order appears in <code>to</code>'s resolved submissions at that horizon; if the guard does not appear it retires VOID with reason <code>guard-unmet</code> — never counted. A guard is the counterparty's <em>performance trigger</em>: if <code>to</code> does not perform it, the committer owes nothing — that is the deal's meaning, not an evasion of it. A guard naming any power other than <code>to</code> is ill-formed and the block is ignored (fail-closed, logged). Third-party guards are deferred to a v2 rules pass — not for simplicity, but because a guard over a non-consenting power's orders entangles VOID semantics with a party that never accepted anything.</li>
+<li><strong>R9.4 (consent-gated supersession)</strong> After acceptance, a commitment cannot be rescinded unilaterally. It leaves ACTIVE only by resolution at its horizon or by an accepted <code>SUPERSEDE</code>. A <code>SUPERSEDE</code> is admissible only when the new commitment carries the same <code>to</code> as the predecessor (<code>c′.to = c.to</code>) and <em>that</em> counterparty's <code>ACCEPT</code> is logged; a superseding deal naming any other <code>to</code> does not retire the predecessor. This binds renegotiation to the party the original promise was made to — a stab cannot be laundered by retiring an accepted commitment to one power through an unrelated deal a <em>different</em> power accepts. The accepted <code>SUPERSEDE</code> retires the predecessor with a pointer. There is no edit.</li>
+<li><strong>R9.5 (record)</strong> Every commitment event (propose, accept, rescind, supersede, resolve, retire) is a Chronicle event; resolutions carry the adjudication they were discharged by. Reputation, for any consumer that wants it, is the pair (kept, broken) per power over <em>resolved</em> commitments — VOID excluded, its recorded reasons reportable per power (R9.2). Every commitment resolves independently; there is no deduplication in either channel — a power that commits the same pattern separately to two counterparties has made two promises and carries two exposures, kept or broken alike. From these counts both the subjective-logic opinion and the Wilson interval derive.</li>
+<li><strong>R9.6 (one horizon)</strong> A commitment's horizon must be the <em>next</em> movement phase or the one immediately following it. Horizons further ahead, in the past, or beyond the cap are ill-formed and the block is ignored (fail-closed, logged).</li>
+</ul>
+
+<h2>10 · Information</h2>
+
+<p><strong>R10.1</strong> The board, all past adjudications, SC ownership, and all <em>resolved</em> commitment outcomes are public to all powers. <strong>R10.2</strong> Submitted orders are secret until adjudication, then public. <strong>R10.3</strong> Private press is visible only to its two parties (and the Chronicle). Active commitments are visible to their two parties only; a party may quote its own commitments (ids and text) in press to third powers — the referee neither confirms nor denies quoted commitments to non-parties.</p>
+
+<h2>11 · Determinism and the record</h2>
+
+<p><strong>R11.1</strong> A game is fully determined by (map version, parameters, seed, and each power's agent). All agent randomness draws from the game seed. <strong>R11.2</strong> The Chronicle is the complete ordered event log — press, commitment events, submitted orders, adjudications, retreats, adjustments — and a correct referee replays any game byte-identically from it. <strong>R11.3</strong> Every game record opens with a header line carrying the config stamp, arm, seed, and outcome, in the archive convention the digest tooling distills.</p>
+
+<h2>12 · The document graph</h2>
+
+<p>Why these rules and what they measure: <em>the Diplomacy program brief</em>. How the rules map onto the claim algebra (the substrate as the consistent fragment; trust as the graded bilattice; commitments as a claim kind): <code>claim-algebra.html</code> §9, and the commitment appendix of <code>claim-calculus.html</code>. How to build the referee and agents: <code>diplomacy-implementation.md</code>. The full seven-power design this variant descends from, and the expansion target once Trio results earn it: <code>diplomacy-agent-game.html</code>.</p>
+
+<p class="byline">End of rules · v1 · thirteen provinces, six supply centers, one crossroads, zero fleets — the smallest board on which a promise can matter.</p>
+
+</main>
+</body>
+</html>

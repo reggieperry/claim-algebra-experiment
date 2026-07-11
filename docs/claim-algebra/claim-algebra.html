@@ -712,6 +712,56 @@ class N,O,J alg; class Rglut glut; class Rkeep ok;
 <h3>9.3 · Where the boundary sits</h3>
 <p>The boundary sits inward, but it does not vanish. What is native is the <em>representation</em> of trust: a power's reliability, the distinction between "no read on them yet" (gap) and "caught them lying" (glut), and the accumulation of evidence as the game proceeds, all of it living in the algebra as graded Belnap values, and the whole game stays auditable and replayable, since the transcript is a provenance DAG. What remains outside is the <em>selection</em> of action: whether to keep your own promise, whom to deceive, when to defect, a strategic choice under incentives, which is game theory and opponent modeling, not algebra. The algebra shrinks the attack surface to exactly that strategic layer where deception belongs: a power can lie in negotiation, but it cannot lie about the board or make an illegal move. A useful way to state CICERO-style honesty in these terms is to keep your own for-channel <em>consistent with your adjudicated actions</em>, so that no glut ever accrues against you, which is how Meta's CICERO reached human-level play, keeping its messages consistent with its planned moves [29, 30]. The algebra can hold and propagate the trust state; it cannot tell you whether to be trustworthy.</p>
 
+
+<h3 id="dip-commit">9.4 · Commitments — promises as a claim kind <span class="tag t-alg">extension · 2026-07-10</span></h3>
+
+<p><em>Added 2026-07-10 from the Diplomacy program brief; definitions here, operational rules and proof obligations in the calculus's Appendix A; the intended model is the Trio referee (<code>trio-rules.html</code> §9).</em></p>
+
+<p>A <em>commitment</em> is not a new algebraic object. It is a new <em>kind</em> of claim, on the precedent testimony set: same carrier, same four values, same fold — a different table of legal moves. A commitment by agent \(a\) to a counterparty \(b\) is a tuple \((a, b, \pi, h)\), optionally guarded \((a, b, \pi, h, \gamma)\): a pattern \(\pi\) over <em>\(a\)'s own</em> order alphabet, a counterparty \(b \neq a\) (the party the promise is made to), a horizon \(h\) naming a future adjudication, and an optional guard \(\gamma\) over <em>\(b\)'s own</em> orders at the same horizon. The forgetful map \(U(a,b,\pi,h) \mapsto\) the plain claim "\(\pi \in\) my resolved orders at \(h\)" embeds commitments in claims, so every result proved of claims transfers along \(U\); what is new is only the kind's law table — a <em>restriction</em> (withdrawal removed once accepted) together with an <em>extension</em> (the propose / accept / supersede / resolve lifecycle, whose determinacy is the appendix's Lemma A.4).</p>
+
+<p><strong>Why the future poses no semantic problem here.</strong> The four values are <em>told</em>-values — evidence states, never verdicts about reality — so Aristotle's sea-battle worry (does a statement about tomorrow have a truth value today?) simply does not arise: pre-horizon, a commitment sits at gap \(\mathbf{N}\), told-nothing-checkable, exactly like any claim whose check has not yet run. The horizon is the earliest run-time of the check, nothing more.</p>
+
+<p><strong>The kind's law table</strong> — four rules plain assertions do not carry:</p>
+<ul>
+<li><strong>Truthmaker control.</strong> Well-formedness requires \(\pi\) to range over the committer's own units. The same proposition asserted by anyone else is a <em>prediction</em> — ordinary testimony, no horizon discharge, no reputation stake.</li>
+<li><strong>Consent-gated supersession.</strong> Once accepted, a commitment admits no unilateral withdrawal; it leaves the active state only by resolution at its horizon or by an accepted superseding commitment, which retires it with a pointer. Only a superseding commitment naming the <em>same</em> counterparty \(b\), accepted by that same \(b\), may retire it — a stab cannot be laundered through a deal a different power accepts. The plain calculus's idempotent absorption of withdrawal henceforth scopes to unaccepted commitments and ordinary claims.</li>
+<li><strong>Monotone resolution.</strong> At \(h\) the adjudicator maps the active commitment one-way: \(\mathbf{N} \to \mathbf{T}\) (kept — the pattern appears in \(a\)'s resolved orders) or \(\mathbf{N} \to \mathbf{F}\) (broken). Nothing un-resolves.</li>
+<li><strong>Void as gap-at-horizon.</strong> Resolution to \(\mathbf{T}\) or \(\mathbf{F}\) is reserved for the adjudicator at the horizon. Game-end or either party's elimination before the horizon, and a guard the counterparty did not perform, retire the commitment at gap \(\mathbf{N}\) with a recorded reason — the promise was never tested, and an untested promise is evidence of nothing. The recorded reasons make exclusion itself observable: a power's VOID profile is part of its record even though it never enters \((k, b)\). When several retirement conditions coincide the reason is pinned by a fixed priority — \(\text{elimination} > \text{solo-unmatured} > \text{cap} > \text{guard-unmet}\), taken at the earliest phase any holds — so the elimination mark the record exists to expose is never masked by a coincident solo. One consequence is accepted openly: a betrayal effected by eliminating one's counterparty inside the two-phase window (§9 R9.6) is <em>excluded</em> rather than counted — expensive, visible, non-farmable, and measured by the VOID-reason record rather than adjudicated by machinery the calculus cannot make deterministic without modeling intent. (The causation-attributed alternative is preserved as the designed v2.) Void is not a fifth value; it is the gap arriving at a deadline, and it never enters any reputation count.</li>
+</ul>
+
+<p><strong>Resolution is glut-free by construction.</strong> Because exactly one deterministic oracle (the adjudicator) discharges commitments, no resolution ever accrues both channels: \(\mathbf{B}\) is unreachable <em>for resolutions</em>. Glut remains reachable — and strategically interesting — for <em>testimony about</em> commitments, which is where allied lies collide and the contested discipline earns its keep.</p>
+
+<figure style="margin:18px 0; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px 12px 6px;">
+<svg width="100%" viewBox="0 0 680 250" role="img" aria-label="Commitment trajectory on the bilattice">
+  <line x1="340" y1="210" x2="180" y2="120" stroke="var(--line)" stroke-width="1"/>
+  <line x1="340" y1="210" x2="500" y2="120" stroke="var(--line)" stroke-width="1"/>
+  <line x1="180" y1="120" x2="340" y2="34" stroke="var(--line)" stroke-width="1" stroke-dasharray="4 4"/>
+  <line x1="500" y1="120" x2="340" y2="34" stroke="var(--line)" stroke-width="1" stroke-dasharray="4 4"/>
+  <circle cx="340" cy="210" r="17" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.5"/>
+  <text x="340" y="215" font-size="13" fill="var(--ink)" text-anchor="middle" font-weight="600">N</text>
+  <text x="340" y="242" font-size="10" fill="var(--muted)" text-anchor="middle">active · told-nothing-checkable</text>
+  <circle cx="180" cy="120" r="17" fill="var(--panel)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="180" y="125" font-size="13" fill="var(--ink)" text-anchor="middle" font-weight="600">T</text>
+  <text x="180" y="98" font-size="10" fill="var(--muted)" text-anchor="middle">kept · signed</text>
+  <circle cx="500" cy="120" r="17" fill="var(--panel)" stroke="var(--warn)" stroke-width="2"/>
+  <text x="500" y="125" font-size="13" fill="var(--ink)" text-anchor="middle" font-weight="600">F</text>
+  <text x="500" y="98" font-size="10" fill="var(--muted)" text-anchor="middle">broken · refuted</text>
+  <circle cx="340" cy="34" r="17" fill="var(--panel)" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="340" y="39" font-size="13" fill="var(--muted)" text-anchor="middle" font-weight="600">B</text>
+  <text x="340" y="14" font-size="10" fill="var(--muted)" text-anchor="middle">unreachable for resolutions — single deterministic oracle</text>
+  <path d="M 325 200 L 197 133" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#c94arr)"/>
+  <path d="M 355 200 L 483 133" stroke="var(--warn)" stroke-width="2" fill="none" marker-end="url(#c94arr)"/>
+  <path d="M 362 218 C 470 230, 560 210, 600 185" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="5 4" fill="none" marker-end="url(#c94arr)"/>
+  <text x="560" y="238" font-size="10" fill="var(--muted)" text-anchor="middle">retired: void (guard unmet), superseded, or party eliminated</text>
+  <text x="238" y="176" font-size="10" fill="var(--accent)" text-anchor="middle">adjudicator @ h</text>
+  <text x="442" y="176" font-size="10" fill="var(--warn)" text-anchor="middle">adjudicator @ h</text>
+  <defs><marker id="c94arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="context-stroke"/></marker></defs>
+</svg>
+<figcaption style="color:var(--muted); font-size:0.82em; padding:8px 4px;">A commitment's whole life on the bilattice: born at gap, one mechanical step to true or false at its horizon, or sideways to trace. The knowledge-top is fenced off for resolutions and left open for the lies people tell about them.</figcaption>
+</figure>
+
+<p><strong>Reputation — one count, two projections.</strong> Per agent, the resolved record is the pair \((k, b)\) of kept and broken commitments (void excluded). Inside the algebra it updates the subjective-logic opinion of §9.2, \(\omega = (b',d,u,a)\), through the standard evidence mapping; in the reporting layer the same pair yields the Wilson interval on \(k/(k+b)\) — reputation with a confidence bound. Obligation (calculus, Prop. A.7): the two projections agree on the induced ordering only when their smoothing constants match — pin the subjective-logic prior weight to \(W = z^2\) and they coincide, so neither lens can be gamed against the other; under the naive prior they can invert (the counterexample is recorded in A.7).</p>
+
 <h2 id="limits">10 · Where the algebra stops</h2>
 
 <p>A claim algebra makes the structural failure modes (silent error propagation, missing-value laundering, untracked provenance, and contradiction-masquerading-as-ignorance) into type errors and algebraic impossibilities. It does not make the statistical and strategic problems go away. The accounting has two halves: what the bilattice costs over a single semiring, and the limits that stand regardless, each a layer one would add deliberately rather than a flaw to paper over.</p>
@@ -773,6 +823,8 @@ class N,O,J alg; class Rglut glut; class Rkeep ok;
   <li>A. B. Calhamer. <em>The Rules of Diplomacy.</em> Avalon Hill / Hasbro, 1959 (4th ed. 2000). (The deterministic, simultaneous-move, no-luck adjudication that makes it the negotiation benchmark.)</li>
   <li>A. Bakhtin et al. (Meta FAIR Diplomacy Team). <em>Human-level play in the game of Diplomacy by combining language models with strategic reasoning (CICERO).</em> Science, 2022.</li>
   <li>FAIR et al. <em>Mastering the game of no-press Diplomacy via human-regularized reinforcement learning and planning.</em> 2022. (Strategy and opponent modeling layered over communication.)</li>
+<li>N. Belnap, M. Perloff, M. Xu. <em>Facing the Future: Agents and Choices in Indeterminist Time.</em> Oxford University Press, 2001. <span class="muted">— the stit lineage behind the commitment kind's law table.</span></li>
+<li>J. F. Horty. <em>Agency and Deontic Logic.</em> Oxford University Press, 2001.</li>
 </ol>
 
 <p class="small" style="margin-top:2rem;border-top:1px solid var(--line);padding-top:1rem;">

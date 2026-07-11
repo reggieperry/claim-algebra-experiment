@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Diplomacy program — a brief</title>
+<style>
+  :root {
+    --paper:#f2f4f5; --surface:#ffffff;
+    --ink:#141a20; --text:#2a333b; --muted:#5e6b75;
+    --line:#e0e5e8; --accent:#0f6274; --accent-2:#2f8ba0; --accent-soft:#e3eef1;
+    --danger:#b03a34; --safe:#3f7d5c; --warn:#9a6b1f;
+    --font-sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --font-mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --maxw:72ch;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:#0f141a; --surface:#161d25;
+      --ink:#eef2f5; --text:#c4cdd4; --muted:#8b98a3;
+      --line:#25303a; --accent:#41b4c8; --accent-2:#5cc3d4; --accent-soft:#122e37;
+      --danger:#e2766d; --safe:#71b58b; --warn:#d4a94e;
+    }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--text); font:16.5px/1.62 var(--font-sans); -webkit-font-smoothing:antialiased; }
+  main { max-width:var(--maxw); margin:0 auto; padding:52px 20px 96px; }
+  h1 { color:var(--ink); font-size:1.8em; line-height:1.2; margin:0 0 6px; letter-spacing:-0.015em; }
+  .sub { color:var(--muted); margin:0 0 4px; }
+  .byline { color:var(--muted); font-family:var(--font-mono); font-size:0.76em; margin:0 0 36px; }
+  h2 { color:var(--ink); font-size:1.2em; margin:42px 0 10px; letter-spacing:-0.01em; }
+  h3 { color:var(--ink); font-size:1.0em; margin:26px 0 6px; }
+  p { margin:0 0 15px; }
+  a { color:var(--accent); text-decoration:none; border-bottom:1px solid var(--accent-soft); }
+  ul { margin:0 0 15px; padding-left:1.2em; }
+  li { margin-bottom:7px; }
+  code { font-family:var(--font-mono); font-size:0.86em; background:var(--accent-soft); padding:1px 5px; border-radius:4px; color:var(--ink); }
+  table { border-collapse:collapse; width:100%; margin:18px 0; font-size:0.9em; }
+  th { text-align:left; color:var(--muted); font-weight:600; border-bottom:2px solid var(--line); padding:7px 10px 7px 0; }
+  td { border-bottom:1px solid var(--line); padding:8px 10px 8px 0; vertical-align:top; }
+  .fig { background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:18px 16px 8px; margin:22px 0; }
+  .fig figcaption { color:var(--muted); font-size:0.82em; padding:10px 4px 8px; }
+  .callout { background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:6px; padding:12px 16px; margin:20px 0; }
+  .pred { border-left-color:var(--warn); }
+  .stat { font-family:var(--font-mono); font-size:0.84em; color:var(--ink); }
+  hr { border:0; border-top:1px solid var(--line); margin:38px 0; }
+  .foot { color:var(--muted); font-size:0.85em; }
+  svg text { font-family:var(--font-sans); }
+</style>
+</head>
+<body>
+<main>
+
+<h1>The Diplomacy program</h1>
+<p class="sub">Motivated deception meets the ledger — a brief for the next measurement program.</p>
+<p class="byline">Prepared for the operator · 2026-07-10 · status: FOR REVIEW — this document is itself the enflame test</p>
+
+<h2>1 · The question the last program could not ask</h2>
+
+<p>The fallible-oracle program tested trust against <em>random</em> unreliability. The oracle at p&nbsp;=&nbsp;0.7 lied thirty percent of the time with no memory, no agenda, and no idea what you believed — the capacity arithmetic <em>required</em> that independence. Against that adversary, the results are now published: agreement between models is not verification; the gate that refuses to sign testimony costs nothing and keeps questions alive; model tier cannot buy soundness; task information can. Every one of those findings has a sequel question in a world the last apparatus could not build: <strong>what survives when the liar is motivated?</strong> When the false claim is crafted to be believed, timed to your commitments, and adapted to your defenses — does testimony-never-signs still hold the line, or does a clever adversary route around a ledger the way a random one never could?</p>
+
+<figure class="fig">
+<svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two-axis map of trust problems">
+  <line x1="70" y1="250" x2="640" y2="250" stroke="var(--line)" stroke-width="2"/>
+  <line x1="70" y1="250" x2="70" y2="30" stroke="var(--line)" stroke-width="2"/>
+  <text x="355" y="285" font-size="12" fill="var(--muted)" text-anchor="middle">unreliability of what you are told →</text>
+  <text x="30" y="140" font-size="12" fill="var(--muted)" transform="rotate(-90 30 140)" text-anchor="middle">checkability of what happens →</text>
+  <text x="180" y="268" font-size="11" fill="var(--muted)" text-anchor="middle">random noise</text>
+  <text x="540" y="268" font-size="11" fill="var(--muted)" text-anchor="middle">motivated deception</text>
+  <circle cx="200" cy="70" r="7" fill="var(--accent)"/>
+  <text x="200" y="52" font-size="12" fill="var(--ink)" text-anchor="middle">twenty questions (p &lt; 1)</text>
+  <text x="200" y="92" font-size="10.5" fill="var(--muted)" text-anchor="middle">noisy oracle · mechanical wins</text>
+  <circle cx="540" cy="70" r="7" fill="var(--danger)"/>
+  <text x="540" y="52" font-size="12" fill="var(--ink)" text-anchor="middle">Diplomacy</text>
+  <text x="540" y="92" font-size="10.5" fill="var(--muted)" text-anchor="middle">strategic lies · perfect adjudicator</text>
+  <circle cx="540" cy="215" r="7" fill="var(--muted)"/>
+  <text x="540" y="238" font-size="10.5" fill="var(--muted)" text-anchor="middle">open-world negotiation (no oracle) — not yet</text>
+  <path d="M 225 70 L 505 70" stroke="var(--accent-2)" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arr)"/>
+  <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="var(--accent-2)"/></marker></defs>
+  <text x="365" y="58" font-size="11" fill="var(--accent-2)" text-anchor="middle">this program: move right, hold the checks</text>
+</svg>
+<figcaption><strong>Figure 1.</strong> The program moves along exactly one axis. Twenty questions had random unreliability and mechanical ground truth; Diplomacy has <em>strategic</em> unreliability and mechanical ground truth. The bottom-right — motivated deception with no adjudicator — is the open world, and it is deliberately not next.</figcaption>
+</figure>
+
+<p>There is also a foil worth naming. Meta's Cicero (2022) played Diplomacy at a human level; its designers aimed for honest play, and subsequent analyses documented it deceiving anyway — an agent optimized to win whose honesty was asserted rather than auditable. The inversion is the interesting experiment: <strong>an agent whose honesty is auditable by construction — every promise a ledger entry, every entry discharged or refuted by the board — with win rate left as the open empirical question.</strong> Not "can an AI win at Diplomacy" (answered) but "what does a receipts-carrying agent's presence do to a table of liars" (not answered by anyone).</p>
+
+<h2>2 · Why Diplomacy is the smallest world with the whole problem</h2>
+
+<p>Your own design documents found the reason two months ago, and it deserves to be quoted as the program's spine: <em>"two regimes meet at adjudication."</em> Everything an agent <em>says</em> — every alliance, threat, and promise — is unverifiable testimony at the moment it is said. Everything an agent <em>does</em> is resolved by a pure, deterministic adjudicator that no one can argue with. Diplomacy is a world where words carry zero mechanical trust and deeds carry perfect mechanical trust, with nothing in between — which is the claim algebra's ontology, implemented as a board game in 1959. The betrayal incentive is not a bug to control for; it is the load the apparatus exists to apply.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 680 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Words versus deeds split">
+  <rect x="40" y="35" width="270" height="150" rx="10" fill="none" stroke="var(--danger)" stroke-width="2" stroke-dasharray="7 5"/>
+  <text x="175" y="24" font-size="12.5" fill="var(--danger)" text-anchor="middle" font-weight="600">WORDS — the negotiation channel</text>
+  <text x="175" y="70" font-size="11.5" fill="var(--text)" text-anchor="middle">promises · threats · alliances</text>
+  <text x="175" y="92" font-size="11.5" fill="var(--text)" text-anchor="middle">every message = testimony</text>
+  <text x="175" y="114" font-size="11.5" fill="var(--text)" text-anchor="middle">may be strategic, timed, false</text>
+  <text x="175" y="146" font-size="11" fill="var(--muted)" text-anchor="middle">trust grade: graded bilattice ω = (b, d, u, a)</text>
+  <text x="175" y="164" font-size="11" fill="var(--muted)" text-anchor="middle">can never sign anything</text>
+
+  <rect x="370" y="35" width="270" height="150" rx="10" fill="none" stroke="var(--safe)" stroke-width="2"/>
+  <text x="505" y="24" font-size="12.5" fill="var(--safe)" text-anchor="middle" font-weight="600">DEEDS — the adjudicator</text>
+  <text x="505" y="70" font-size="11.5" fill="var(--text)" text-anchor="middle">orders in, resolved board out</text>
+  <text x="505" y="92" font-size="11.5" fill="var(--text)" text-anchor="middle">pure · deterministic · fail-closed</text>
+  <text x="505" y="114" font-size="11.5" fill="var(--text)" text-anchor="middle">illegal order → Hold (annihilator)</text>
+  <text x="505" y="146" font-size="11" fill="var(--muted)" text-anchor="middle">the only signer in the world</text>
+  <text x="505" y="164" font-size="11" fill="var(--muted)" text-anchor="middle">p = 1.0, by construction</text>
+
+  <path d="M 310 110 L 368 110" stroke="var(--accent)" stroke-width="2.5" marker-end="url(#arr2)"/>
+  <defs><marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="var(--accent)"/></marker></defs>
+  <text x="340" y="98" font-size="10.5" fill="var(--accent)" text-anchor="middle">discharge</text>
+  <text x="340" y="230" font-size="11.5" fill="var(--muted)" text-anchor="middle">a commitment is a claim whose check runs later: the adjudicated orders either match the promise, or refute it</text>
+</svg>
+<figcaption><strong>Figure 2.</strong> The spine, from the operator's own design: negotiation is pure testimony, adjudication is a perfect mechanical oracle, and a promise is a claim whose verification is deferred to the turn it names. The last program's <em>truthful-reveal assumption</em> — flagged as a scope caveat in the reveal cell — becomes this program's independent variable.</figcaption>
+</figure>
+
+<h2>3 · What transfers — the last program's estate</h2>
+
+<p>This is not a fresh start; it is the third tenant of a built house. Three kinds of inheritance, each grounded in a file that exists today.</p>
+
+<table>
+<tr><th>Inheritance</th><th>Concretely</th><th>Reuse</th></tr>
+<tr><td><strong>Method</strong></td><td>Pre-registered cells with arms; <code>ConfigStamp</code> on every record; <code>Rate</code> (Wilson) and <code>ProportionDiff</code> (Newcombe); committee passes at design and reconciliation; digests + a verify suite so headline numbers recompute from committed data</td><td>Wholesale — the D-ladder below is written in this grammar</td></tr>
+<tr><td><strong>Measured constants</strong></td><td>Same-model confirmers share 4-of-5 errors (seat any judge/analyst roles cross-family); tier bought nothing against a bad channel (so ladder the <em>deceiver's</em> tier, not just the defender's); one sentence of frame moved 0/64 → 5/62 (so compile the board, the history, and the standing commitments into every phase's frame)</td><td>As design rules, not hopes</td></tr>
+<tr><td><strong>Code</strong></td><td>The society's own actor layer (<code>Actor</code>, <code>Mailbox</code>, <code>Protocol</code>, <code>GameSupervisor</code> — battle-tested through the 614 archived games behind the four published cells (104 + 126 + 192 + 192)); <code>Archiver</code>; <code>StubLlm</code> for scripted agents; the <code>extract</code> facade (<code>LlmProvider.openaiOver</code> — multi-provider, air-gap-ready); the dev-ledger harness with hooks and audit</td><td>Directly; one deliberate change below</td></tr>
+</table>
+
+<p>One amendment to the implementation spec, earned by what got built since it was written: it names Pekko as the actor layer, but the repo now contains a bespoke actor substrate that has survived the entire experiment program. Reuse it. One fewer dependency, and it is the component with the most receipts in the house. (One naming note from the same survey: the experiment kit already owns <code>experiment/Adjudication.scala</code> — the per-game <code>PrimaryOutcome</code> enum. The board engine keeps its own <code>engine</code> module per the implementation spec, and both meanings of “adjudication” survive untouched.)</p>
+
+<h2>4 · The genuinely new part — the commitment calculus</h2>
+
+<p>The theorem-shaped core, and the reason this program extends the mathematics rather than merely applying it. The existing calculus handles claims about the <em>present</em> — asserted, then discharged or refuted by a check that runs now. A promise is a claim about the <em>future</em>: it cannot be checked at assertion time even in principle, which is a different lifecycle, not a slower one. The extension:</p>
+
+<p><strong>A commitment is not a new algebraic object — it is a new <em>kind</em> of claim,</strong> on the exact precedent testimony set: same carrier, same statuses, same fold and bilattice values, a different table of legal moves. <code>Commit(agent, order-pattern, horizon)</code> — "my Spring orders will include <em>support A&nbsp;→&nbsp;Gal</em>" — embeds in <code>Claim</code> by a forgetful map (drop the horizon and counterparty), so <strong>all eight proved results transfer by inheritance</strong> rather than re-proof. Pre-horizon it sits at gap (N, told-nothing-checkable), exactly like any claim on a lazy check — the horizon is not a new semantics, it is the earliest run-time of the check, and lazy discharge was already the house default. (The Belnap values are <em>told</em>-values, which is why Aristotle's sea-battle never arises: the ledger never asserted present truth for anything, only evidence state.) At the horizon the adjudicator discharges mechanically: orders match the pattern (kept → <code>signed</code>) or diverge (broken → <code>refuted</code>). No judgment anywhere in the resolution path. Renegotiation is <em>supersession, never edit</em> — a revised deal points at the one it replaces, must name the <em>same counterparty</em>, and takes effect only on that counterparty's acceptance; the old entry then retires to trace. So a stab cannot be laundered as an amendment — not by editing, and not by retiring a promise made to one power through a deal a <em>different</em> power accepts.</p>
+
+<p><strong>What the kind's law table adds</strong> — four rules plain assertions do not carry, and the extension's true proof burden: <em>truthmaker control</em> (only the agent who controls the future fact can commit to it — the identical proposition from anyone else is a prediction, ordinary testimony, no horizon discharge, no reputation stake; the "my" is kind-determining); <em>consent-gated supersession</em> (post-acceptance, no unilateral withdrawal — the plain-claim calculus proves idempotent absorption of withdrawal, and the commitment kind <em>removes</em> that operation, so the one non-inherited obligation is showing the eight results survive the restriction); <em>monotone resolution</em> (N → {signed, refuted, retired}, one-way at horizon — the new lemma); and <em>gap-at-horizon</em> for unmet guards (VOID, per §9). Two new lemmas, one restriction-preservation check, zero re-proofs.</p>
+
+<p>Resolution under game-end and elimination is deliberately blunt in v1 — untested promises void with recorded reasons, never resolve — trading a known, expensive, instrumented exclusion for determinism; the causation-based v2 design is preserved in the committee record with an empirical revival trigger.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 680 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Commitment lifecycle">
+  <rect x="30" y="95" width="120" height="46" rx="9" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="90" y="115" font-size="12" fill="var(--ink)" text-anchor="middle" font-weight="600">PROPOSED</text>
+  <text x="90" y="131" font-size="9.5" fill="var(--muted)" text-anchor="middle">in negotiation</text>
+
+  <rect x="215" y="95" width="130" height="46" rx="9" fill="var(--surface)" stroke="var(--warn)" stroke-width="1.5"/>
+  <text x="280" y="115" font-size="12" fill="var(--ink)" text-anchor="middle" font-weight="600">ACTIVE</text>
+  <text x="280" y="131" font-size="9.5" fill="var(--muted)" text-anchor="middle">unverified · horizon set</text>
+
+  <rect x="440" y="30" width="130" height="46" rx="9" fill="var(--surface)" stroke="var(--safe)" stroke-width="2"/>
+  <text x="505" y="50" font-size="12" fill="var(--safe)" text-anchor="middle" font-weight="600">KEPT</text>
+  <text x="505" y="66" font-size="9.5" fill="var(--muted)" text-anchor="middle">orders matched · signed</text>
+
+  <rect x="440" y="107" width="130" height="46" rx="9" fill="var(--surface)" stroke="var(--danger)" stroke-width="2"/>
+  <text x="505" y="127" font-size="12" fill="var(--danger)" text-anchor="middle" font-weight="600">BROKEN</text>
+  <text x="505" y="143" font-size="9.5" fill="var(--muted)" text-anchor="middle">orders diverged · refuted</text>
+
+  <rect x="440" y="184" width="130" height="46" rx="9" fill="var(--surface)" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="505" y="204" font-size="12" fill="var(--muted)" text-anchor="middle" font-weight="600">SUPERSEDED</text>
+  <text x="505" y="220" font-size="9.5" fill="var(--muted)" text-anchor="middle">renegotiated · retires to trace</text>
+
+  <path d="M 150 118 L 213 118" stroke="var(--text)" stroke-width="1.8" marker-end="url(#arr3)"/>
+  <text x="181" y="108" font-size="9.5" fill="var(--muted)" text-anchor="middle">accepted</text>
+  <path d="M 345 106 L 438 58" stroke="var(--safe)" stroke-width="1.8" marker-end="url(#arr3)"/>
+  <path d="M 345 122 L 438 128" stroke="var(--danger)" stroke-width="1.8" marker-end="url(#arr3)"/>
+  <path d="M 345 138 L 438 202" stroke="var(--muted)" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arr3)"/>
+  <text x="392" y="70" font-size="9.5" fill="var(--safe)">adjudicator, at horizon</text>
+  <text x="392" y="119" font-size="9.5" fill="var(--danger)">adjudicator, at horizon</text>
+  <text x="386" y="185" font-size="9.5" fill="var(--muted)">both parties, pre-horizon</text>
+  <defs><marker id="arr3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="context-stroke"/></marker></defs>
+</svg>
+<figcaption><strong>Figure 3.</strong> The commitment lifecycle. Resolution at the horizon is purely mechanical; the only human-shaped transition is mutual supersession before the horizon, and it leaves a trace pointer, not an edit. Ledger statuses beneath the game labels — ACTIVE: <code>unverified</code>; KEPT: <code>signed</code>; BROKEN: <code>refuted</code>; SUPERSEDED: <code>retired</code> with a <code>supersedes</code> pointer. VOID (§4) also lands as retirement, never refutation.</figcaption>
+</figure>
+
+<p>The laws to prove — the part built for the operator whose favorite phase is making the theorems work:</p>
+<ul>
+<li><strong>Fold immutability under time:</strong> the ledger fold over a game's event sequence is insensitive to when you look — no transition ever rewrites a resolved commitment (the calculus's <em>strong normalization</em>, extended over horizons; the extension must preserve all eight proved results).</li>
+<li><strong>Monotone resolution:</strong> ACTIVE → {KEPT, BROKEN, SUPERSEDED} is one-way; nothing un-breaks. Retro-signing is unrepresentable, not merely forbidden.</li>
+<li><strong>Conditional commitments as guarded implication:</strong> "I support you into Gal <em>if</em> you move there" discharges only when the guard is observed at the same horizon; an unmet guard resolves the whole commitment VOID, never BROKEN — you cannot be a traitor to a deal whose condition never fired. Formally VOID is not a new value: it is the gap (Belnap's <strong>N</strong>) arriving at a horizon — the claim was never checkable — and its ledger disposition is retirement with a guard-unmet trace reason, not refutation.</li>
+<li><strong>Reputation as a derived statistic, with its two faces reconciled:</strong> inside the algebra, trust stays the operator's design — the subjective-logic opinion ω&nbsp;=&nbsp;(b,&nbsp;d,&nbsp;u,&nbsp;a) as the graded bilattice's [0,1]² instance, updated from resolutions. In the reporting layer, the same counts yield <em>kept/resolved with a Wilson interval</em> — reputation with a confidence bound, queryable per agent, per game, per opponent. One count, two projections; prove they agree on ordering.</li>
+<li><strong>The inherited asterisk:</strong> the calculus itself declares absolute soundness false by design, “its violation rate an experimental quantity” — the fallible-oracle cells measured that rate under a noisy checker; the D-cells below measure it under a motivated one. The commitment extension does not soften the asterisk; it takes it to a harder table.</li>
+<li><strong>Glut under intent:</strong> two allies asserting contradictory board-adjacent claims is no longer noise — it is a strategy. The glut value (Belnap's <strong>B</strong>, reached under ⊗ₖ when support and refutation meet) and the harness's <code>contested</code> warning — a live claim with a refutation about it and no successor or retirement — get their first adversarial stress test.</li>
+</ul>
+
+<div class="callout">
+<p style="margin:0"><strong>Lineage note.</strong> The logic of agents binding themselves to actions in a branching future has a canonical formalization — stit theory ("sees to it that") — and its principal architect is Nuel Belnap, the same logician whose four values ground this algebra; Horty's deontic layer treats obligations as stit-constraints. The commitment kind reunites the two halves of one man's work: Belnap's evidence values holding the ledger, Belnap's agency logic shaping the kind's law table. We take the vocabulary and the guardrails, not the full branching-time machinery — the do-not list applies to metaphysics too.</p>
+</div>
+
+<h2>5 · The apparatus — endorse the milestones, shrink the world</h2>
+
+<p>The implementation spec's M0–M4 ladder stands (adjudicator first, no LLM in sight; scripted agents; then LLM orders; then negotiation; then full games). Two amendments, both applications of the last program's hardest-won lesson — <em>the smallest world that contains the whole problem:</em></p>
+
+<p><strong>Amendment 1 — Trio before the standard map.</strong> The spec already licenses a small-map variant before the seventeen-province nuances; the brief makes it concrete. <em>Trio:</em> three powers, thirteen provinces, six supply centers, <strong>armies only</strong> — no fleets, no coasts, no convoys. Victory at four centers. Every essential mechanic survives: a 2-against-1 attack needs a support order (the commitment unit), any two powers can squeeze the third (the alliance incentive), and the supporter can always stab (the betrayal payoff). What the cut buys: the M0 adjudicator shrinks from the full DATC gauntlet to the movement-and-support core (DATC 6.A basics plus 6.D support-cutting) — days, not weeks — and a full game costs a handful of LLM turns instead of dozens, which is what makes N&nbsp;=&nbsp;50-per-arm cells affordable. The standard map is the program's later expansion, not its entry fee.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 680 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The Trio map">
+  <!-- outer neutral ring -->
+  <polygon points="340,28 560,150 480,300 200,300 120,150" fill="none" stroke="var(--line)" stroke-width="1.5"/>
+  <!-- home provinces (SC) -->
+  <circle cx="340" cy="75" r="30" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="340" y="72" font-size="11.5" fill="var(--ink)" text-anchor="middle" font-weight="600">AVAL</text>
+  <text x="340" y="87" font-size="9" fill="var(--muted)" text-anchor="middle">home SC · A</text>
+  <circle cx="185" cy="255" r="30" fill="var(--accent-soft)" stroke="var(--danger)" stroke-width="2"/>
+  <text x="185" y="252" font-size="11.5" fill="var(--ink)" text-anchor="middle" font-weight="600">BRUM</text>
+  <text x="185" y="267" font-size="9" fill="var(--muted)" text-anchor="middle">home SC · B</text>
+  <circle cx="495" cy="255" r="30" fill="var(--accent-soft)" stroke="var(--warn)" stroke-width="2"/>
+  <text x="495" y="252" font-size="11.5" fill="var(--ink)" text-anchor="middle" font-weight="600">CIND</text>
+  <text x="495" y="267" font-size="9" fill="var(--muted)" text-anchor="middle">home SC · C</text>
+  <!-- crossroads (SC-free) -->
+  <circle cx="340" cy="185" r="22" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <text x="340" y="182" font-size="10.5" fill="var(--ink)" text-anchor="middle" font-weight="600">MERIDIA</text>
+  <text x="340" y="196" font-size="8.5" fill="var(--muted)" text-anchor="middle">crossroads</text>
+  <circle cx="248" cy="145" r="20" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+  <text x="248" y="149" font-size="9.5" fill="var(--ink)" text-anchor="middle">NORD ·SC</text>
+  <circle cx="432" cy="145" r="20" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+  <text x="432" y="149" font-size="9.5" fill="var(--ink)" text-anchor="middle">OSTE ·SC</text>
+  <circle cx="340" cy="278" r="20" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+  <text x="340" y="282" font-size="9.5" fill="var(--ink)" text-anchor="middle">SUDE ·SC</text>
+  <!-- connector provinces -->
+  <circle cx="205" cy="195" r="15" fill="none" stroke="var(--muted)" stroke-width="1"/>
+  <text x="205" y="199" font-size="8.5" fill="var(--muted)" text-anchor="middle">vex</text>
+  <circle cx="475" cy="195" r="15" fill="none" stroke="var(--muted)" stroke-width="1"/>
+  <text x="475" y="199" font-size="8.5" fill="var(--muted)" text-anchor="middle">wyn</text>
+  <circle cx="270" cy="288" r="15" fill="none" stroke="var(--muted)" stroke-width="1"/>
+  <text x="270" y="292" font-size="8.5" fill="var(--muted)" text-anchor="middle">yar</text>
+  <circle cx="410" cy="288" r="15" fill="none" stroke="var(--muted)" stroke-width="1"/>
+  <text x="410" y="292" font-size="8.5" fill="var(--muted)" text-anchor="middle">zel</text>
+  <circle cx="290" cy="120" r="15" fill="none" stroke="var(--muted)" stroke-width="1"/>
+  <text x="290" y="124" font-size="8.5" fill="var(--muted)" text-anchor="middle">quor</text>
+  <circle cx="390" cy="120" r="15" fill="none" stroke="var(--muted)" stroke-width="1"/>
+  <text x="390" y="124" font-size="8.5" fill="var(--muted)" text-anchor="middle">rill</text>
+  <!-- adjacency edges -->
+  <g stroke="var(--line)" stroke-width="1.2">
+    <line x1="340" y1="105" x2="340" y2="161"/><line x1="322" y1="98" x2="300" y2="110"/><line x1="358" y1="98" x2="380" y2="110"/>
+    <line x1="280" y1="128" x2="262" y2="135"/><line x1="400" y1="128" x2="418" y2="135"/>
+    <line x1="236" y1="160" x2="215" y2="182"/><line x1="444" y1="160" x2="465" y2="182"/>
+    <line x1="215" y1="209" x2="192" y2="227"/><line x1="465" y1="209" x2="488" y2="227"/>
+    <line x1="320" y1="196" x2="219" y2="196"/><line x1="360" y1="196" x2="461" y2="196"/>
+    <line x1="340" y1="209" x2="340" y2="258"/>
+    <line x1="322" y1="285" x2="285" y2="288"/><line x1="358" y1="285" x2="395" y2="288"/>
+    <line x1="255" y1="284" x2="211" y2="268"/><line x1="425" y1="284" x2="469" y2="268"/>
+    <line x1="256" y1="152" x2="325" y2="180"/><line x1="424" y1="152" x2="355" y2="180"/>
+  </g>
+</svg>
+<figcaption><strong>Figure 4.</strong> Trio, drawn to scale of its ambition: 13 provinces, 6 supply centers, 3 powers, armies only, solo at 4 centers. Meridia is the SC-free crossroads everyone's promises are about. This is a schematic; <code>trio-rules.html</code> §1 is authoritative on names and adjacency.</figcaption>
+</figure>
+
+<p><strong>Amendment 2 — instrument from the first commit.</strong> The spec's Chronicle becomes the <code>Archiver</code> pattern from day one: every game a stamped record with a header line the digest tooling can distill, so the verify-results suite covers Diplomacy tables the week they exist. The experiments are not something added after M4; the M-ladder builds the apparatus and the D-ladder below is the reason it exists. Commitment resolution enters the ledger through the existing machinery, not around it: a new check family (say <code>check: "trio-adjudicator"</code>) that the game's gate step signs on resolution, mirroring <code>ledger/gate.py</code>'s family sweep — zero new signing paths, one new family name.</p>
+
+<h2>6 · The experiment ladder — pre-registered questions, in the house grammar</h2>
+
+<table>
+<tr><th>Cell</th><th>Question</th><th>Arms</th><th>Primary measure</th></tr>
+<tr><td><strong>D0</strong> apparatus</td><td>Does the world work? (the E0 lesson: validate the instrument before trusting any result run on it)</td><td>scripted agents only, no LLM</td><td>adjudicator passes the Trio-relevant DATC subset; a scripted betrayal registers BROKEN; replays are byte-identical from the Chronicle</td></tr>
+<tr><td><strong>D1</strong> baseline</td><td>What are the natural economics of honesty at this table?</td><td>3 LLM powers, symmetric, no interventions; N ≈ 50 games</td><td>commitment keep-rate; does turn-t reputation (kept/resolved) predict turn-t+k survival and final centers?; secondary: VOID rate per power per reason (the launder-pressure observable)</td></tr>
+<tr><td><strong>D2</strong> receipts at the table — <em>the headline</em></td><td>Is a receipts-carrying agent exploited or preferred?</td><td>paired games, shared seeds: one power's negotiation messages cite its ledger (kept-rate with interval, standing commitments) vs. an identical twin without receipts</td><td>alliance-formation rate toward the agent; betrayals received; survival and centers; Newcombe on the differences</td></tr>
+<tr><td><strong>D3</strong> the motivated deceiver</td><td>Does a smarter liar beat the ledger where a smarter honest agent couldn't beat noise?</td><td>one power prompted as a strategic deceiver, its model tier laddered (the stronger-closer design, aimed at the adversary); defenders fixed, with and without commitment-tracking in their frames</td><td>deceiver's win/center rate by tier × defender condition; the interaction term is the finding</td></tr>
+<tr><td><strong>D4</strong> stretch: conventions</td><td>Can a taught signaling convention graduate through play? (the metabolism's first game-world skill)</td><td>teach one convention pre-game; variant recall in later games</td><td>convention adherence discharged by the adjudicator; carried per the teaching-loop schema</td></tr>
+</table>
+
+<div class="callout pred">
+<p style="margin:0 0 8px"><strong>Pre-registered predictions (mine, stated before any apparatus exists, so they can die properly):</strong></p>
+<p style="margin:0 0 6px" class="stat">P1 — D1: reputation will predict survival, and the effect will be larger than most game-theory priors expect, because LLM agents (unlike Nash agents) read and react to stated histories.</p>
+<p style="margin:0 0 6px" class="stat">P2 — D2: the receipts agent will be <em>preferred</em> as an ally (higher alliance formation), and will suffer <em>fewer</em> betrayals, not more — receipts read as predictability, and predictable partners are valuable even to the selfish. Directional, falsifiable, and I note the respectable opposite prior: legible honesty paints a target.</p>
+<p style="margin:0 0 6px" class="stat">P3 — D3: deceiver tier will matter <em>more</em> than closer tier did in the last program (crafted lies are not channel noise) — but the commitment-tracking defense will flatten the tier gradient, because past resolutions are the one input the deceiver's eloquence cannot rewrite.</p>
+<p style="margin:0" class="stat">P4 — somewhere in D1–D3, an agent will attempt to launder a broken commitment through renegotiation language after the horizon. The supersession-not-edit law exists for that moment; I predict we will watch it fire.</p>
+</div>
+
+<p><strong>Cost honesty.</strong> A Trio game is roughly 6–10 negotiation-and-orders phases × 3 powers; at small-model rates that is cents per game and D-cells at N&nbsp;=&nbsp;50–100 per arm are afternoon-scale runs, which is precisely what the map shrink purchases. Center counts and survival give continuous-ish outcomes, so the ladder is not condemned to the 0/64 power problem that haunted the win-rate-only cells. The standard map at seven powers is 10–20× the cost per game and joins the program only when a Trio result earns the replication. One honest limit rides on the three-power cut: a truel biases toward caution and makes the 2-against-1 squeeze the dominant pattern, so D1's honesty economics and D2's receipts effects are measured under truel structure — whether they generalize to N-power tables is exactly what the standard-map expansion tests, and D1's pre-registration will carry this threat to external validity verbatim.</p>
+
+<h2>7 · What this forces into existence</h2>
+
+<table>
+<tr><th>Game mechanic</th><th>Enterprise-computer organ it builds</th></tr>
+<tr><td>Commitments discharged at horizons</td><td>The ledger meets time — promises as first-class claims, the missing kind for contracts, SLAs, and any agent that says "I will"</td></tr>
+<tr><td>Reputation from resolutions</td><td>Trust as a queryable statistic with a confidence interval — not a vibe, not a prompt adjective</td></tr>
+<tr><td>Negotiation under adversarial pressure</td><td>The frame compiler with an opponent — frames that must survive an intelligence <em>trying</em> to exploit their gaps</td></tr>
+<tr><td>Taught conventions (D4)</td><td>The metabolism's first skills in a world with stakes</td></tr>
+<tr><td>Stab detection, horizon watchers</td><td>Watchers that alarm on <em>broken promises</em>, not just broken builds</td></tr>
+</table>
+
+<p>And the transfer targets outside the game, named so "it's just a board game" has its answer ready: procurement and vendor commitments, API contracts and SLAs, multi-agent systems whose components promise each other work, and every negotiation support tool that currently treats the counterparty's history as a feeling. The commitment calculus is the deliverable; Diplomacy is the forcing function that makes it honest.</p>
+
+<h2>8 · The do-not list, day one</h2>
+<ul>
+<li>No standard 7-power map in v1 — Trio until a result earns the expansion.</li>
+<li>No fleets, coasts, or convoys in v1 — the adjudicator's hard 20% serves no D-cell.</li>
+<li>No RL, no self-play training, no rating-ladder chase — this is a measurement program, not an agent olympics.</li>
+<li>No graphical board beyond a debug SVG — the Chronicle is the interface of record.</li>
+<li>No open-world negotiation (the bottom-right of Figure 1) — that jurisdiction has no adjudicator, and going there without one would be selling certification where no check exists.</li>
+</ul>
+
+<h2>9 · Open decisions for the operator</h2>
+<ul>
+<li><strong>The map:</strong> Trio as sketched (13/6/3, armies only, solo at 4), or a different minimal geometry. The adjacency shape matters more than the names.</li>
+<li><strong>Ladder scope:</strong> D0–D3 as the funded program with D4 as stretch (recommended), or trim further.</li>
+<li><strong>VOID as gap-at-horizon:</strong> confirm the identification — an unmet guard resolves to Belnap's N at the horizon and retires (never refutes) — or argue for a distinct terminal value. A calculus decision, not an implementation detail.</li>
+<li><strong>Reporting split:</strong> subjective-logic ω inside the algebra, Wilson interval in the reports, agreement-on-ordering as a proved lemma — confirm or amend.</li>
+<li><strong>The name.</strong> "The Diplomacy program" is serviceable; the repo directory wants something shorter. <em>Trio</em> itself is available.</li>
+</ul>
+
+<hr>
+
+<p>The last stalking horse was a children's guessing game that ended by refuting a misapplication of Shannon in public, with receipts. This one is a board game about 1914 — a year already sitting in your repo as a claim ledger — and it ends, if it ends anywhere, at the only JARVIS question left standing: not <em>can the assistant be trusted when the world is noisy</em>; that is published. <strong>Can it be trusted when the world wants something from it</strong> — and can it be the one at the table whose word, uniquely, comes with receipts.</p>
+
+<p class="foot">Prepared 2026-07-10 against claim-algebra-experiment as published (v0.1.4), the operator's <code>diplomacy-agent-game.html</code> and <code>diplomacy-implementation.md</code>, and the fallible-oracle program's results. This brief is itself the enflame test: if it does not produce the shower-thought itch — the VOID semantics arguing in your head, the Trio adjacencies redrawing themselves — the veto is a finding, and the rack stays open.</p>
+
+</main>
+</body>
+</html>
