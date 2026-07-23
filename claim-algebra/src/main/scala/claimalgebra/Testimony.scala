@@ -189,7 +189,7 @@ object Testimony:
     * candidate's channels, dropping any candidate left empty (routed through [[of]], so a `(0, 0)`
     * entry does not linger as an empty-channel ghost). The completion of the retraction op-set
     * below the whole-testimony [[strike]]: strike MOVES a whole testimony's support to con (so it
-    * gluts a later re-assertion — an absorbing "distrust this slot"); a token withdrawal leaves NO
+    * gluts a later re-assertion — a whole-slot "distrust this slot"); a token withdrawal leaves NO
     * con-mass, so a fresh assertion of the same value signs clean ("retract this one testimony").
     * The retained audit trace is the recorded withdrawal EVENT
     * (`calculus.Evidence.WithdrawnToken`), not a carrier channel — the object keeps its audit in

@@ -66,7 +66,7 @@ So the three mechanisms compose: **monitor detects (structural) → agent decomp
 
 - **No type change** means no risk to the proven properties of `Testimony`/`Claim`; the carrier and its laws are untouched.
 - **Uses `⊗ₖ` and Theorem 6.7 as-is** — the fail-closed conjunction is already proven **for gaps only**; a multi-concept answer that conjoins concept-slots inherits that proof for the gap case. ~~A gap or glut on any concept-slot blocks the root (Theorem 6.7), which is the desired behavior.~~ **[RETRACTED — a *gap* blocks the root; a *glut* does not (`⊗ₖ` launders it, `B ⊗ₖ x = x`). Certify with `∧ₜ` or per-slot gating. See `glut-laundering-correction-instructions.md`.]**
-- **The single-writer discipline (Remark 5.4)** already applies per slot; adding slots does not violate it — each new concept-slot is its own serialized position.
+- **The single-writer discipline (the operational counterpart of Non-theorem 5.2)** already applies per slot; adding slots does not violate it — each new concept-slot is its own serialized position.
 - **The decomposition act is quarantined in an agent** (semantic, generative), keeping the librarian non-generative and the algebra mechanical — the same decide/execute (here decompose/conjoin) split that survived the §C and retirement audits.
 
 ## What the committee must adversarially check (the real risks)

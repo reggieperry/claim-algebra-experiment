@@ -176,7 +176,7 @@ class TestimonySuite extends ScalaCheckSuite:
   }
 
   // Supersession strikes the prior by STRIKE (withdrawal), NOT by refute (¬ channel swap) — calculus
-  // Def 2.14 / Remark 6.4, per the strike-based-supersession revision. The F5 test above uses a CLEAN
+  // §1 supersession, per the strike-based-supersession revision. The F5 test above uses a CLEAN
   // (leaf) prior, on which the two coincide — refute swaps (pro, 0) → (0, pro), strike folds
   // (pro, 0) → (0, pro) — so it cannot tell them apart. They diverge only on a CONTESTED prior: strike
   // CLEARS pro and folds all prior evidence to con ((pro, con) → (0, pro + con)), refute SWAPS the

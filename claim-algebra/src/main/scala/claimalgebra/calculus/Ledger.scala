@@ -77,12 +77,12 @@ object Ledger:
           if Testimony.corner(g) == Belnap.Gap then Right(s)
           else Right(Testimony.supersede(s.operative, g))
         case (Left(t), Evidence.Withdrawn()) =>
-          Left(Testimony.strike(t)) // absorbing: a second Withdrawn keeps it struck (not refute)
+          Left(Testimony.strike(t)) // idempotent: a second Withdrawn keeps it struck (not refute)
         case (Right(s), Evidence.Withdrawn()) =>
           Right(Supersession(s.struck, Testimony.strike(s.operative)))
         case (Left(t), Evidence.WithdrawnToken(l)) =>
           // token-scoped: drop just this assertion's support; no con-residue, so a fresh assertion
-          // of the same value signs again (unlike the absorbing whole-slot Withdrawn above)
+          // of the same value signs again (unlike the idempotent whole-slot Withdrawn above)
           Left(Testimony.withoutToken(t, l))
         case (Right(s), Evidence.WithdrawnToken(l)) =>
           // the operative only — the struck prior is channel-blind and never signs, so it is left

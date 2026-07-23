@@ -8,11 +8,12 @@ import org.scalacheck.{Arbitrary, Gen}
 
 /** Property tests for the calculus meta-theorems (`claim-calculus` §§4-8) against their operational
   * realization — the [[Ledger]] event-fold (`belief`/`resolve`). Determinacy (Thm 4.1) and
-  * normalization (Thm 4.2) are the totality of the fold; non-fabrication (Thm 6.2) is that no
-  * combinator manufactures a fresh signable value; confluence on the assertion fragment (Thm 5.3 /
-  * Lemma 5.2) is the order-independence `corroborate`'s commutative monoid gives the fold. The
-  * algebra-level laws these rest on live in the core law suites; here they are pinned generatively
-  * at the fold, over a generated stream of evidence events.
+  * finite-fold termination (Thm 4.2) are the totality of the fold; non-fabrication (Thm 6.3) is
+  * that no combinator manufactures a fresh signable value; exclusivity (Thm 6.4) is that a signed
+  * slot carries no con anywhere; assertion permutation invariance (Thm 5.1) is the
+  * order-independence `corroborate`'s commutative monoid gives the fold. The algebra-level laws
+  * these rest on live in the core law suites; here they are pinned generatively at the fold, over a
+  * generated stream of evidence events.
   */
 class LedgerLawsSuite extends ScalaCheckSuite:
 
@@ -31,8 +32,8 @@ class LedgerLawsSuite extends ScalaCheckSuite:
 
   private val states = Set(Status.Resolved, Status.Missing, Status.Conflict, Status.Superseded)
 
-  /** Thm 4.1 (determinacy) + 4.2 (strong normalization): the fold is a TOTAL function — any finite
-    * event sequence resolves to exactly one of the four states, with no `MatchError` and no
+  /** Thm 4.1 (determinacy) + 4.2 (finite-fold termination): the fold is a TOTAL function — any
+    * finite event sequence resolves to exactly one of the four states, with no `MatchError` and no
     * divergence (a left fold over a finite `Seq` halts in `|E|` steps by construction).
     */
   property(
@@ -43,12 +44,12 @@ class LedgerLawsSuite extends ScalaCheckSuite:
     }
   }
 
-  /** Thm 6.2 (non-fabrication): if a slot signs a value, that value ORIGINATES in the stream — some
+  /** Thm 6.3 (non-fabrication): if a slot signs a value, that value ORIGINATES in the stream — some
     * `Asserted`/`Superseded` event supplied it with pro-support. No combinator invents a signable
     * value. `corroborate` only unions keys, `supersede`/`strike` only move a key's channels, and
     * the signed value is always the operative's — never a refuted trace.
     */
-  property("Thm 6.2 — non-fabrication: a signed value originates in some event's pro-support") {
+  property("Thm 6.3 — non-fabrication: a signed value originates in some event's pro-support") {
     forAll { (events: List[Evidence[Int]]) =>
       Ledger.resolve(events).value.forall { v =>
         events.exists {
@@ -61,12 +62,24 @@ class LedgerLawsSuite extends ScalaCheckSuite:
     }
   }
 
-  /** Thm 5.3 / Lemma 5.2 (confluence on assertions): over the ASSERTION fragment the fold is
-    * order-independent — `corroborate` is a commutative monoid, so a permutation of `Asserted`
-    * events signs the same value. (Supersede/withdraw are order-sensitive BY DESIGN — the
-    * non-theorem — so they are excluded here.)
+  /** Thm 6.4 (exclusivity): no SIGNED slot carries con support anywhere — a value signs only from a
+    * structural True, so its whole carrier is con-free. Pinned over an arbitrary event stream on
+    * BOTH signing shapes (Open `Left`, Repl operative `Right`), complementing the operative-only
+    * FoldSemanticsSuite L1/L2. (True by the gate: accept ⟹ corner=T ⟹ con empty.)
     */
-  property("Thm 5.3 — assertions fold order-independently (the commutative fragment)") {
+  property("Thm 6.4 — exclusivity: a signed slot's carrier holds no con anywhere") {
+    forAll { (events: List[Evidence[Int]]) =>
+      Ledger.resolve(events).value.isEmpty ||
+      Ledger.belief(events).fold(_.provCon.isZero, _.operative.provCon.isZero)
+    }
+  }
+
+  /** Thm 5.1 (assertion permutation invariance): over the ASSERTION fragment the fold is
+    * order-independent — `corroborate` is a commutative monoid, so a permutation of `Asserted`
+    * events signs the same value. (Supersede/withdraw are order-sensitive BY DESIGN — Non-theorem
+    * 5.2, full-language permutation invariance is false — so they are excluded here.)
+    */
+  property("Thm 5.1 — assertions fold order-independently (the commutative fragment)") {
     forAll { (ts: List[Testimony[Int]]) =>
       val asserts = ts.map(Evidence.Asserted(_))
       Ledger.resolve(asserts).value == Ledger.resolve(asserts.reverse).value

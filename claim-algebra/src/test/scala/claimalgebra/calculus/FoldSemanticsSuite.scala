@@ -7,21 +7,22 @@ import org.scalacheck.Gen
 import org.scalacheck.Prop.forAll
 
 /** Property pins for the supersession / withdrawal fold semantics — the settled answer the calculus
-  * gives (Def 2.14, Thm 6.1, Remark 6.4, the rehabilitation-asymmetry remark). Each law pins
-  * already-correct behavior of the shipped fold; a RED here is a live fail-closed defect, not a
-  * test to relax. Complements [[LedgerFoldSuite]] (per-shape examples) and [[LedgerLawsSuite]] (the
-  * Thm 4/5/6 meta-theorems) with the supersession-specific properties they do not carry:
+  * gives (algebra §5.5-5.6 supersede-by-strike; Thm 6.1 withdrawal idempotence; Remark 6.2
+  * rehabilitation asymmetry). Each law pins already-correct behavior of the shipped fold; a RED
+  * here is a live fail-closed defect, not a test to relax. Complements [[LedgerFoldSuite]]
+  * (per-shape examples) and [[LedgerLawsSuite]] (the Thm 4/5/6 meta-theorems) with the
+  * supersession-specific properties they do not carry:
   *
   *   - L1/L2: the superseded operative signs CLEAN — the struck prior never lands on the
-  *     operative's live con (the misread-glut Remark 6.4 warns of is unreachable through the public
-  *     fold).
+  *     operative's live con (the misread-glut that Thm 6.4 exclusivity rules out is unreachable
+  *     through the public fold).
   *   - L3/L4: the rehabilitation asymmetry — after a whole-slot Withdraw, a fresh assertion of the
   *     same value gluts forever (ℕ[X] is zero-sum-free, so con never cancels), while a supersession
   *     signs. A withdrawn value returns only by supersession, never by re-assertion.
-  *   - L5: withdrawal is absorbing at the belief level on the Repl (supersession-pair) shape — the
+  *   - L5: withdrawal is idempotent at the belief level on the Repl (supersession-pair) shape — the
   *     Open shape is pinned in [[LedgerFoldSuite]].
-  *   - L6: chained supersession keeps only the last struck prior (Def 3.4 discards the earlier one
-  *     from the normal form; the full audit lives in the event term).
+  *   - L6: chained supersession keeps only the last struck prior (the §3 Repl+Supersede row
+  *     replaces the struck prior each step; the full audit lives in the event term).
   */
 class FoldSemanticsSuite extends ScalaCheckSuite:
 
@@ -68,7 +69,8 @@ class FoldSemanticsSuite extends ScalaCheckSuite:
     )
 
   // L1 — the superseded operative is the fresh amendment: corner True, card 1, con empty, and it
-  // signs. Nothing from the prior appears in the operative's live channels (Def 2.14, Remark 6.4).
+  // signs. Nothing from the prior appears in the operative's live channels (algebra §5.6
+  // supersede-by-strike; Thm 6.4 exclusivity).
   property(
     "L1 supersededOperativeSignsClean — the operative is the fresh amendment, con empty, signs"
   ) {
@@ -99,8 +101,8 @@ class FoldSemanticsSuite extends ScalaCheckSuite:
   }
 
   // L3 — a whole-slot Withdraw makes a fresh assertion of the same value glut, and it stays glutted
-  // under any number of further assertions (ℕ[X] zero-sum-free: con never subtracts). Thm 6.1's
-  // companion half.
+  // under any number of further assertions (ℕ[X] zero-sum-free: con never subtracts). Remark 6.2
+  // (rehabilitation asymmetry).
   property("L3 assertAfterWithdrawGlutsForever — Assert; Withdraw; Assert(v)+ stays Glut, blocked") {
     forAll(genCleanLeaf, Gen.choose(1, 4), genNonEmptyProv) { (vg, k, p2) =>
       val (v, g) = vg
@@ -127,10 +129,10 @@ class FoldSemanticsSuite extends ScalaCheckSuite:
     }
   }
 
-  // L5 (Repl half) — withdrawal is absorbing at the belief level on a supersession pair (striking the
-  // operative only). The Open half is pinned in LedgerFoldSuite; this is the Repl shape (Thm 6.1).
+  // L5 (Repl half) — withdrawal is idempotent at the belief level on a supersession pair (striking
+  // the operative only). The Open half is pinned in LedgerFoldSuite; this is the Repl shape (Thm 6.1).
   property(
-    "L5 withdrawAbsorbsAtBeliefLevel (Repl) — a second Withdraw on a superseded slot is a no-op"
+    "L5 withdrawIdempotentAtBeliefLevel (Repl) — a second Withdraw on a superseded slot is a no-op"
   ) {
     forAll(genNonGapPrior, genCleanLeaf) { (t, vg) =>
       val (_, g) = vg
@@ -141,8 +143,8 @@ class FoldSemanticsSuite extends ScalaCheckSuite:
     }
   }
 
-  // L6 — chained supersession keeps only the LAST struck prior (Def 3.4 discards the earlier one from
-  // the normal form). Assert(a); Supersede(b); Supersede(c) keeps struck = b (not a), and signs c.
+  // L6 — chained supersession keeps only the LAST struck prior (the §3 Repl+Supersede row replaces
+  // the struck prior each step). Assert(a); Supersede(b); Supersede(c) keeps struck = b (not a), signs c.
   property(
     "L6 chainedSupersessionTraceDepth — struck is the last prior (b), a is dropped, c signs"
   ) {
@@ -191,7 +193,8 @@ class FoldSemanticsSuite extends ScalaCheckSuite:
     assertEquals(p.withoutToken(lin("s3")), p) // a token not present is a no-op
   }
 
-  // L7 — token withdrawal is idempotent (Prop 2.13's token-scoped analog).
+  // L7 — token withdrawal is idempotent (the token-scoped analog of Thm 6.1, whole-slot withdrawal
+  // idempotence).
   property("L7 tokenWithdrawIdempotent — withdrawing the same token twice equals once") {
     forAll { (t: Testimony[Int], l: Lineage) =>
       Testimony.withoutToken(Testimony.withoutToken(t, l), l) == Testimony.withoutToken(t, l)
@@ -222,7 +225,8 @@ class FoldSemanticsSuite extends ScalaCheckSuite:
   }
 
   // L10 — token withdrawal commutes with corroboration of a testimony NOT containing the token
-  // (widens Thm 5.3 order-independence to the mixed assert/token-withdraw fragment on disjoint tokens).
+  // (widens Theorem 5.1 assertion permutation invariance to the mixed assert/token-withdraw fragment
+  // on disjoint tokens).
   property("L10 tokenWithdrawCommutesWithDisjointCorroborate — ∖l distributes over a disjoint ⊕") {
     forAll { (t: Testimony[Int], g0: Testimony[Int], l: Lineage) =>
       val g = Testimony.withoutToken(g0, l) // l-free by construction, so the disjointness holds
@@ -271,4 +275,48 @@ class FoldSemanticsSuite extends ScalaCheckSuite:
     // rev: h is fresh (nothing to supersede yet), then the rival g makes the slot ambiguous.
     assertEquals(Ledger.resolve(rev).status, Status.Conflict)
     assertEquals(Ledger.resolve(rev).value, None)
+  }
+
+  // L13 — §3 row 7 (Repl(s,o), Assert(g) -> Repl(s, o ⊞ g)): a later assertion after a supersession
+  // has formed accumulates onto the OPERATIVE, not the struck prior. A rival value makes the operative
+  // ambiguous (Conflict, card 2); the same value re-asserted still signs. Pins the contested-
+  // supersession-by-later-assertion cell (reached only generatively otherwise; Cor 7.2).
+  test(
+    "L13 assertAfterSupersedeHitsOperative — a rival goes Conflict, the same value still signs"
+  ) {
+    val a = Testimony.leaf(1, Prov.single(lin("s1")))
+    val b = Testimony.leaf(2, Prov.single(lin("s2")))
+    val rival = Testimony.leaf(3, Prov.single(lin("s3")))
+    val contested =
+      Ledger.resolve(Seq(Evidence.Asserted(a), Evidence.Superseded(b), Evidence.Asserted(rival)))
+    assertEquals(contested.status, Status.Conflict)
+    assertEquals(contested.value, None)
+    val bAgain = Testimony.leaf(2, Prov.single(lin("s4")))
+    val reinforced =
+      Ledger.resolve(Seq(Evidence.Asserted(a), Evidence.Superseded(b), Evidence.Asserted(bAgain)))
+    assertEquals(reinforced.status, Status.Superseded)
+    assertEquals(reinforced.value, Some(2))
+    assertEquals(reinforced.struck, Some(1))
+  }
+
+  // L14 — §3 row 11 (Repl(s,o), WithdrawToken(l) -> Repl(s, o ∖ l)): token withdrawal on a superseded
+  // slot drops just that token from the OPERATIVE, leaves the struck prior untouched, and leaves no
+  // con residue (the Repl-shape parity of L9/L11's Open-shape token withdrawal; cf. L5's whole-slot).
+  test(
+    "L14 tokenWithdrawOnReplHitsOperativeOnly — token dropped from the operative, prior intact"
+  ) {
+    val a = Testimony.leaf(1, Prov.single(lin("s1")))
+    val b = Testimony.leaf(2, Prov.plus(Prov.single(lin("s2")), Prov.single(lin("s3"))))
+    val evs =
+      Seq(Evidence.Asserted(a), Evidence.Superseded(b), Evidence.WithdrawnToken[Int](lin("s2")))
+    Ledger.belief(evs) match
+      case Right(s) =>
+        assert(!s.operative.provPro.support.contains(lin("s2")), "s2 dropped from the operative")
+        assert(s.operative.provPro.support.contains(lin("s3")), "the independent token s3 survives")
+        assert(s.operative.provCon.isZero, "no con residue on the operative")
+        assertEquals(
+          s.struck,
+          Testimony.strike(a)
+        ) // the struck prior untouched by token withdrawal
+      case Left(_) => fail("a formed supersession pair must stay Repl")
   }

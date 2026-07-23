@@ -6,7 +6,7 @@ import claimalgebra.*
   * [[Evidence]] events into a slot's belief) and `resolve` (the four-state read off that fold) —
   * built from CORE constructors, no grounding. Complements [[LedgerLawsSuite]] (the generative
   * meta-theorems) with concrete per-shape examples: corroboration accumulates, rivals go ambiguous,
-  * supersession pairs, an empty supersession is inert, and `Withdrawn` is absorbing (no
+  * supersession pairs, an empty supersession is inert, and `Withdrawn` is idempotent (no
   * resurrection). Structural assertions (status/value/struck); the `note` prose is not pinned.
   */
 class LedgerFoldSuite extends munit.FunSuite:
@@ -63,7 +63,7 @@ class LedgerFoldSuite extends munit.FunSuite:
     assertEquals(struct(Ledger.resolve(evs)), (Status.Superseded, None, Some("$100")))
   }
 
-  test("Withdrawn is absorbing — a second Withdrawn folds identically (no resurrection)") {
+  test("Withdrawn is idempotent — a second Withdrawn folds identically (no resurrection)") {
     val once = Seq(Evidence.Asserted(leaf("$100")), Evidence.Withdrawn[String]())
     val twice =
       Seq(
