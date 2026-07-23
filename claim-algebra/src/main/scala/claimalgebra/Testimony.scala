@@ -168,22 +168,22 @@ object Testimony:
 
   /** Strike — a deletion: send all support to the con-channel and CLEAR the pro-channel, retaining
     * each candidate on con for audit. Unlike [[refute]] (involutive — a channel SWAP, so two
-    * applications cancel), strike is IDEMPOTENT and ABSORBING: striking an already-struck testimony
-    * leaves it struck. This is the fail-closed requirement for a deletion folded over an event
-    * stream — a value struck twice must NOT resurrect, which a double [[refute]] would do. corner
-    * becomes `F` (or stays `N` on the gap); [[value]] is `None` (the pro-channel is empty, so
-    * nothing signs).
+    * applications cancel), strike is IDEMPOTENT under repeated application: striking an
+    * already-struck testimony leaves it struck. This is the fail-closed requirement for a deletion
+    * folded over an event stream — a value struck twice must NOT resurrect, which a double
+    * [[refute]] would do. corner becomes `F` (or stays `N` on the gap); [[value]] is `None` (the
+    * pro-channel is empty, so nothing signs).
     */
   def strike[A](a: Testimony[A]): Testimony[A] =
     of(a.candidates.map { case (v, ch) => v -> Channels(Prov.zero, Prov.plus(ch.pro, ch.con)) })
 
   /** F5 supersession — a retraction yielding TWO claims: the [[Supersession.struck]] prior clause
-    * refuted to `F` (its support kept on the con-channel for audit) and the
+    * struck to `F` (all prior pro/con evidence kept on con for audit) and the
     * [[Supersession.operative]] amendment that governs. Two claims, not one, so the pair never
     * reads as a glut.
     */
   def supersede[A](superseded: Testimony[A], amendment: Testimony[A]): Supersession[A] =
-    Supersession(refute(superseded), amendment)
+    Supersession(strike(superseded), amendment)
 
   /** Token-scoped withdrawal — remove ONE assertion's support (the lineage token `l`) from every
     * candidate's channels, dropping any candidate left empty (routed through [[of]], so a `(0, 0)`

@@ -1,836 +1,103 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>A claim algebra for agent networks—the verifiable inter-agent message as a bilattice-graded object</title>
-<script>
-  window.MathJax = {
-    tex: { inlineMath: [['\\(','\\)']], displayMath: [['$$','$$']] },
-    svg: { fontCache: 'global' }
-  };
-</script>
-<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-<script>mermaid.initialize({startOnLoad:true, theme:'neutral', flowchart:{useMaxWidth:false}});</script>
+<!DOCTYPE html><html lang="en"><head><title>A claim algebra for agent networks — revised formal specification</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script>window.MathJax={tex:{inlineMath:[["\(","\)"]],displayMath:[["$$","$$"]]},svg:{fontCache:"global"}};</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
 <style>
-  :root{--ink:#1a1a2e;--muted:#5a5a72;--line:#dcdce4;--accent:#3a5a9e;--bg:#f4f5f8;--panel:#fff;
-        --warn:#9e4b3a;--ok:#2a8c5a;--code:#f5f6f9;--violet:#553a85;}
-  *{box-sizing:border-box;}
-  body{margin:0;background:var(--bg);color:var(--ink);
-       font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
-  .wrap{max-width:860px;margin:0 auto;padding:2.4rem 1.3rem 5rem;}
-  header.title{border-bottom:3px solid var(--ink);padding-bottom:1rem;margin-bottom:1.6rem;}
-  header.title h1{font-size:1.7rem;line-height:1.25;margin:0 0 .5rem;letter-spacing:-.01em;}
-  header.title .sub{color:var(--muted);font-size:.98rem;}
-  header.title .meta{color:var(--muted);font-size:.8rem;margin-top:.7rem;}
-  h2{font-size:1.32rem;margin:2.4rem 0 .7rem;padding-top:.6rem;border-top:1px solid var(--line);letter-spacing:-.01em;}
-  h3{font-size:1.08rem;margin:1.5rem 0 .4rem;color:#2a2a44;}
-  p{margin:.7rem 0;}
-  a{color:var(--accent);}
-  code{font:.88em/1.4 "SF Mono",Menlo,Consolas,monospace;background:var(--code);
-       border:1px solid var(--line);border-radius:4px;padding:.04em .35em;}
-  pre{background:#1f2233;color:#e7e9f3;border-radius:9px;padding:1rem 1.1rem;overflow-x:auto;
-      font:.82rem/1.55 "SF Mono",Menlo,Consolas,monospace;}
-  pre code{background:none;border:none;color:inherit;padding:0;}
-  .lead{font-size:1.08rem;color:#2a2a44;}
-  .callout{background:#eef3fb;border-left:3px solid var(--accent);padding:.85rem 1.1rem;border-radius:0 7px 7px 0;margin:1.4rem 0;font-size:.96rem;}
-  .callout.warn{background:#fbefec;border-left-color:var(--warn);}
-  .callout.ok{background:#eafaf0;border-left-color:var(--ok);}
-  .callout strong{color:var(--ink);}
-  figure{margin:1.6rem 0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1rem;}
-  figure .diagram{overflow-x:auto;display:flex;justify-content:center;}
-  figcaption{color:var(--muted);font-size:.84rem;margin-top:.7rem;text-align:center;line-height:1.45;}
-  table{width:100%;border-collapse:collapse;margin:1.2rem 0;font-size:.9rem;}
-  th,td{border:1px solid var(--line);padding:.5rem .65rem;text-align:left;vertical-align:top;}
-  th{background:#eef0f4;font-size:.82rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);}
-  .mono{font-family:"SF Mono",Menlo,Consolas,monospace;}
-  ol.refs{font-size:.86rem;line-height:1.5;color:#2a2a44;}
-  ol.refs li{margin:.4rem 0;}
-  .toc{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.9rem 1.2rem;font-size:.92rem;}
-  .toc ol{margin:.3rem 0;padding-left:1.3rem;}
-  .tag{display:inline-block;font-size:.66rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
-       padding:.12em .5em;border-radius:9px;vertical-align:middle;}
-  .t-cat{background:#f3eefb;color:var(--violet);border:1px solid #cdb9eb;}
-  .t-alg{background:#eef3fb;color:var(--accent);border:1px solid #b9cdeb;}
-  .t-type{background:#eafaf0;color:var(--ok);border:1px solid #aeddbc;}
-  svg{max-width:100%;height:auto;}
-  .small{font-size:.86rem;color:var(--muted);}
-</style>
-</head>
-<body>
-<div class="wrap">
-
-<header class="title">
-  <h1>A claim algebra for agent networks</h1>
-  <div class="sub">The verifiable inter-agent message as a <em>bilattice-graded</em> object—Belnap's four values realized over the free provenance semiring, with gap and glut as distinct values, negation first-class, and verification kept as a third axis.</div>
-  <div class="meta">Working note · companion to the focused-harness actor-model design and the Credit &amp; Loan Agreement Workbench · math via MathJax, diagrams via Mermaid + SVG</div>
-</header>
-
-<p class="lead">A network of LLM agents is only as trustworthy as the messages they pass each other. Today those messages are unverifiable prose, so a confident error at one hop propagates with full authority to the next; and, just as corrosively, a contradiction between two upstream agents arrives looking like a genuine absence of information. This note proposes the fix as a single mathematical object: a <em>claim</em> that carries its own provenance, a computed confidence, a fail-closed semantics, and a faithful distinction between <em>not knowing</em> and <em>being told both</em>. The object is best understood as a three-level tower—a categorical abstraction, realized by concrete algebraic structures, implemented as a programming type.</p>
-
-<div class="callout">
-  <strong>The one-paragraph thesis.</strong> Make every inter-agent message a value annotated by an element of a <em>distributive bilattice</em>: Belnap's <span class="mono">FOUR</span>, graded, realized as <em>two evidential channels</em> (support-for and support-against) over the free provenance semiring. <span class="mono">UNRESOLVED</span> is the knowledge-bottom, the <em>gap</em> (Belnap's \(\mathbf{N}\)); a second value, <span class="mono">GLUT</span> (Belnap's \(\mathbf{B}\)), is the knowledge-top, reached when support and refutation meet. <em>Fail-closed</em> is the knowledge-meet's annihilator, \(\mathbf{N}\otimes_k x=\mathbf{N}\). <em>Pluggable trust models</em> are homomorphisms, one per channel, via the twist representation \(\mathsf{FOUR}\cong\mathsf{TWO}\odot\mathsf{TWO}\), which evaluates a <em>pro</em>-polynomial and a <em>con</em>-polynomial separately. <em>Negation</em> is first-class. The message is a <em>bilattice-graded</em> applicative refined by a decidable verification predicate, with verification kept as a <em>third</em> axis distinct from Belnap's two. The mathematics (Belnap 1977; Dunn; Ginsberg–Fitting bilattices; Green–Karvounarakis–Tannen provenance; subjective logic) is decades old; using a <em>graded bilattice as the typed wire format between LLM agents</em> is the new part.
-</div>
-
-<h2 id="toc">How this document is organized</h2>
-<div class="toc">
-  <ol>
-    <li><a href="#intro">The idea</a>—what a claim is, why prose is the wrong wire format, and why gap must differ from glut.</li>
-    <li><a href="#tower">The tower</a>—a category-theoretic abstraction realized in algebra realized in a type.</li>
-    <li><a href="#cat">The categorical layer</a> <span class="tag t-cat">abstraction</span>—monoidal categories, lax monoidal functors, the free-object universal property, and its per-channel survival.</li>
-    <li><a href="#alg">The algebraic layer</a> <span class="tag t-alg">realization</span>—the bilattice, the twist over the provenance semiring, the two meets, negation, the properties.</li>
-    <li><a href="#type">The type layer</a> <span class="tag t-type">code</span>—<code>Testimony[K, A]</code> / <code>Claim[K, A]</code> as a bilattice-graded validation applicative plus a verification refinement.</li>
-    <li><a href="#example">A first worked example: credit deal analysis</a>—the leverage pipeline, a contradiction that becomes a glut, an amendment that retracts, and the signature gate.</li>
-    <li><a href="#workbench">The workbench is the N = 1 instance</a>—the single-agent specialization, and the leap to N agents.</li>
-    <li><a href="#cost">A second instance: cost routing</a>—the tropical sibling, with a Belnap-valued confidence riding alongside the cost.</li>
-    <li><a href="#diplomacy">A third instance: adversarial games (Diplomacy)</a>—where the graded bilattice holds the trust model itself.</li>
-    <li><a href="#limits">Where the algebra stops</a>—what the bilattice buys, what it costs, and the limits that still stand.</li>
-    <li><a href="#refs">References</a>.</li>
-  </ol>
-</div>
-
-<h2 id="intro">1 · The idea</h2>
-
-<p>The remedy is to stop passing values and start passing <em>claims</em>. Where a prose message carries only a value, a claim carries that value together with everything a downstream agent needs to trust or distrust it: where it came from, how strongly it is supported, whether anything refutes it, and whether it reproduces against its sources. The rest of this note gives that object a precise mathematical home, and §6 works it end to end on a concrete credit-deal analysis.</p>
-
-<div class="callout">
-  <strong>Ignorance is not contradiction.</strong> Two of the seven entries below, gap ≠ glut and negation, exist because a single "no trustworthy value" state is not enough. "No one told me" and "I was told two contradictory things" are different epistemic states: the first calls for a search, the second for reconciliation or escalation. A scheme with one bottom value collapses them into one, and an agent that cannot tell them apart cannot act correctly. Belnap's logic separates them natively: the gap \(\mathbf{N}\) (told nothing) from the glut \(\mathbf{B}\) (told both), and that separation is the spine of the object built here.
-</div>
-
-<p>A claim bundles seven things:</p>
-
-<table>
-  <thead><tr><th>#</th><th>Feature of a claim</th><th>Informal meaning</th></tr></thead>
-  <tbody>
-    <tr><td>1</td><td>Value with <strong>two-channel support</strong>—yielding <span class="mono">True / False / Unknown / Conflicted</span></td><td>A payload carried with <em>independent</em> evidence-<em>for</em> and evidence-<em>against</em>. The four combinations are Belnap's values: support only → <strong>True</strong>; refutation only → <strong>False</strong>; neither → <strong>Unknown</strong> (the gap, named <span class="mono">UNRESOLVED</span>); both → <strong>Conflicted</strong> (the glut).</td></tr>
-    <tr><td>2</td><td>Provenance, <strong>two-channel</strong></td><td>Where support came from <em>and</em> where refutation came from—source spans, tool outputs, and for derived claims the input claims each was computed from. A <em>pro</em>-lineage and a <em>con</em>-lineage.</td></tr>
-    <tr><td>3</td><td>Confidence</td><td>A graded signal computed from the derivation, never asserted by the producer. Graded here means a pair: degree-for and degree-against.</td></tr>
-    <tr><td>4</td><td>Fail-closed</td><td>Combine anything conjunctively with an <span class="mono">UNRESOLVED</span> input, under the <em>knowledge-meet</em>, and the result is <span class="mono">UNRESOLVED</span>. Missing support cannot be laundered into a confident answer.</td></tr>
-    <tr><td>5</td><td>Gap ≠ glut</td><td>"No one told me" and "I was told contradictory things" are distinct values that propagate differently and license different downstream actions.</td></tr>
-    <tr><td>6</td><td>Negation &amp; retraction</td><td>A claim can be <em>refuted</em>, not merely unsupported; negation swaps the two channels. A later source that supersedes an earlier one is a retraction kept as a pair—the prior support struck to the con-channel and retained as a citable trace, the fresh operative signing clean—never corroborated into one claim (which would misread a legitimate amendment as a glut).</td></tr>
-    <tr><td>7</td><td>Composition &amp; verification</td><td>Conjunctive ("derived from A and B") and disjunctive ("corroborated by A or B"); and the value is checkable against its provenance—a predicate separate from how-confident-given-the-derivation, and separate again from the for/against evidential content.</td></tr>
-  </tbody>
-</table>
-
-<h2 id="tower">2 · The tower: abstraction, realization, implementation</h2>
-
-<p>The natural question, and the one that prompted this note, is whether the right description is category-theoretic. The answer is yes, with discipline: category theory belongs at the top, where it captures the abstraction several concrete structures share, and it should be used only where it earns its keep. Below it sit the algebraic structures that realize the abstraction, and below those, the type that implements them. The middle floor is a bilattice (two interlaced lattices rather than one), and because of that the top level does its work a little differently.</p>
-
-<figure>
-  <div class="diagram">
-<pre class="mermaid">
-flowchart TB
-CAT["CATEGORICAL—the abstraction
-symmetric monoidal category · lax-monoidal (applicative) functor
-free-object universal property · homomorphisms preserve both zeros
-twist: distributive bilattice ≅ two interlaced copies of a lattice"]
-ALG["ALGEBRAIC—the realization
-distributive bilattice FOUR (two orderings: truth, knowledge)
-realized by the twist over provenance polynomials N[X] ⊙ N[X]
-graded to [0,1]² ⊇ subjective logic · UNRESOLVED = gap N · GLUT = B"]
-TYP["TYPE / CODE—the buildable
-Testimony[K, A] = bilattice-graded Validation applicative (two channels)
-Claim[K, A] = a Testimony refined by verification"]
-CAT -->|"realized by"| ALG
-ALG -->|"implemented as"| TYP
-classDef c fill:#f3eefb,stroke:#553a85,color:#1a1a2e;
-classDef a fill:#eef3fb,stroke:#3a5a9e,color:#1a1a2e;
-classDef t fill:#eafaf0,stroke:#2a8c5a,color:#14502f;
-class CAT c; class ALG a; class TYP t;
-</pre>
-  </div>
-  <figcaption>Figure 1—The three-level tower. Each level is a faithful description of the same object at a different altitude; the arrows are "is realized by" and "is implemented as." The categorical level explains why the lower levels are inevitable; the type level is what you compile. The middle level is a bilattice, and the extra top-level line is the twist representation, the one additional piece of category theory the bilattice requires.</figcaption>
-</figure>
-
-<div class="callout">
-  <strong>Where category theory does real work.</strong> Category theory belongs at the top in exactly three ways: <em>(i)</em> the universal property of the free semiring, applied <em>per channel</em>, which keeps "compute provenance once, evaluate many trust models" a one-line theorem; <em>(ii)</em> preservation of the zeros by morphisms, which makes fail-closed hold under every trust model at once; and <em>(iii)</em> the <em>twist</em> (product) representation of distributive bilattices, \(\mathsf{FOUR}\cong\mathsf{TWO}\odot\mathsf{TWO}\), which lets <em>(i)</em> and <em>(ii)</em> survive the move from a semiring to a bilattice. The twist says a bilattice is just a pair of lattice computations bolted together, so the semiring machinery applies twice rather than not at all. Past these three, further categorical generality would be decoration, and the note drops to the algebra. Abstraction is a tool for compression, not a display of generality.
-</div>
-
-<p><strong>Two layers, two names.</strong> The general object at the algebraic and type levels (a value, or <span class="mono">UNRESOLVED</span>, carried with its provenance and a grade in the value space \(K\)) is a <em>Testimony</em>: a value held together with what its sources attest for and against it. It is value-agnostic: the payload may be a fact, a cost, or a trust level, and the entire algebra of §3 and §4 operates at this layer. A <em>Claim</em> is a Testimony refined by a verification predicate, a Testimony that asserts something and can be checked against its provenance. So a Claim is a Testimony that verifies. The framework keeps the name "claim algebra" because verification is its motivating purpose, but the general structure underneath is a Testimony. What distinguishes this object from a plain graded value is what \(K\) <em>is</em>: not a commutative semiring but a distributive bilattice, so a Testimony carries a Belnap-valued (graded) annotation rather than a single semiring grade. The cost-routing instance (§8) is naturally a Testimony, a graded cost; the workbench's cited facts and Diplomacy's promises are Claims, where verification and the for/against bookkeeping do the work. Convention for what follows: <em>claim</em>—and <em>claim algebra</em>—is the domain word for what an agent asserts and the name of the system, while the carrier type is written <code>Testimony[K, A]</code> and <code>Claim[K, A]</code> is its verification refinement; a figure therefore labels a composing wire by its carrier, <code>Testimony</code>, and a value that has passed or carries its verifier is a <code>Claim</code>.</p>
-
-<h2 id="cat">3 · The categorical layer <span class="tag t-cat">abstraction</span></h2>
-
-<h3>3.1 · Claims compose—so they live in a monoidal category</h3>
-<p>Agents take claims in and put claims out; they are morphisms. Two claims can be combined into one (two extracted figures combined into a derived one). The structure that captures "objects, morphisms, and a way to combine things side by side" is a symmetric monoidal category \((\mathcal{C}, \otimes, I)\): the tensor \(\otimes\) is conjunctive composition, and the unit \(I\) is the trivially-true claim. An agent network is then a string diagram in \(\mathcal{C}\)—boxes are agents, wires carry claims, side-by-side wires are conjunction, and the diagram's value is read by composing the boxes [3, 4, 5, 6].</p>
-
-<div class="callout">
-  <strong>One subtlety the bilattice forces here.</strong> Once values can be <em>refuted</em>, "conjunction" is no longer a single operation: there are two monoidal products sharing the same objects, the <em>knowledge</em>-tensor and the <em>truth</em>-tensor (§4.3). The string diagram is unchanged as a picture; what changes is that each box must say which tensor its fan-in uses. Fail-closed pins the default to the knowledge-tensor.
-</div>
-
-<figure>
-  <div class="diagram">
-<pre class="mermaid">
-flowchart LR
-A["extractor a"] -->|"Testimony · cited · True/High"| R{{"deriver (⊗ₖ)"}}
-B["extractor b"] -->|"Testimony · cited · True/Med"| R
-R -->|"Testimony · derived · conf = Med ⊗ High = Med"| J{{"corroborate (⊕ₖ)"}}
-S["second source"] -->|"Testimony · True/Med"| J
-X["refuting source"] -->|"Testimony · refutes · False"| J
-J -->|"Testimony · corroborated—or GLUT if for ∧ against both fire"| OUT["downstream agent"]
-classDef b fill:#eef3fb,stroke:#3a5a9e,color:#1a1a2e;
-classDef op fill:#fff8e8,stroke:#caa53a,color:#6b5410;
-class A,B,S,X,OUT b; class R,J op;
-</pre>
-  </div>
-  <figcaption>Figure 2—An agent network as a string diagram. Wires are typed claims, not prose. Side-by-side inputs into a box are a knowledge-tensor \(\otimes_k\) (conjunction, fail-closed); the \(\oplus_k\) box is knowledge-join, corroboration that climbs toward the glut \(\mathbf{B}\) when a supporting and a refuting source meet. The diagram is a morphism in a symmetric monoidal category, which is what makes the network's meaning compositional.</figcaption>
-</figure>
-
-<h3>3.2 · The trust annotation is a lax monoidal functor</h3>
-<p>A claim is a value decorated with provenance and confidence. The decoration is a functor \(F\) that knows how to combine decorations when values combine. The precise statement is that \(F\) is a <em>lax monoidal functor</em>: there is a natural map
-$$ F a \;\otimes\; F b \;\longrightarrow\; F(a \otimes b), $$
-which says "given a decorated \(a\) and a decorated \(b\), produce a decorated \(a \otimes b\)": combine the two annotations into the annotation of the combination. This is not a coincidence of vocabulary: applicative functors are exactly lax monoidal functors [2, 7]. Because the decoration is now a <em>pair</em> of channels, the lax map combines pro with pro and con with con; §5's type writes this out in a language with a compiler.</p>
-
-<h3>3.3 · The universal property—compute provenance once, evaluate many trust models</h3>
-<p>Here is where category theory does concrete work, and where moving to a bilattice could most easily have broken it. Let \(X\) be the set of leaf sources (this clause, that tool output). The provenance of a derived claim is a polynomial in the \(X\): a sum (alternative derivations) of products (conjoined supports). These polynomials form the free commutative semiring \(\mathbb{N}[X]\), the free object on \(X\) in commutative semirings. Freeness is a universal property: for any commutative semiring \(K\) and any valuation \(\nu : X \to K\), there is a <em>unique</em> semiring homomorphism \(\hat\nu : \mathbb{N}[X] \to K\) with \(\hat\nu \circ \iota = \nu\). You compute the lineage polynomial once and every trust measure is a homomorphic evaluation of it, the Green–Karvounarakis–Tannen provenance-semiring theorem [1].</p>
-
-<div class="callout warn">
-  <strong>The obstacle.</strong> The GKT theorem is about a <em>semiring</em>. A bilattice is <em>not</em> a semiring; it is two lattices interlaced (two semirings' worth of structure, plus a negation tying them). A naive reading fears the compute-once-evaluate-many guarantee is lost: there is no single free bilattice homomorphism that the GKT result hands you.
-</div>
-
-<p><strong>The rescue is the twist.</strong> A distributive bilattice is, up to isomorphism, a <em>product</em> of two copies of an underlying lattice with a swap: \(\mathsf{FOUR}\cong\mathsf{TWO}\odot\mathsf{TWO}\), and more generally \(K\cong L\odot L\) for a lattice \(L\) [11]. Read an element as a pair \((a^{+},a^{-})\): degree-<em>for</em> and degree-<em>against</em>, the evidence-for / evidence-against reading of Dunn [10]. Then a derived claim carries <em>two</em> independent lineage polynomials, a <em>pro</em>-polynomial \(p^{+}\in\mathbb{N}[X]\) and a <em>con</em>-polynomial \(p^{-}\in\mathbb{N}[X]\); each is evaluated by its <em>own</em> GKT homomorphism into the underlying lattice \(L\); and the bilattice value is read off the resulting pair. So the universal property is not lost: it applies <em>twice</em>, once per channel. "Compute once, evaluate many" becomes "compute two lineages once, evaluate each under one homomorphism," and a <em>glut</em> is simply the case where both evaluated channels are non-bottom. Because each \(\hat h\) is a homomorphism, evaluating the trust model and running the network commute: you can swap the trust model without recomputing the network, re-evaluating the same two lineage polynomials under a different \(\hat h\).</p>
-
-<figure>
-  <div class="diagram">
-<pre class="mermaid">
-flowchart LR
-P["claim lineage
-pro-poly p⁺ ∈ N[X]
-con-poly p⁻ ∈ N[X]"] -->|"network Q (per channel)"| Q["composed lineages
-Q(p⁺), Q(p⁻)"]
-Q -->|"eval ĥ on each channel"| V["pair (ĥ(Q p⁺), ĥ(Q p⁻)) ∈ L×L"]
-V --> B["read the Belnap value:
-(⊥,⊥)=N  (≠⊥,⊥)=True  (⊥,≠⊥)=False  (≠⊥,≠⊥)=GLUT"]
-classDef a fill:#eef3fb,stroke:#3a5a9e,color:#1a1a2e;
-classDef t fill:#f3eefb,stroke:#553a85,color:#1a1a2e;
-class P,Q a; class V,B t;
-</pre>
-  </div>
-  <figcaption>Figure 3—The homomorphism theorem, per channel. Each evidential channel is an ordinary GKT provenance computation; the bilattice value is the pair, read at the end. "Compose then evaluate" equals "evaluate then compose" on each channel, so swapping the trust model means re-evaluating the same two lineage polynomials under a different \(\hat h\), with no rerun of the network.</figcaption>
-</figure>
-
-<div class="callout ok">
-  <strong>Why fail-closed is free, and now precisely which zero.</strong> A bilattice has <em>two</em> bottoms: the knowledge-bottom \(\mathbf{N}\) (the gap) and the truth-bottom \(\mathbf{F}\) (refuted). Every lattice homomorphism on each channel preserves its bottom, so both survive evaluation into every trust model. Fail-closed is the law of the <em>knowledge</em>-meet: a conjunctive derivation with a missing (gap) input lands on \(\mathbf{N}\), under every \(\hat h\). A <em>refuted</em> input, by contrast, drives the <em>truth</em>-meet to \(\mathbf{F}\): the result is false, not unknown. The two outcomes differ, and §4.3 makes the fork explicit. Fail-closed is therefore not a feature you implement once and hope every agent respects; it is a structural property of the category of lattices, holding channel-wise.
-</div>
-
-<h2 id="alg">4 · The algebraic layer <span class="tag t-alg">realization</span></h2>
-
-<h3>4.1 · The object: a distributive bilattice over an absorbing-zero lattice</h3>
-<p>A <em>distributive bilattice</em> \((K,\le_t,\le_k)\) is a set carrying <em>two</em> lattice orderings at once, a <em>truth</em> order \(\le_t\) and a <em>knowledge</em> (information) order \(\le_k\), that interlace (each lattice operation is monotone with respect to the other order), together with a negation \(\lnot\) that inverts \(\le_t\) and preserves \(\le_k\). The smallest nontrivial one is Belnap's \(\mathsf{FOUR}\) [9]. The single safety law of a one-channel semiring, \(0\otimes x=0\), survives inside it; the bilattice adds the missing structure around that law.</p>
-
-<p>The clean way to hold it is the <em>twist</em>: \(K\cong L\odot L\), an element being a pair \((a^{+},a^{-})\) of degree-<em>for</em> and degree-<em>against</em> drawn from an underlying lattice \(L\). All four operations are then componentwise min/max, and negation is the swap:</p>
-
-<table>
-  <thead><tr><th>Operation</th><th>On pairs \((a^{+},a^{-})\)</th><th>Identity</th><th>Annihilator</th><th>Reading</th></tr></thead>
-  <tbody>
-    <tr><td>truth-meet \(\wedge_t\)</td><td>\((\min a^{+},\ \max a^{-})\)</td><td>\(\mathbf{T}=(\top,\bot)\)</td><td>\(\mathbf{F}=(\bot,\top)\)</td><td>conservative AND on truth: refutation wins</td></tr>
-    <tr><td>truth-join \(\vee_t\)</td><td>\((\max a^{+},\ \min a^{-})\)</td><td>\(\mathbf{F}\)</td><td>\(\mathbf{T}\)</td><td>optimistic OR on truth: support wins</td></tr>
-    <tr><td>knowledge-meet \(\otimes_k\)</td><td>\((\min a^{+},\ \min a^{-})\)</td><td>\(\mathbf{B}=(\top,\top)\)</td><td>\(\mathbf{N}=(\bot,\bot)\)</td><td><strong>fail-closed</strong>: a gap input erases evidence</td></tr>
-    <tr><td>knowledge-join \(\oplus_k\)</td><td>\((\max a^{+},\ \max a^{-})\)</td><td>\(\mathbf{N}\)</td><td>\(\mathbf{B}\)</td><td><strong>corroboration</strong>: pool evidence; conflict → glut</td></tr>
-    <tr><td>negation \(\lnot\)</td><td>\((a^{-},\ a^{+})\)</td><td colspan="2" style="text-align:center">involution: \(\lnot\lnot=\mathrm{id}\)</td><td>swap for and against</td></tr>
-  </tbody>
-</table>
-
-<div class="callout ok">
-  <strong>Why the knowledge-meet is the default conjunction.</strong> A purely positive confidence scheme has only a "for" channel, so it can only ever compute in the knowledge lattice: conjunction is the knowledge-meet \(\otimes_k\) (annihilator \(\mathbf{N}\)) and corroboration is the knowledge-join \(\oplus_k\) (identity \(\mathbf{N}\)). What such a scheme can never reach is the top \(\mathbf{B}\), because with nothing on the "against" channel no value can be pushed to \((\,\cdot\,,\top)\). Add the "against" channel and the rest of the bilattice (the value \(\mathbf{F}\), the value \(\mathbf{B}\), the truth lattice, negation) appears for free. So fail-closed conjunction stays exactly what it was, the knowledge-meet; the bilattice simply makes the other three operations expressible.
-</div>
-
-<figure>
-  <div class="diagram">
-    <svg viewBox="0 0 580 330" role="img" aria-label="Belnap FOUR as a bilattice with interlaced truth and knowledge orderings">
-      <defs>
-        <marker id="ax" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5a5a72"/></marker>
-        <marker id="axn" markerWidth="9" markerHeight="9" refX="2" refY="3" orient="auto"><path d="M7,0 L0,3 L7,6 Z" fill="#5a5a72"/></marker>
-        <marker id="neg" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#553a85"/></marker>
-      </defs>
-      <!-- diamond edges (covering relations) -->
-      <g stroke="#aab0c4" stroke-width="1.6">
-        <line x1="270" y1="244" x2="116" y2="150"/>
-        <line x1="270" y1="244" x2="424" y2="150"/>
-        <line x1="116" y1="150" x2="270" y2="62"/>
-        <line x1="424" y1="150" x2="270" y2="62"/>
-      </g>
-      <!-- nodes -->
-      <g font-size="13" text-anchor="middle">
-        <rect x="226" y="36" width="88" height="44" rx="10" fill="#f3eefb" stroke="#553a85"/>
-        <text x="270" y="56" font-weight="700" fill="#553a85">B · GLUT</text>
-        <text x="270" y="72" font-size="10.5" fill="#5a5a72">(⊤,⊤)—told both</text>
-
-        <rect x="206" y="222" width="128" height="44" rx="10" fill="#fbf2dd" stroke="#caa53a"/>
-        <text x="270" y="242" font-weight="700" fill="#6b5410">N · UNRESOLVED</text>
-        <text x="270" y="258" font-size="10.5" fill="#5a5a72">(⊥,⊥)—told nothing</text>
-
-        <rect x="44" y="128" width="98" height="44" rx="10" fill="#fbefec" stroke="#9e4b3a"/>
-        <text x="93" y="148" font-weight="700" fill="#6b2f23">F · False</text>
-        <text x="93" y="164" font-size="10.5" fill="#5a5a72">(⊥,⊤)—refuted</text>
-
-        <rect x="398" y="128" width="98" height="44" rx="10" fill="#eafaf0" stroke="#2a8c5a"/>
-        <text x="447" y="148" font-weight="700" fill="#14502f">T · True</text>
-        <text x="447" y="164" font-size="10.5" fill="#5a5a72">(⊤,⊥)—supported</text>
-      </g>
-      <!-- knowledge axis (vertical) -->
-      <line x1="545" y1="250" x2="545" y2="58" stroke="#5a5a72" stroke-width="1.3" marker-end="url(#ax)" marker-start="url(#axn)"/>
-      <text x="560" y="158" text-anchor="middle" font-size="11" fill="#5a5a72" transform="rotate(-90 560 158)">≤ₖ knowledge—gap → glut</text>
-      <text x="545" y="46" text-anchor="middle" font-size="10" fill="#2a8c5a">⊕ₖ join ↑</text>
-      <text x="545" y="270" text-anchor="middle" font-size="10" fill="#9e4b3a">⊗ₖ meet ↓</text>
-      <!-- truth axis (horizontal) -->
-      <line x1="60" y1="306" x2="480" y2="306" stroke="#5a5a72" stroke-width="1.3" marker-end="url(#ax)" marker-start="url(#axn)"/>
-      <text x="270" y="322" text-anchor="middle" font-size="11" fill="#5a5a72">≤ₜ truth—false ← (∧ₜ) · (∨ₜ) → true</text>
-      <!-- negation arc -->
-      <path d="M150 110 Q270 -2 390 110" fill="none" stroke="#553a85" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#neg)"/>
-      <text x="270" y="20" text-anchor="middle" font-size="10.5" fill="#553a85">¬ swaps F ↔ T, fixes N, B</text>
-    </svg>
-  </div>
-  <figcaption>Figure 4—Belnap's \(\mathsf{FOUR}\) as a bilattice. Two orderings sit on one set: the vertical <em>knowledge</em> order runs from the gap \(\mathbf{N}\) up to the glut \(\mathbf{B}\); the horizontal <em>truth</em> order runs from \(\mathbf{F}\) to \(\mathbf{T}\). A graded confidence chain \(\bot<\mathrm{Low}<\mathrm{Med}<\mathrm{High}\) is the underlying lattice \(L\) supplying the truth axis; the knowledge axis (gap versus glut) is the second dimension.</figcaption>
-</figure>
-
-<p>The feature-to-structure map is exact:</p>
-<table>
-  <thead><tr><th>Claim feature</th><th>Bilattice structure</th></tr></thead>
-  <tbody>
-    <tr><td>Value with two-channel support</td><td>A pair \((a^{+},a^{-})\) in \(L\odot L\); the four corners are \(\mathbf{T},\mathbf{F},\mathbf{N},\mathbf{B}\).</td></tr>
-    <tr><td>Conjunctive composition (AND)</td><td>Defaults to \(\otimes_k\) (fail-closed, annihilator \(\mathbf{N}\)); the truth-AND \(\wedge_t\) (annihilator \(\mathbf{F}\)) is available when "refuted, so false" is the intended reading.</td></tr>
-    <tr><td>Disjunctive corroboration (OR)</td><td>\(\oplus_k\): pool both channels; a support meeting a refutation of the same value climbs to the glut \(\mathbf{B}\), and two sources asserting different values are kept as rival candidates (an ambiguity) rather than silently canceling.</td></tr>
-    <tr><td>Verified ground truth</td><td>The truth-top \(\mathbf{T}=(\top,\bot)\): full support, no refutation; the \(\wedge_t\)-identity, so composing with it adds no doubt.</td></tr>
-    <tr><td>Fail-closed</td><td>The knowledge-meet annihilator \(\mathbf{N}\otimes_k x=\mathbf{N}\).</td></tr>
-    <tr><td>Gap ≠ glut</td><td>\(\mathbf{N}\) and \(\mathbf{B}\) are the two poles of \(\le_k\): distinct values that a single bottom cannot tell apart.</td></tr>
-    <tr><td>Negation / retraction</td><td>The swap \(\lnot(a^{+},a^{-})=(a^{-},a^{+})\); a supersession is the pair \((\lnot t, g)\)—the struck prior kept as a trace and the fresh operative \(g\), never one claim (a clobber reads as a glut).</td></tr>
-    <tr><td>Deletion: whole-slot vs one assertion</td><td>Two operators. Whole-slot <em>strike</em> moves a value's support to the con-channel (absorbing—kept as a struck trace, so a later re-assertion gluts). Token withdrawal \(t\setminus\ell\) removes ONE assertion's support outright—rivals stand, no con-residue—so a later assertion of the same value signs; this is the token-scoped retraction whole-slot deletion cannot express (calculus Def 2.16), its audit trace the recorded event, not the carrier.</td></tr>
-  </tbody>
-</table>
-
-<h3>4.2 · The universal instance and the concrete instances</h3>
-<p>The universal \(K\) is the twist over the provenance polynomial semiring, \(\mathbb{N}[X]\odot\mathbb{N}[X]\): you compute the two lineages in it once (§3.3). The concrete \(K\) you evaluate into is a design choice. The smallest interesting one is \(\mathsf{FOUR}\) itself, the deterministic <span class="mono">True / False / Unknown / Conflicted</span> signal. The <em>graded</em> one is \([0,1]^2\): a degree-for and a degree-against. Jøsang's <em>subjective logic</em> [12] embeds in it as the consistent simplex \(a^{+}+a^{-}\le 1\) (belief = for, disbelief = against, uncertainty \(=1-a^{+}-a^{-}\) measuring gap-ness toward \(\mathbf{N}\)). The glut region \(a^{+}+a^{-}>1\), culminating in \(\mathbf{B}=(\top,\top)\), lies outside that simplex, so the bilattice <em>extends</em> subjective logic with a conflict corner a single opinion cannot express; on a binary frame it relates likewise to Dempster–Shafer belief functions [13]. The standard one-channel evaluation semirings survive as the per-channel \(L\) you twist: the Viterbi lattice \(([0,1], \max, \times)\) for most-likely-derivation confidence, the fuzzy lattice \(([0,1], \max, \min)\) for weakest-link, the tropical semiring \((\mathbb{R}\cup\{\infty\}, \min, +)\) for cost-to-verify, and the Boolean lattice for bare support [18].</p>
-
-<div class="callout">
-  <strong>The graded confidence chain is the truth axis \(L\), not the bilattice.</strong> The four-element chain \(\{\bot<\mathrm{Low}<\mathrm{Med}<\mathrm{High}\}\) (a bounded distributive lattice, hence an idempotent commutative semiring) is the underlying lattice \(L\) of the twist; it supplies the <em>graded truth</em> axis of Figure 4. The four-element chain and the four-element bilattice \(\mathsf{FOUR}\) are different objects of the same size: the chain is totally ordered (one axis), \(\mathsf{FOUR}\) is the two-axis diamond. Reading the High/Med/Low signal as the whole structure is the conflation to avoid; it is one axis of two.
-</div>
-
-<h3>4.3 · Fail-closed semantics—a fork, deliberately resolved</h3>
-<p>"Fail-closed" is a principle borrowed from security and safety engineering: when a result is missing, unverifiable, or uncertain, the system defaults to the safe, restrictive state (no usable value) rather than proceeding with a guess. The metaphor is a gate. <em>Fail-closed</em>: on failure the gate shuts and nothing passes. <em>Fail-open</em>: on failure the gate opens and everything passes. A lock that fails closed stays locked when the power dies; a firewall that fails closed denies all traffic when its rules crash; default-deny authorization is fail-closed. The two choices have opposite failure modes, which is the whole reason to pick one. A fail-closed system's mistakes are over-refusals: it returns nothing when it could have answered, a loss of throughput, not of correctness. A fail-open system's mistakes are false accepts: it lets a wrong value through with authority, a loss of correctness. The deliberate asymmetry is what makes the choice safe: the system is allowed to return <span class="mono">UNRESOLVED</span> and is never penalized for it, and is penalized only for a confident value that turns out wrong. The cost of uncertainty is paid as "no answer, escalate to a human," never as a wrong answer that reaches a signature. Most language-model systems fail <em>open</em>: uncertain, they emit a fluent guess, and flipping that default is the point.</p>
-
-<p>With \(\mathbf{F}\) and \(\mathbf{B}\) present there are <em>two</em> meets, and they disagree on what a bad input does:</p>
-
-<table>
-  <thead><tr><th>Inputs</th><th>knowledge-meet \(\otimes_k\)</th><th>truth-meet \(\wedge_t\)</th><th>Gloss</th></tr></thead>
-  <tbody>
-    <tr><td>\(\mathbf{T}\) and \(\mathbf{N}\) (a gap)</td><td>\(\mathbf{N}\)</td><td>\(\mathbf{N}\)</td><td>missing support ⇒ unknown either way (both meets agree)</td></tr>
-    <tr><td>\(\mathbf{T}\) and \(\mathbf{F}\) (refuted)</td><td>\(\mathbf{N}\)—"we now know nothing"</td><td>\(\mathbf{F}\)—"the result is false"</td><td><strong>they diverge</strong>: this is the choice the bilattice exposes</td></tr>
-  </tbody>
-</table>
-
-<p>The derivation is direct: \(\mathbf{T}\otimes_k\mathbf{F}=(\top,\bot)\otimes_k(\bot,\top)=(\bot,\bot)=\mathbf{N}\), whereas \(\mathbf{T}\wedge_t\mathbf{F}=(\top,\bot)\wedge_t(\bot,\top)=(\bot,\top)=\mathbf{F}\). The fail-closed default for derivation is the <em>knowledge</em>-meet, so missing support propagates closed to \(\mathbf{N}\) across every hop and (since channel homomorphisms preserve the bottom) under every trust model. What the second channel adds is that a genuine <em>refutation</em> of a conjunct can now be expressed as \(\mathbf{F}\) under the truth-meet. The bilattice does not pick the meet for you; the engineering decision is to <em>declare</em> the knowledge-meet for "missing support" and reserve the truth-meet for "actively refuted."</p>
-
-<figure>
-  <div class="diagram">
-<pre class="mermaid">
-flowchart LR
-A["input a · True ✓"] --> M{{"⊗ₖ derive"}}
-B["input b · UNRESOLVED = N (gap)"] --> M
-M --> R["N (gap)
-N ⊗ₖ x = N—a missing input
-cannot be laundered into a value"]
-A2["input a · True ✓"] --> M2{{"∧ₜ derive (refuted input)"}}
-B2["input b · False—a source refutes it"] --> M2
-M2 --> R2["F (false)
-the refuted input makes the
-result false, not merely unknown"]
-classDef ok fill:#eafaf0,stroke:#2a8c5a,color:#14502f;
-classDef bad fill:#fbefec,stroke:#9e4b3a,color:#6b2f23;
-classDef gap fill:#fbf2dd,stroke:#caa53a,color:#6b5410;
-classDef op fill:#fff8e8,stroke:#caa53a,color:#6b5410;
-class A,A2 ok; class B,R gap; class B2,R2 bad; class M,M2 op;
-</pre>
-  </div>
-  <figcaption>Figure 5—The two annihilators. Top: a <em>gap</em> input under the knowledge-meet collapses the derivation to \(\mathbf{N}\), the fail-closed law, one missing conjunct sinking the whole result no matter how confident the others. Bottom: a <em>refuted</em> input under the truth-meet collapses it to \(\mathbf{F}\), a distinct outcome a single-bottom scheme cannot represent.</figcaption>
-</figure>
-
-<h3>4.4 · The evidential pair is Belnap's second axis—verification is a <em>third</em></h3>
-<p>Three questions hide behind a single confident sentence, and they are independent. Confidence answers "how strong is the derivation, assuming the inputs hold?", and that grading lives on the <em>truth</em> axis of Figure 4 (the \(L\) of the twist). The <em>evidential</em> content (supported, refuted, neither, both) is the for/against pair, and that pair is exactly Belnap's structure: the knowledge order runs gap \(\mathbf{N}\) → glut \(\mathbf{B}\), the truth order runs \(\mathbf{F}\) → \(\mathbf{T}\), both internal to the evidential pair. Verification answers a different question again: does the value actually reproduce against the provenance it cites? Re-resolve the citation, re-match the quote. This is a decidable predicate \(\mathrm{verify} : \mathrm{Testimony}\,a \to \mathrm{Bool}\), and it is <em>not</em> one of Belnap's two orderings. It is a third axis.</p>
-
-<div class="callout warn">
-  <strong>A confusion worth naming.</strong> It is tempting to draw a 2×2 grid with <em>confidence</em> on one axis and <em>verification</em> on the other and call it "a bilattice in the sense of Belnap." It is not. Belnap's two orders are <em>truth</em> (false → true) and <em>knowledge</em> (gap → glut), and both are evidential. A faithful object therefore tracks <em>three</em> things, not two: support-for, support-against (these two <em>are</em> the Belnap value), and verified? (the orthogonal refinement). "High confidence · unverified" is a point on the <em>verification</em> axis crossed with a high <em>truth</em>-grade; it is not the glut \(\mathbf{B}\). The glut is "supported <em>and</em> refuted," a different idea entirely.
-</div>
-
-<figure>
-  <div class="diagram">
-    <svg viewBox="0 0 560 250" role="img" aria-label="Belnap value refined by an orthogonal verification flag">
-      <defs>
-        <marker id="ax6" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5a5a72"/></marker>
-      </defs>
-      <!-- belnap mini-diamond -->
-      <g stroke="#aab0c4" stroke-width="1.4">
-        <line x1="120" y1="190" x2="40" y2="120"/>
-        <line x1="120" y1="190" x2="200" y2="120"/>
-        <line x1="40" y1="120" x2="120" y2="50"/>
-        <line x1="200" y1="120" x2="120" y2="50"/>
-      </g>
-      <g font-size="11" text-anchor="middle">
-        <circle cx="120" cy="50" r="16" fill="#f3eefb" stroke="#553a85"/><text x="120" y="54" fill="#553a85">B</text>
-        <circle cx="120" cy="190" r="16" fill="#fbf2dd" stroke="#caa53a"/><text x="120" y="194" fill="#6b5410">N</text>
-        <circle cx="40" cy="120" r="16" fill="#fbefec" stroke="#9e4b3a"/><text x="40" y="124" fill="#6b2f23">F</text>
-        <circle cx="200" cy="120" r="16" fill="#eafaf0" stroke="#2a8c5a"/><text x="200" y="124" fill="#14502f">T</text>
-      </g>
-      <text x="120" y="222" text-anchor="middle" font-size="11" fill="#5a5a72">the Belnap value (for/against)</text>
-      <!-- orthogonal verify arrow -->
-      <line x1="250" y1="120" x2="360" y2="120" stroke="#3a5a9e" stroke-width="1.6" marker-end="url(#ax6)"/>
-      <text x="305" y="110" text-anchor="middle" font-size="11" fill="#3a5a9e">refine by verify()</text>
-      <text x="305" y="138" text-anchor="middle" font-size="10" fill="#5a5a72">a third, orthogonal axis</text>
-      <!-- refined cells -->
-      <g font-size="10.5" text-anchor="middle">
-        <rect x="380" y="42" width="160" height="36" rx="7" fill="#eafaf0" stroke="#2a8c5a"/>
-        <text x="460" y="64" fill="#14502f">True · verified → signable</text>
-        <rect x="380" y="86" width="160" height="36" rx="7" fill="#fbefec" stroke="#9e4b3a"/>
-        <text x="460" y="108" fill="#6b2f23">True · UNVERIFIED → danger</text>
-        <rect x="380" y="130" width="160" height="36" rx="7" fill="#f3eefb" stroke="#553a85"/>
-        <text x="460" y="152" fill="#553a85">Glut · either → reconcile</text>
-        <rect x="380" y="174" width="160" height="36" rx="7" fill="#fbf2dd" stroke="#caa53a"/>
-        <text x="460" y="196" fill="#6b5410">Gap · either → go find it</text>
-      </g>
-    </svg>
-  </div>
-  <figcaption>Figure 6—The Belnap value, refined by verification. The Belnap value (left) is a 2-D structure on its own, carrying both truth and knowledge orders. Verification (right) is a separate Boolean that <em>refines</em> any Belnap value. "True · unverified" is the dangerous cell (confident, fluent, unchecked), but it is a verification fact about a <span class="mono">True</span>, not the glut; the glut and the gap are distinct values that demand distinct actions (reconcile versus search).</figcaption>
-</figure>
-
-<p>The acceptance policy that gates a signature is then the conjunction: the value must be <span class="mono">True</span> and unambiguous — a single candidate, not gap, not glut, not false, not a field of rivals — its derivation grade must clear a threshold, <em>and</em> it must verify:
-$$ \mathrm{accept}(c)\iff \mathrm{corner}(c)=\mathbf{T}\ \wedge\ \mathrm{cardinality}(c)=1\ \wedge\ \mathrm{grade}(c)\ge\theta\ \wedge\ \mathrm{verify}(c). $$
-Current agent swarms live in the dangerous cell: fluent and confident, unchecked. The algebra propagates the evidential pair faithfully; the verification axis is what <code>verify()</code> establishes; and only "True · unambiguous · cleared · verified" should reach a signature.</p>
-
-<h3>4.5 · The properties, and what each one buys</h3>
-<table>
-  <thead><tr><th>Property</th><th>Statement</th><th>What it buys an agent network</th></tr></thead>
-  <tbody>
-    <tr><td>Annihilation (two)</td><td>\(\mathbf{N}\otimes_k x=\mathbf{N}\) and \(\mathbf{F}\wedge_t x=\mathbf{F}\), each preserved by every channel homomorphism.</td><td>Fail-closed across arbitrarily many hops, under every trust model, with a chosen meaning (gap versus false). Every other guarantee depends on it.</td></tr>
-    <tr><td>Associativity + commutativity</td><td>\(\otimes_k,\oplus_k,\wedge_t,\vee_t\) are each associative and commutative.</td><td>Order-independent fan-in: re-bracket sub-networks freely, parallelize, and memoize (resolve-once). Lost only for sequential value-dependent derivation.</td></tr>
-    <tr><td>Negation / involution</td><td>\(\lnot\lnot a=a\); \(\lnot\) inverts \(\le_t\) and preserves \(\le_k\); De Morgan holds in the truth lattice, and \(\lnot\) is a homomorphism of the knowledge lattice.</td><td>Refutation and retraction as first-class operations; lifts the algebra out of the purely positive/monotone fragment.</td></tr>
-    <tr><td>Gap ≠ glut</td><td>\(\mathbf{N}\ne\mathbf{B}\); contradiction is a value, not a collapse to "unknown."</td><td>Downstream agents can branch on "disagreement" (reconcile/escalate) versus "ignorance" (go find it).</td></tr>
-    <tr><td>Interlacing / distributivity</td><td>Each operation is monotone w.r.t. the other order; the lattices distribute.</td><td>Makes the twist valid, hence the per-channel homomorphism theorem; lets you re-bracket and parallelize fan-in.</td></tr>
-    <tr><td>Homomorphic evaluation (per channel)</td><td>Any \(\nu:X\to L\) extends uniquely to \(\hat\nu:\mathbb{N}[X]\to L\), applied to each of the two lineages.</td><td>Compute two lineages once; render any trust measure; swap the trust model without recomputing the network.</td></tr>
-    <tr><td>Knowledge-monotonicity</td><td>More evidence on either channel moves a value up \(\le_k\); it never spuriously descends.</td><td>No "evidence makes it more ignorant" pathologies; corroboration and refutation both register.</td></tr>
-    <tr><td>Idempotency (per channel)</td><td>\(a\oplus_k a=a\) when \(L\) is idempotent.</td><td>Re-receiving the same source does not inflate confidence; the choice of \(L\) encodes the independence assumption (idempotent \(\min/\max\) is conservative; a non-idempotent product or a counting semiring rewards corroboration but is fooled by correlated sources). A saturating noisy-OR \(a\oplus b=a+b-ab\) is <em>not</em> distributive, so it is not a valid \(\hat\nu\) target—the faithful non-idempotent model is the counting/probability semiring.</td></tr>
-  </tbody>
-</table>
-
-<h2 id="type">5 · The type layer <span class="tag t-type">code</span></h2>
-
-<p>The categorical statement of §3.2 (applicative = lax monoidal functor) is a programming type. The grade is not a stored channel but a bilattice element <em>rendered</em> from the two provenance polynomials by the homomorphism ν̂ (§3.3), so there is no second source of truth to drift. The two names of §2 appear directly: <code>Testimony[A]</code> is the graded value the algebra acts on—its grade rendered on demand, not carried—and <code>Claim[A]</code> is a Testimony refined by verification. Here it is in Scala, lightly cleaned; the invariant-bearing scalars are distinct (or opaque) types behind fail-closed constructors—illegal states unrepresentable, with the residual invariants carried by law and property tests.</p>
-
-<pre><code>// The underlying lattice L of the twist (the per-channel confidence). A DISTINCT
-// sealed type, not an opaque alias of Double — the only constructors are bottom, top,
-// and the clamping fail-closed deg, so the (0,1] invariant holds AND a derived instance
-// can't self-loop (an opaque `= Double` would resolve Order[Double] back to its own given).
-sealed trait Lev
-object Lev:
-  case object Bot extends Lev                          // ⊥  no evidence on this channel
-  private final case class Deg(p: Double) extends Lev // p ∈ (0,1]; private — only `deg` builds it
-  val bottom: Lev = Bot
-  val top: Lev    = Deg(1.0)
-  def deg(p: Double): Lev =                            // the only constructor; fail-closed
-    if !(p > 0.0) then Bot else if p >= 1.0 then top else Deg(p)   // NaN and p ≤ 0 ⇒ ⊥
-  extension (x: Lev)
-    def strength: Double  = x match { case Bot => 0.0; case Deg(p) => p }
-    def isBottom: Boolean = x match { case Bot => true; case Deg(_) => false }
-  def meet(a: Lev, b: Lev): Lev = if a.strength <= b.strength then a else b  // min (weaker)
-  def join(a: Lev, b: Lev): Lev = if a.strength >= b.strength then a else b  // max (stronger)
-  given Order[Lev] = Order.fromLessThan((a, b) => a.strength &lt; b.strength)
-
-// THE RENDERED bilattice element: an evidential PAIR (for, against)—the twist L ⊙ L. NOT stored on a
-// Testimony; it is the homomorphic image ν̂(pro), ν̂(con) of the two provenance polynomials under a
-// chosen trust model L (see Testimony.renderEv). The four operations are the bilattice it lives in.
-final case class Ev(pro: Lev, con: Lev)              // (a⁺, a⁻)
-object Ev:
-  val N = Ev(Lev.bottom, Lev.bottom)                 // gap—knowledge-bottom, the UNRESOLVED value
-  val T = Ev(Lev.top,    Lev.bottom)                 // true—supported, unrefuted
-  val F = Ev(Lev.bottom, Lev.top)                    // false—refuted, unsupported
-  val B = Ev(Lev.top,    Lev.top)                    // glut—knowledge-top, told both
-
-  // FOUR OPERATIONS, all componentwise (see §4.1 table):
-  def kmeet(a: Ev, b: Ev) = Ev(Lev.meet(a.pro, b.pro), Lev.meet(a.con, b.con)) // ⊗ₖ FAIL-CLOSED: N absorbs
-  def kjoin(a: Ev, b: Ev) = Ev(Lev.join(a.pro, b.pro), Lev.join(a.con, b.con)) // ⊕ₖ corroborate; conflict → B
-  def tmeet(a: Ev, b: Ev) = Ev(Lev.meet(a.pro, b.pro), Lev.join(a.con, b.con)) // ∧ₜ truth-AND; F absorbs
-  def tjoin(a: Ev, b: Ev) = Ev(Lev.join(a.pro, b.pro), Lev.meet(a.con, b.con)) // ∨ₜ truth-OR
-  def negate(a: Ev): Ev   = Ev(a.con, a.pro)                                   // ¬ swap channels
-
-  enum Belnap { case Gap, True, False, Glut }
-  def corner(a: Ev): Belnap = (a.pro.isBottom, a.con.isBottom) match  // read off the pair
-    case (true, true)   => Belnap.Gap
-    case (false, true)  => Belnap.True
-    case (true, false)  => Belnap.False
-    case (false, false) => Belnap.Glut               // both channels fire—the contradiction value
-
-// Provenance is the free commutative semiring ℕ[X] (§4): a polynomial over lineage tokens, carried
-// TWICE (a pro-lineage and a con-lineage). + is ALTERNATIVE derivation (corroboration), · is JOINT
-// use (conjunction). 0, the empty polynomial, is the gap and · annihilates it — fail-closed; 1, the
-// unit monomial, is supported-but-citing-nothing. NOT Set[Lineage]: a set collapses · and + to union
-// and drops the ℕ multiplicity a non-idempotent trust model reads.
-final case class Monomial(exps: Map[Lineage, Int])     // multiset of tokens — joint use ·; empty = 1
-final case class Prov(terms: Map[Monomial, BigInt])    // polynomial — alternatives +; empty = 0 = gap
-object Prov:
-  val zero: Prov = Prov(Map.empty)                     // 0 — no support (the gap);  0 · x = 0
-  val one:  Prov = Prov(Map(Monomial(Map.empty) -> 1)) // 1 — supported, cites nothing
-  given CommutativeRig[Prov] with
-    def zero = Prov.zero;  def one = Prov.one
-    def plus(x: Prov, y: Prov): Prov  = ???            // merge terms, ADD coefficients   (alternative)
-    def times(x: Prov, y: Prov): Prov = ???            // distribute monomials, MUL coeffs (joint use)
-  extension (p: Prov)
-    def isZero: Boolean = p.terms.isEmpty              // the structural gap test — model-free
-    // ν̂ : the unique GKT homomorphism ℕ[X] → M induced by a token valuation. THE grade, rendered:
-    def evaluate[M](nu: Lineage => M)(using CommutativeRig[M]): M =
-      ???                                              // Σ over terms: coeff · (Π over tokens nu^exp)
-
-// THE TESTIMONY: a value with its two provenance polynomials. The grade is NOT a field — it is
-// rendered from the polynomials (renderEv), and the Belnap corner is read STRUCTURALLY from whether
-// each channel is empty, so no stored grade can drift from its provenance.
-final case class Testimony[+A](value: Option[A], provPro: Prov, provCon: Prov)
-// READABLE SKETCH: this single-value form is shown for clarity; the SHIPPED carrier generalizes
-// `value: Option[A]` to a candidate map `A →₀ Channels(pro, con)`, so corroboration is a commutative
-// monoid that keeps disagreeing rivals as DISTINCT candidates (an ambiguity, cardinality ≥ 2) —
-// not the left-biased `orElse` below — and truthMeet's con-channel is the three-term cross-term
-// ca·pb + pa·cb + ca·cb (recovering F ∧ₜ F = F). See claim-algebra-general.html and the foundations.
-
-object Testimony:
-  def corner(t: Testimony[?]): Belnap =                       // model-free, off the two polynomials
-    Belnap.from(t.provPro.isZero, t.provCon.isZero)
-
-  // ⊗ₖ derive — fail-closed by the ANNIHILATOR: BOTH channels combine by JOINT use ·, so a gap (0)
-  // sinks the pro-product to 0 ⇒ no value, under every trust model. (§4.3 default for "missing".)
-  def derive[A, B, C](a: Testimony[A], b: Testimony[B])(f: (A, B) => C): Testimony[C] =
-    val pro = Prov.times(a.provPro, b.provPro)
-    val v   = if pro.isZero then None else (a.value, b.value).mapN(f)
-    Testimony(v, pro, Prov.times(a.provCon, b.provCon))
-
-  // ∧ₜ truth-meet — the F7 fork: pro by ·, con by +, so an actively-REFUTED conjunct goes to F, not
-  // the gap N that ⊗ₖ gives a merely-missing one. Same skeleton as derive; the con-channel uses +.
-  def truthMeet[A, B, C](a: Testimony[A], b: Testimony[B])(f: (A, B) => C): Testimony[C] =
-    val pro = Prov.times(a.provPro, b.provPro)
-    val v   = if pro.isZero then None else (a.value, b.value).mapN(f)
-    Testimony(v, pro, Prov.plus(a.provCon, b.provCon))
-
-  // ⊕ₖ corroborate — both channels by ALTERNATIVE +: agreement pools; a support meeting a refutation
-  // makes both channels non-empty ⇒ the glut B.
-  def corroborate[A](a: Testimony[A], b: Testimony[A]): Testimony[A] =
-    Testimony(a.value.orElse(b.value),
-              Prov.plus(a.provPro, b.provPro), Prov.plus(a.provCon, b.provCon))
-
-  // ¬ refute — swap the channels. F5 supersession is refute(old) [struck → F, kept on the record]
-  // paired with a fresh T [the operative amendment]: two claims, never one (a clobber reads as a glut).
-  def refute[A](a: Testimony[A]): Testimony[A] = Testimony(a.value, a.provCon, a.provPro)
-
-  // THE grade, rendered: ν̂ on each channel into the bilattice, under a chosen trust model L (here Lev,
-  // the fuzzy carrier). Swap L (Viterbi, counting, Boolean) without rerunning the network (§3.3).
-  def renderEv[A](t: Testimony[A])(nu: Lineage => Lev): Ev =
-    Ev(t.provPro.evaluate(nu), t.provCon.evaluate(nu))
-
-// A CLAIM is a Testimony refined by verification—opaque, so the only way to build one is to run the
-// verifier. (Earlier drafts wrote this as `Refined VerifiesAgainstProvenance`; because the predicate
-// needs the corpus, it is a runtime smart constructor returning Option, not a pure refinement.)
-opaque type Claim[+A] = Testimony[A]
-object Claim:
-  def verify[A](t: Testimony[A], v: Testimony[A] => Boolean): Option[Claim[A]] = Option.when(v(t))(t)
-  extension [A](c: Claim[A]) def testimony: Testimony[A] = c
-</code></pre>
-
-<div class="callout">
-  <strong>Why an applicative, not a monad.</strong> Monadic <code>&gt;&gt;=</code> lets later structure depend on an earlier <em>value</em> and short-circuits on the first failure, discarding the lineage of the other conjuncts. The <code>Validation</code> applicative is deliberately <em>not</em> a monad, precisely so it <em>accumulates</em> [2]. Here it must accumulate <em>both</em> the pro- and con-lineages of every conjunct, because a downstream agent needs the full two-channel provenance for verification, blame-assignment, and to tell a glut from a gap. The "graded" qualifier means the \((\mathrm{Prov},\mathrm{Prov},\mathrm{Ev})\) annotation is an effect grade produced by composition, never written by the payload [8]. The single legitimately-monadic edge (an agent choosing whom to ask next from a prior answer) remains a justified escape hatch, not the default.
-</div>
-
-<p>The other realizations move in step. In Haskell the object is <code>Testimony a = Writer (Prov, Prov) (Maybe a)</code> exposed as an <code>Applicative</code> only (the monoid is the <em>product</em> of the two provenance semirings; the grade is rendered from them by ν̂, not carried), with <code>Claim</code> via a Liquid Haskell refinement, and <code>negate</code> a total function swapping the two <code>Prov</code> components. In the harness's Go (no higher-kinded types) the <code>Testimony</code> struct carries a second provenance field and the <code>Conf</code> enum becomes the four-corner <code>Ev</code>; <code>And</code> still pattern-matches the gap first (now <code>Ev.N</code>) as an explicit early return, but the <em>glut</em> is representable as a value rather than silently folded into the gap.</p>
-
-<h2 id="example">6 · A first worked example: credit deal analysis</h2>
-
-<p>Put the object to work on the problem that motivates it. A credit-analysis network reads a borrower's filings and produces a leverage figure for a memo a human will sign. Three agents do the front-line work: one extracts total debt from a filing, one extracts EBITDA, and a third divides them to report leverage. In a prose pipeline the third agent receives "debt is $1.2bn" and "EBITDA is $400m" as sentences, believes them, and emits "leverage is 3.0x" as another, with nothing recording where $1.2bn came from, how sure the extractor was, or what should happen if the EBITDA agent failed and guessed. An error at hop one reaches the signed memo at hop three wearing the same confident clothes as a fact. As claims, each figure instead arrives carrying its provenance and its evidential pair, and the ratio agent composes them under the knowledge-meet.</p>
-
-<figure>
-  <div class="diagram">
-<pre class="mermaid">
-flowchart LR
-D["debt extractor"] -->|"Testimony[$] · cited · True/High"| R{{"ratio agent (⊗ₖ)"}}
-E["EBITDA extractor"] -->|"Testimony[$] · cited · True/Med"| R
-R -->|"Testimony[x] leverage · conf = High ⊗ Med = Med"| G["signature gate · T ∧ card=1 ∧ grade≥θ ∧ verify"]
-classDef b fill:#eef3fb,stroke:#3a5a9e,color:#1a1a2e;
-classDef op fill:#fff8e8,stroke:#caa53a,color:#6b5410;
-classDef gate fill:#eafaf0,stroke:#2a8c5a,color:#14502f;
-class D,E b; class R op; class G gate;
-</pre>
-  </div>
-  <figcaption>Figure 7—The credit-deal analysis as a claim network: two cited extractions compose at the ratio agent under the fail-closed knowledge-tensor \(\otimes_k\), and the leverage claim passes the signature gate only if it is True, clears the grade threshold, and verifies. The prose then layers three scenarios onto this base: a missing debt input (a gap), a second debt source that disagrees (an ambiguity — two rival figures kept distinct), and an amendment that retracts the first.</figcaption>
-</figure>
-
-<p><strong>Fail-closed on a missing input.</strong> Suppose the debt extractor finds no usable figure: its claim is the gap \(\mathbf{N}\). Leverage is debt divided by EBITDA, a knowledge-meet, and \(\mathbf{N}\otimes_k x=\mathbf{N}\), so the leverage claim is itself \(\mathbf{N}\) (<span class="mono">UNRESOLVED</span>), no matter how confident the EBITDA extractor was. The missing input cannot be laundered into a plausible 3.0x, and the agent that owns the ratio is allowed to return "unresolved, escalate" without penalty (§4.3).</p>
-
-<p><strong>Disagreement becomes an ambiguity, not a gap.</strong> Now add a fourth agent: a second debt extractor that reads $1.5bn from a different exhibit, disagreeing with the first agent's $1.2bn. Both figures are cited, and neither denies the other. Corroborating them under \(\oplus_k\) keeps both as rival candidates — the corner stays <span class="mono">True</span> but the cardinality is 2, an <em>ambiguity</em>, which the gate blocks because no single value is signable. (A <em>glut</em> \(\mathbf{B}\) is the distinct case where the <em>same</em> value is asserted and refuted — a source that contradicts the $1.2bn, or a withdrawn restatement.) This is the case a single-bottom scheme cannot express: it would collapse "$1.2bn cited and $1.5bn cited" to the same <span class="mono">UNRESOLVED</span> as "no debt figure was ever found." The two states call for opposite actions (the gap a search, the ambiguity reconciliation or escalation), and the downstream agent can branch on which it received.</p>
-
-<p><strong>An amendment is a retraction, not a clobber.</strong> Say a later filing amends the debt figure, superseding the first extraction. Rather than silently overwriting it, the amendment is recorded as a pair: the prior support is struck to the con-channel of its own struck member—negation swaps the old for-evidence across (§4.1)—and retained as a citable trace, while the fresh figure enters as the operative claim that governs. The two are never corroborated into one testimony; a clobber would land the struck support beside the new figure and read as a glut. So the record shows that the first figure was retracted, by what, and when, the earlier value never simply vanishes, and the amendment still signs clean.</p>
-
-<p><strong>The signature gate.</strong> The memo may be signed only when the leverage claim is <span class="mono">True</span> and unambiguous (a single candidate — not gap, not glut, not false, not a field of rivals), its grade clears the threshold, and it verifies against its cited spans:
-$$ \mathrm{accept}(c)\iff \mathrm{corner}(c)=\mathbf{T}\ \wedge\ \mathrm{cardinality}(c)=1\ \wedge\ \mathrm{grade}(c)\ge\theta\ \wedge\ \mathrm{verify}(c). $$
-A high-grade leverage figure whose citation does not reproduce sits in the danger cell of Figure 6 and is held back; a glut is routed to reconciliation; a gap is routed to a search. The three axes (evidential value, derivation grade, verification) gate the signature independently, and all three must hold (§4.4).</p>
-
-<p><strong>Routing a glut by kind (G3).</strong> Each <span class="mono">Lineage</span> token carries the <em>kind</em> of evidence it is — an extraction, a definitional reading, a temporal retraction, an independent verification — so a glut does more than say "reconcile": the map \(\hat\kappa\) reads the kind-set off the con-channel and names <em>which desk</em> owns it (a misread figure to data-quality, a withdrawn restatement to the deal lead, an independent refutation to audit). Because the kind rides the provenance, \(\hat\kappa\) is an additive-monoid homomorphism that unions kinds across the whole composition for free; the routing falls out of one read with no per-kind plumbing. It is a pure decoration — never an input to the gate or the grade, so the accept decision is unchanged (a conservative extension). This is a parsimony and blame-attribution capability, not a further reduction in confidently-wrong signatures: against a fair structured control that hand-extracts the same per-kind signals, it ties (finding 7).</p>
-
-<p>This one example exercises every moving part: the two-channel evidential value, fail-closed conjunction, gap distinct from glut, negation as retraction, and verification as the third axis. The three instances that follow take the same object to other value spaces and scales.</p>
-
-<h2 id="workbench">7 · The workbench is the N = 1 instance</h2>
-
-<p>The credit-deal analysis of §6 ran several agents over one deal; the same object at \(N=1\) is the Credit &amp; Loan Agreement Workbench, a single agent resolving a contract's defined terms. That the workbench is a faithful specialization of exactly this object is the strongest evidence the abstraction is right. Two of the rows below are precisely the cases the workbench hits in practice and that a single-bottom scheme could not name.</p>
-
-<table>
-  <thead><tr><th>Claim algebra</th><th>Workbench realization</th></tr></thead>
-  <tbody>
-    <tr><td>Provenance polynomials \(\mathbb{N}[X]\odot\mathbb{N}[X]\)</td><td>The defined-term DAG (terms as nodes, references as edges), now carrying a supporting and (where a term is challenged) a refuting lineage.</td></tr>
-    <tr><td>Evaluating the polynomials</td><td>Resolving a term by the topological walk, per channel.</td></tr>
-    <tr><td>Knowledge-meet annihilator \(\mathbf{N}\otimes_k x=\mathbf{N}\)</td><td>"Fail closed to <span class="mono">UNRESOLVED</span>" on a missing reference or a cycle.</td></tr>
-    <tr><td>Two contradictory definitions of a term → \(\mathbf{B}\) (GLUT)</td><td>A term defined two incompatible ways across exhibits is a <em>glut</em>, flagged for reconciliation—<strong>distinct</strong> from a term left undefined (a gap).</td></tr>
-    <tr><td>Amendment supersedes a base clause → retraction via \(\lnot\)</td><td>A superseding amendment is recorded as a pair—the prior support struck to the con-channel and kept as a trace, the fresh clause the operative that governs—rather than a silent overwrite or a single glutted claim.</td></tr>
-    <tr><td>Graded truth axis (the \(L\))</td><td>The deterministic High/Med/Low signal.</td></tr>
-    <tr><td>Verification predicate</td><td>Native Citations / quote-then-verify against the source span—the orthogonal third axis of §4.4.</td></tr>
-    <tr><td>Homomorphism theorem</td><td>"One source of truth → many renders" (abstract, Excel, memo, JSON), now per channel.</td></tr>
-    <tr><td>Acyclicity precondition</td><td>The DAG's cycle-detection and hop-depth cap.</td></tr>
-  </tbody>
-</table>
-
-<div class="callout ok">
-  <strong>The concrete payoff at N = 1.</strong> A reviewer staring at <span class="mono">UNRESOLVED</span> on "Total Debt" cannot tell whether the term was never defined or defined twice in conflict—two situations that call for opposite actions (go find the definition versus reconcile two of them). With gap distinct from glut the workbench surfaces the glut as its own state, and treats a later amendment as a retraction of the earlier clause rather than a clobber. The leap from N = 1 to N agents is to make the nodes <em>agents</em> instead of <em>defined terms</em>: the same algebra, the same fail-closed guarantee, the same render-many-from-one, now carrying the gap/glut distinction across the wire for free. The concrete first step is to lift the harness's <code>LlmCall</code>/claim representation toward the <code>Testimony[K, A]</code> / <code>Claim[K, A]</code> shape, making the object explicit in code where it is currently implicit.
-</div>
-
-<h2 id="cost">8 · A second instance: cost routing in an agent fulfillment network</h2>
-
-<p>Section 7 read the workbench as the \(N=1\) specialization. The same object at a different value space is a network of fulfillment-center agents finding the cheapest way to move an item to a customer, the cost sibling. Working it through exercises the same core moves (annihilator as fail-closed, the verification axis, the homomorphism) on a problem that looks nothing like clause extraction, and it is the natural setting for many agents rather than one. The bilattice touches it in one specific place: the <em>confidence</em> riding on an advertised cost becomes Belnap-valued, while the cost dimension itself stays one-dimensional.</p>
-
-<h3>8.1 · The tropical specialization</h3>
-<p>Take the cost channel to be the tropical (min-plus) semiring \((\mathbb{R}\cup\{+\infty\},\ \min,\ +,\ +\infty,\ 0)\). Nodes are fulfillment centers; edges are lanes (center-to-center transfer, or center-to-customer last mile); an edge's weight is its cost. Conjunction \(+\) adds cost along a path; disjunction \(\min\) picks the cheapest alternative. The tropical zero \(+\infty\) plays a dual role: as the \(\min\)-identity it is "no route found yet" (beaten by any real route), and as the \(+\)-annihilator it is "this leg is infeasible" (\(+\infty + x = +\infty\), poisoning any route through it). Optimal routing is the Kleene closure \(a^{*} = 1 \oplus a \oplus a^{2} \oplus \cdots\) of the tropical adjacency matrix, the computation Bellman–Ford and Floyd–Warshall carry out [18, 19, 20, 21]; it converges when there is no negative-cost cycle, a condition automatically met by non-negative shipping costs.</p>
-
-<p>The "ship direct, or forward through a closer center then ship" decision is one \(\min\) over \(+\)-products:
-$$ \mathrm{cost}(A\!\to\!\mathrm{cust}) \;=\; [A\!\to\!\mathrm{cust}] \;\oplus\; \big([A\!\to\!B]\otimes[B\!\to\!\mathrm{cust}]\big) \;\oplus\; \cdots \;=\; \min\{\,9,\ 2{+}3,\ \dots\,\}, $$
-so shipping direct at \(\$9\) loses to forwarding through \(B\) at \(\$2 + \$3 = \$5\). The three center "types" (distribution-only, direct-to-customer, hybrid) are not special cases in the algebra; they are a <em>derived</em> property of each node's incident edges (whether a center-to-customer edge is present), not a tag the math reads.</p>
-
-<div class="callout">
-  <strong>What the bilattice does and does not change here.</strong> The cost itself is a <em>scalar</em> in a totally ordered semiring; there is no "for/against" on a number, and the note does <em>not</em> bilattice-ify cost. What becomes Belnap-valued is the <em>confidence</em> a center attaches to its advertised cost: that cost can be actively <em>refuted</em> (a probe contradicts it), value \(\mathbf{F}\); this is distinct from an unprobed lane, value \(\mathbf{N}\), and from two probes that disagree, value \(\mathbf{B}\). The cost stays tropical, and a lane that is infeasible rather than mispriced is carried on the cost channel as \(+\infty\); the evidential pair rides alongside it.
-</div>
-
-<figure>
-  <div class="diagram">
-<pre class="mermaid">
-flowchart LR
-A["lane A→B · $2 · conf True ✓"] --> M{{"⊗ compose route A→B→cust"}}
-B["lane B→cust · cost = +∞ (Unreachable)"] --> M
-M --> R["+∞—route infeasible
-+∞ + x = +∞: one bad leg poisons
-the route, regardless of the $2"]
-classDef ok fill:#eafaf0,stroke:#2a8c5a,color:#14502f;
-classDef bad fill:#fbefec,stroke:#9e4b3a,color:#6b2f23;
-classDef op fill:#fff8e8,stroke:#caa53a,color:#6b5410;
-class A ok; class B,R bad; class M op;
-</pre>
-  </div>
-  <figcaption>Figure 8—The annihilator, in cost. A center that cannot confirm its onward lane advertises \(+\infty\); \(+\infty + x = +\infty\) is the cost-channel face of fail-closed, and the route collapses no matter how cheap the other legs are. The confidence channel rides alongside as a Belnap value, distinguishing an <em>unknown</em> lane from a <em>refuted</em> one.</figcaption>
-</figure>
-
-<h3>8.2 · Intelligent agents make the edge weight a claim</h3>
-<p>A scalar lane cost assumes the cost is known. An intelligent center <em>predicts</em> it (transit time, capacity, stockout risk), so the edge weight is not a number but a graded value with provenance and an evidential pair: a <code>Testimony[Cost]</code>. This is the §2 distinction in action: a cost is not an assertion, so it is naturally a <em>Testimony</em>, not a Claim; the <code>verifier</code> field below, which lets the receiver re-check the lane against evidence, is what lifts it to a <code>Claim[Cost]</code>. The construction needs naming precisely, because it is easy to mis-state:</p>
-<ul>
-  <li>Under <strong>\(\otimes\) (compose a route)</strong> it is a genuine product: add the cost (tropical \(\otimes = {+}\)) <em>and</em> meet the evidential pair under the knowledge-meet \(\otimes_k\), componentwise (the weakest-link reading). A leg with no usable support, whether unprobed or refuted, forces the composed pro-channel to \(\bot\), so the route is only as confident as its weakest leg; a confirmed-down lane is carried on the cost channel as \(+\infty\), not as a false evidential pair.</li>
-  <li>Under <strong>\(\oplus\) (choose among routes)</strong> it is <em>not</em> the componentwise direct product. It is the <strong>tropical-weight-with-output</strong> construction familiar from weighted finite-state transducers [22]: the tropical cost <em>selects</em> the winning route, and the route, evidential pair, and provenance ride along as an output label, concatenated under \(\otimes\) and projected from the arg-min at each \(\oplus\). It is a well-defined, associative \(\oplus\) only once equal-cost ties resolve deterministically (equivalently, a <strong>lexicographic</strong> semiring with cost primary).</li>
-</ul>
-<p>The route witness here is an <em>ordered</em> path, the free monoid under concatenation, a deliberate strengthening of §5's unordered <code>Prov(Set)</code>. Order matters here: the loop check in §8.3 reads it.</p>
-
-<p>A center \(B\) advertises to a neighbor \(A\), per destination, a cost-to-serve claim—a path-vector advertisement:</p>
-<pre><code>final case class ReachClaim(
-  dest:     DestId,                                  // the QUESTION: which customer / region
-  cost:     Cost | Unreachable,                      // tropical VALUE (Unreachable = +inf)
-  route:    Vector[Leg],                             // PROVENANCE—an ORDERED path witness (free monoid)
-  ev:       Ev,                                      // EVIDENTIAL pair on the advertised cost:
-                                                     //   True = probe confirms the cost · False = probe refutes it
-                                                     //   Gap = unprobed · Glut = probes disagree
-  verifier: EvidenceRef,                             // VERIFICATION handle—re-check the lane vs evidence
-  asOf:     Instant, ttl: Duration,                  // freshness (a min-lattice)
-  basis:    Indicative | Reservable(CapacityToken))  // estimate vs committable hold (Boolean-AND)
-</code></pre>
-<p>\(A\) <em>relaxes</em> by composing its lane to \(B\) with \(B\)'s claim: cost is tropical \(+\) (with \(+\infty\) absorbing, fail-closed); route is \((A\!\to\!B)\) prepended; the evidential pair is the knowledge-meet \(\otimes_k\) of the two legs' pairs; freshness is the \(\min\); and basis is reservable only if both legs are. \(A\)'s own advertised cost is the \(\min\) over neighbors, carrying the arg-min's label and keeping the runners-up as alternative lineage. The message is thus a product of several little monoids at once (cost tropical, evidence the bilattice, route a free monoid, freshness a min-lattice, feasibility Boolean), which is why the \(\oplus\) is selective rather than componentwise. Its <code>verifier</code> field is the §4.4 third axis: an advertised cost is a <code>Claim[Cost]</code> whose <code>verify()</code> re-resolves the lane against the agent's evidence, so a high-grade-but-unverified quote sits in the danger cell of Figure 6, and, separately, a glut flags two rate cards that disagree.</p>
-
-<h3>8.3 · Provenance buys loop-freedom</h3>
-<p>Carrying the full <code>route</code> lineage, and discarding any advertisement whose route already contains the receiver, makes this a <strong>path-vector</strong> protocol—the AS_PATH loop check of BGP [24]. Path-vector routing is <em>inherently</em> loop-free and therefore has <strong>no count-to-infinity</strong>. The contrast is instructive: bare distance-vector routing (RIP) carries only a metric, so it leans on split-horizon and poison-reverse, which suppress only two-hop loops, plus a metric-as-infinity ceiling, and <em>still</em> suffers count-to-infinity on longer loops [25]. The same provenance field that buys auditability buys loop-freedom. And an <span class="mono">Unreachable</span> advertisement (\(+\infty\), the annihilator) is an active <strong>route withdrawal</strong>, distinct from a stale entry timing out: a center refusing to guess a lane it cannot confirm, and the network declining to route through it. None of this rides on the evidential pair; loop-freedom rides on the <em>order</em> of the provenance witness.</p>
-
-<div class="callout warn">
-  <strong>What this does <em>not</em> give you for free.</strong> "Compute the route once, then re-optimize for cost, time, or carbon by swapping the homomorphism" is false, and a practitioner will object immediately: changing the objective changes the chosen lane. The homomorphism theorem (§3.3) re-evaluates a <em>fixed, un-collapsed</em> lineage polynomial under many valuations, but shortest-path <em>selection</em> is itself a min-fold under one cost valuation, and collapsing to the cost-min discards the alternatives, including the possibly-different min-time path. What is genuinely reused is the path-enumeration <em>structure</em>, not the per-objective minimization; each objective still runs its own min-fold, because materializing the full un-collapsed lineage to reuse it across objectives is itself exponential. True simultaneous multi-objective routing needs a <strong>lexicographic</strong> semiring (a total order: cost, ties broken by time) or a <strong>Pareto / antichain</strong> semiring (labels are <em>sets</em> of non-dominated cost vectors; \(\oplus\) is non-dominated union, \(\otimes\) is vector addition), the latter computing the frontier once but at a cost that is NP-hard with a possibly exponential frontier [26]. The bilattice upgrade does not change this; it concerns the <em>confidence</em> channel, not the cost objective.</div>
-
-<table>
-  <thead><tr><th>Claim algebra</th><th>Fulfillment realization</th></tr></thead>
-  <tbody>
-    <tr><td>Cost channel</td><td>Tropical \((\mathbb{R}\cup\{+\infty\},\ \min,\ +)\)—scalar, not bilattice-ified.</td></tr>
-    <tr><td>Cost zero \(+\infty\)</td><td>Unreachable: \(\min\)-identity "no route" and \(+\)-annihilator "infeasible leg".</td></tr>
-    <tr><td>Confidence channel</td><td>Belnap-valued on the advertised cost: gap = unprobed, glut = probes disagree, plus True/False.</td></tr>
-    <tr><td>Provenance witness</td><td>The ordered route—the path-vector that also gives loop-freedom.</td></tr>
-    <tr><td>Homomorphism (compute once)</td><td>Re-evaluate the route <em>lineage</em> under many objectives, not the collapsed arg-min (see the callout above).</td></tr>
-    <tr><td>Verification predicate</td><td>Re-check the advertised lane cost against the agent's evidence (rate card, tender)—the third axis.</td></tr>
-    <tr><td>Acyclicity precondition</td><td>No negative-cost cycle; loop-free by the path-vector check.</td></tr>
-  </tbody>
-</table>
-
-<p>A network of center-agents converging on the optimum is <strong>asynchronous distributed Bellman–Ford</strong> [23] with <code>Claim[Cost]</code> as the messages—the same claim network of §6, run at the cost value space instead of the confidence one. The workbench and the fulfillment network are the same object in two columns.</p>
-
-<h2 id="diplomacy">9 · A third instance: adversarial games (Diplomacy)</h2>
-
-<p>The first two instances are cooperative: centers have no incentive to lie about lane costs. The sharper test is an adversarial setting where agents <em>do</em> have an incentive to deceive, and Diplomacy is the canonical one [28]: seven powers move simultaneously on a map of 1901 Europe, there is no luck, all variance lives in negotiation and in predicting others' moves, and a promise is binding only if kept. It splits cleanly into a part the algebra governs and a part it does not, and the boundary sits further in than a one-channel semiring could put it, because the trust model is itself a graded bilattice value.</p>
-
-<h3>9.1 · The board substrate—the consistent fragment of Belnap</h3>
-<p>Board state is the cooperative substrate, and the algebra governs it directly. Unit positions, supply-center ownership, and the legality and resolution of orders are objective facts the adjudicator computes: adjudication is a pure, deterministic function \(\mathrm{Orders}\times\mathrm{Board}\to(\mathrm{Board},\mathrm{Outcomes})\), and the engine is the verification oracle. Three claim types ride the wire: a <code>StateClaim</code> (a verified board fact), an <code>Order</code> (a Hold / Move / Support / Convoy commitment, legality-verified and adjudicated), and a <code>Deal</code> (a negotiation message, below). No power can hallucinate the board, and an illegal order is refuted and reduced to a Hold, an annihilator-to-default move. Because the engine is an oracle, board facts can never be contradictory: there is no way to be told two conflicting truths about whether Paris holds an army. So board-state claims live in the <em>consistent fragment</em> of Belnap: they range over \(\{\mathbf{T},\mathbf{N}\}\) (and \(\mathbf{F}\) for a refuted order) but never reach the glut \(\mathbf{B}\). The substrate is the glut-free corner of the bilattice (it keeps the gap \(\mathbf{N}\) and the refuted \(\mathbf{F}\) but never the glut \(\mathbf{B}\)), so it never exercises the contradiction-handling the rest of the algebra adds.</p>
-
-<h3>9.2 · Negotiation—the trust model is a graded bilattice value</h3>
-<p>A <code>Deal</code> ("I support your move to Galicia <em>if</em> you move there too") is a promise: a claim whose verification is deferred to adjudication. At assertion time it is <span class="mono">UNRESOLVED</span>-as-fact, and the algebra structurally refuses to let cheap talk pose as a board fact. What a power attaches to it is a <em>trust</em> grade, and that grade is not a number bolted on from outside the algebra.</p>
-
-<div class="callout ok">
-  <strong>Subjective logic embeds in the graded bilattice.</strong> A subjective-logic opinion is a triple (belief, disbelief, uncertainty) with belief + disbelief + uncertainty = 1. Read it as a graded Belnap value: <em>belief</em> is the for-channel \(a^{+}\), <em>disbelief</em> is the against-channel \(a^{-}\), and <em>uncertainty</em> measures gap-ness (proximity to \(\mathbf{N}\)). The opinion occupies the consistent simplex \(a^{+}+a^{-}\le 1\); the glut \(\mathbf{B}=(\top,\top)\) sits outside it, so the bilattice <em>extends</em> subjective logic with a contradiction a single opinion cannot carry. Trust over "will this power keep its word?" is therefore not outside the algebra; it is the algebra's own <em>graded</em> form, and a betrayal pushes the value past the simplex into the glut. The reputation state and the claim grade are the same kind of object.
-</div>
-
-<p>Two consequences follow:</p>
-<p><strong>A broken promise is a glut.</strong> When a power promises to support your move, that pledge enters the <em>for</em>-channel of a claim about their cooperation. When the adjudicator later reveals they did the opposite, the betrayal enters the <em>against</em>-channel. Corroborating the two with \(\oplus_k\) climbs to \((\top,\top)=\mathbf{B}\): you were told both, that they would and that they demonstrably did not. A broken promise is not a gap in your knowledge of them; it is a glut, and the algebra records it as one.</p>
-<p><strong>Reputation update is motion in the knowledge order.</strong> Each adjudicated round pours evidence into one channel or the other, moving a power's standing up \(\le_k\): toward \(\mathbf{T}\) (reliably keeps promises), toward \(\mathbf{F}\) (reliably defects), or toward \(\mathbf{B}\) (says one thing, does another). A "known double-crosser" is a power whose accumulated con-mass and glut history dominate; a value in the algebra, not an annotation beside it.</p>
-
-<figure>
-  <div class="diagram">
-<pre class="mermaid">
-flowchart LR
-N["Negotiate
-pledge → for-channel a⁺"] --> O["Submit orders
-(simultaneous)"]
-O --> J["Adjudicate
-the verification moment"]
-J -->|"kept → reinforce a⁺"| Rkeep["Reputation ↑ₖ toward T"]
-J -->|"betrayed → fill a⁻"| Rglut["Reputation → GLUT (told both)"]
-Rkeep --> N
-Rglut --> N
-classDef alg fill:#eef3fb,stroke:#3a5a9e,color:#1a1a2e;
-classDef glut fill:#f3eefb,stroke:#553a85,color:#3b2960;
-classDef ok fill:#eafaf0,stroke:#2a8c5a,color:#14502f;
-class N,O,J alg; class Rglut glut; class Rkeep ok;
-</pre>
-  </div>
-  <figcaption>Figure 9—The negotiation loop, with the trust model held in the algebra. The pledge enters the for-channel; adjudication is the verification moment; a kept promise reinforces support while a betrayal fills the against-channel and drives the reputation to a glut. The whole loop runs inside the graded bilattice; only the choice of <em>which order to submit</em> stays outside it.</figcaption>
-</figure>
-
-<h3>9.3 · Where the boundary sits</h3>
-<p>The boundary sits inward, but it does not vanish. What is native is the <em>representation</em> of trust: a power's reliability, the distinction between "no read on them yet" (gap) and "caught them lying" (glut), and the accumulation of evidence as the game proceeds, all of it living in the algebra as graded Belnap values, and the whole game stays auditable and replayable, since the transcript is a provenance DAG. What remains outside is the <em>selection</em> of action: whether to keep your own promise, whom to deceive, when to defect, a strategic choice under incentives, which is game theory and opponent modeling, not algebra. The algebra shrinks the attack surface to exactly that strategic layer where deception belongs: a power can lie in negotiation, but it cannot lie about the board or make an illegal move. A useful way to state CICERO-style honesty in these terms is to keep your own for-channel <em>consistent with your adjudicated actions</em>, so that no glut ever accrues against you, which is how Meta's CICERO reached human-level play, keeping its messages consistent with its planned moves [29, 30]. The algebra can hold and propagate the trust state; it cannot tell you whether to be trustworthy.</p>
-
-
-<h3 id="dip-commit">9.4 · Commitments — promises as a claim kind <span class="tag t-alg">extension · 2026-07-10</span></h3>
-
-<p><em>Added 2026-07-10 from the Diplomacy program brief; definitions here, operational rules and proof obligations in the calculus's Appendix A; the intended model is the Trio referee (<code>trio-rules.html</code> §9).</em></p>
-
-<p>A <em>commitment</em> is not a new algebraic object. It is a new <em>kind</em> of claim, on the precedent testimony set: same carrier, same four values, same fold — a different table of legal moves. A commitment by agent \(a\) to a counterparty \(b\) is a tuple \((a, b, \pi, h)\), optionally guarded \((a, b, \pi, h, \gamma)\): a pattern \(\pi\) over <em>\(a\)'s own</em> order alphabet, a counterparty \(b \neq a\) (the party the promise is made to), a horizon \(h\) naming a future adjudication, and an optional guard \(\gamma\) over <em>\(b\)'s own</em> orders at the same horizon. The forgetful map \(U(a,b,\pi,h) \mapsto\) the plain claim "\(\pi \in\) my resolved orders at \(h\)" embeds commitments in claims, so every result proved of claims transfers along \(U\); what is new is only the kind's law table — a <em>restriction</em> (withdrawal removed once accepted) together with an <em>extension</em> (the propose / accept / supersede / resolve lifecycle, whose determinacy is the appendix's Lemma A.4).</p>
-
-<p><strong>Why the future poses no semantic problem here.</strong> The four values are <em>told</em>-values — evidence states, never verdicts about reality — so Aristotle's sea-battle worry (does a statement about tomorrow have a truth value today?) simply does not arise: pre-horizon, a commitment sits at gap \(\mathbf{N}\), told-nothing-checkable, exactly like any claim whose check has not yet run. The horizon is the earliest run-time of the check, nothing more.</p>
-
-<p><strong>The kind's law table</strong> — four rules plain assertions do not carry:</p>
-<ul>
-<li><strong>Truthmaker control.</strong> Well-formedness requires \(\pi\) to range over the committer's own units. The same proposition asserted by anyone else is a <em>prediction</em> — ordinary testimony, no horizon discharge, no reputation stake.</li>
-<li><strong>Consent-gated supersession.</strong> Once accepted, a commitment admits no unilateral withdrawal; it leaves the active state only by resolution at its horizon or by an accepted superseding commitment, which retires it with a pointer. Only a superseding commitment naming the <em>same</em> counterparty \(b\), accepted by that same \(b\), may retire it — a stab cannot be laundered through a deal a different power accepts. The plain calculus's idempotent absorption of withdrawal henceforth scopes to unaccepted commitments and ordinary claims.</li>
-<li><strong>Monotone resolution.</strong> At \(h\) the adjudicator maps the active commitment one-way: \(\mathbf{N} \to \mathbf{T}\) (kept — the pattern appears in \(a\)'s resolved orders) or \(\mathbf{N} \to \mathbf{F}\) (broken). Nothing un-resolves.</li>
-<li><strong>Void as gap-at-horizon.</strong> Resolution to \(\mathbf{T}\) or \(\mathbf{F}\) is reserved for the adjudicator at the horizon. Game-end or either party's elimination before the horizon, and a guard the counterparty did not perform, retire the commitment at gap \(\mathbf{N}\) with a recorded reason — the promise was never tested, and an untested promise is evidence of nothing. The recorded reasons make exclusion itself observable: a power's VOID profile is part of its record even though it never enters \((k, b)\). When several retirement conditions coincide the reason is pinned by a fixed priority — \(\text{elimination} > \text{solo-unmatured} > \text{cap} > \text{guard-unmet}\), taken at the earliest phase any holds — so the elimination mark the record exists to expose is never masked by a coincident solo. One consequence is accepted openly: a betrayal effected by eliminating one's counterparty inside the two-phase window (§9 R9.6) is <em>excluded</em> rather than counted — expensive, visible, non-farmable, and measured by the VOID-reason record rather than adjudicated by machinery the calculus cannot make deterministic without modeling intent. (The causation-attributed alternative is preserved as the designed v2.) Void is not a fifth value; it is the gap arriving at a deadline, and it never enters any reputation count.</li>
-</ul>
-
-<p><strong>Resolution is glut-free by construction.</strong> Because exactly one deterministic oracle (the adjudicator) discharges commitments, no resolution ever accrues both channels: \(\mathbf{B}\) is unreachable <em>for resolutions</em>. Glut remains reachable — and strategically interesting — for <em>testimony about</em> commitments, which is where allied lies collide and the contested discipline earns its keep.</p>
-
-<figure style="margin:18px 0; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px 12px 6px;">
-<svg width="100%" viewBox="0 0 680 250" role="img" aria-label="Commitment trajectory on the bilattice">
-  <line x1="340" y1="210" x2="180" y2="120" stroke="var(--line)" stroke-width="1"/>
-  <line x1="340" y1="210" x2="500" y2="120" stroke="var(--line)" stroke-width="1"/>
-  <line x1="180" y1="120" x2="340" y2="34" stroke="var(--line)" stroke-width="1" stroke-dasharray="4 4"/>
-  <line x1="500" y1="120" x2="340" y2="34" stroke="var(--line)" stroke-width="1" stroke-dasharray="4 4"/>
-  <circle cx="340" cy="210" r="17" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.5"/>
-  <text x="340" y="215" font-size="13" fill="var(--ink)" text-anchor="middle" font-weight="600">N</text>
-  <text x="340" y="242" font-size="10" fill="var(--muted)" text-anchor="middle">active · told-nothing-checkable</text>
-  <circle cx="180" cy="120" r="17" fill="var(--panel)" stroke="var(--accent)" stroke-width="2"/>
-  <text x="180" y="125" font-size="13" fill="var(--ink)" text-anchor="middle" font-weight="600">T</text>
-  <text x="180" y="98" font-size="10" fill="var(--muted)" text-anchor="middle">kept · signed</text>
-  <circle cx="500" cy="120" r="17" fill="var(--panel)" stroke="var(--warn)" stroke-width="2"/>
-  <text x="500" y="125" font-size="13" fill="var(--ink)" text-anchor="middle" font-weight="600">F</text>
-  <text x="500" y="98" font-size="10" fill="var(--muted)" text-anchor="middle">broken · refuted</text>
-  <circle cx="340" cy="34" r="17" fill="var(--panel)" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 3"/>
-  <text x="340" y="39" font-size="13" fill="var(--muted)" text-anchor="middle" font-weight="600">B</text>
-  <text x="340" y="14" font-size="10" fill="var(--muted)" text-anchor="middle">unreachable for resolutions — single deterministic oracle</text>
-  <path d="M 325 200 L 197 133" stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#c94arr)"/>
-  <path d="M 355 200 L 483 133" stroke="var(--warn)" stroke-width="2" fill="none" marker-end="url(#c94arr)"/>
-  <path d="M 362 218 C 470 230, 560 210, 600 185" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="5 4" fill="none" marker-end="url(#c94arr)"/>
-  <text x="560" y="238" font-size="10" fill="var(--muted)" text-anchor="middle">retired: void (guard unmet), superseded, or party eliminated</text>
-  <text x="238" y="176" font-size="10" fill="var(--accent)" text-anchor="middle">adjudicator @ h</text>
-  <text x="442" y="176" font-size="10" fill="var(--warn)" text-anchor="middle">adjudicator @ h</text>
-  <defs><marker id="c94arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="context-stroke"/></marker></defs>
-</svg>
-<figcaption style="color:var(--muted); font-size:0.82em; padding:8px 4px;">A commitment's whole life on the bilattice: born at gap, one mechanical step to true or false at its horizon, or sideways to trace. The knowledge-top is fenced off for resolutions and left open for the lies people tell about them.</figcaption>
-</figure>
-
-<p><strong>Reputation — one count, two projections.</strong> Per agent, the resolved record is the pair \((k, b)\) of kept and broken commitments (void excluded). Inside the algebra it updates the subjective-logic opinion of §9.2, \(\omega = (b',d,u,a)\), through the standard evidence mapping; in the reporting layer the same pair yields the Wilson interval on \(k/(k+b)\) — reputation with a confidence bound. Obligation (calculus, Prop. A.7): the two projections agree on the induced ordering only when their smoothing constants match — pin the subjective-logic prior weight to \(W = z^2\) and they coincide, so neither lens can be gamed against the other; under the naive prior they can invert (the counterexample is recorded in A.7).</p>
-
-<h2 id="limits">10 · Where the algebra stops</h2>
-
-<p>A claim algebra makes the structural failure modes (silent error propagation, missing-value laundering, untracked provenance, and contradiction-masquerading-as-ignorance) into type errors and algebraic impossibilities. It does not make the statistical and strategic problems go away. The accounting has two halves: what the bilattice costs over a single semiring, and the limits that stand regardless, each a layer one would add deliberately rather than a flaw to paper over.</p>
-
-<div class="callout ok">
-  <strong>What the two-channel object buys.</strong> A purely positive (single-bottom) scheme models only monotone composition: a contradiction collapses to the same bottom as the unknown, and an amendment that supersedes a base clause is a retraction it has no way to express. The bilattice resolves both. Gap (\(\mathbf{N}\)) and glut (\(\mathbf{B}\)) are distinct values; negation and the con-channel express refutation; and a superseding amendment is a retraction (§6) rather than a silent overwrite. The positive/monotone restriction is lifted. It is lifted at a price, stated next.
-</div>
-
-<p><strong>The three costs of going bilattice.</strong></p>
-<table>
-  <thead><tr><th>Cost</th><th>What it is</th><th>How it is paid</th></tr></thead>
-  <tbody>
-    <tr><td>Per-channel homomorphism, not a single semiring</td><td>A bilattice is not a semiring, so the one GKT evaluation becomes two: a pro-lineage and a con-lineage carried and evaluated separately (the twist, §3.3).</td><td>Tolerable: "compute once, evaluate many" survives per channel, and a glut is just both-channels-nonzero. But it is two polynomials and two evaluations, not one.</td></tr>
-    <tr><td>Fail-closed forks</td><td>With \(\mathbf{F}\) and \(\mathbf{B}\) present, conjunction splits into the knowledge-meet (→\(\mathbf{N}\)) and the truth-meet (→\(\mathbf{F}\)); the safety law must say which it uses (§4.3).</td><td>By declaration: the knowledge-meet for "missing support," the truth-meet for "actively refuted." The bilattice exposes the choice; it does not make it.</td></tr>
-    <tr><td>Grading needs \([0,1]^2\), and inference there is hard</td><td>A graded bilattice is subjective logic / Dempster–Shafer; exact combination under shared evidence is \(\#\mathrm{P}\)-hard [17], and two channels can share a latent cause, so conflict (glut) mass can be spurious.</td><td>Unpaid in general: it <em>sharpens</em> the correlation-blindness limit below rather than curing it. Approximate or assume independence, and say which.</td></tr>
-  </tbody>
-</table>
-
-<p><strong>The limitations that still stand.</strong></p>
-<p><strong>Correlation blindness, now sharper.</strong> The homomorphic story assumes the leaves are independent; the moment two sources draw on the same upstream document, multiplying their confidences double-counts. Tracking token identity is the fix (probabilistic databases, where exact confidence is \(\#\mathrm{P}\)-hard in general [17]), or moving to Dempster–Shafer belief functions or Jøsang's subjective logic [12, 13], which carry an explicit conflict/uncertainty mass. The bilattice makes this <em>worse</em> to ignore, not better: a glut computed from a for-source and an against-source that secretly share a cause is a <em>spurious</em> contradiction, and an apparent corroboration may be one document echoing itself. Faithful handling needs the provenance to carry the correlation structure and the valuation to live in a domain that respects it, which is exactly the \(\#\mathrm{P}\)-hard regime above. Idempotent \(L\) dodges double-counting an <em>identical</em> leaf but not a latent common cause. The credit topology has an in-network instance: EBITDA fans out to both ratios, so the covenant's pro-lineage is \(\textit{debt}\cdot\textit{ebitda}^{2}\cdot\textit{interest}\), and a non-idempotent render (Viterbi) <em>squares</em> EBITDA's confidence—faithful \(\mathbb{N}[X]\) behavior the idempotent fuzzy render hides. The experiment's headline rides the structural corner and an idempotent declared model, so the squaring is a measured artifact of the non-idempotent renders, not a defect.</p>
-<p><strong>Calibration is exogenous.</strong> The algebra propagates confidence soundly given the leaf numbers; it does not produce them. Whether "High" on an extraction corresponds to anything in the world is an empirical calibration problem, upstream of the algebra and unchanged by it [16].</p>
-<p><strong>Semantic correctness is not verification, and verification is not Belnap's axis.</strong> <code>verify()</code> checks that a value faithfully reproduces its cited provenance, not that the value is true: a faithful citation of a wrong source passes. And, as §4.4 insists, verification is a <em>third</em> axis (does-it-reproduce-the-source), distinct from Belnap's <em>evidential</em> axis of told-true/told-false content. Conflating the two is the error this object most wants not to repeat one level up.</p>
-<p><strong>Time, retraction, and aggregates.</strong> The structure is most natural for a single timeless resolution over an acyclic provenance. Retraction is now handled at a point in time — negation expresses supersession, and token withdrawal (calculus Def 2.16) retracts a single assertion while rivals stand, completing the deletion operators — and the calculus's event-fold re-resolves incrementally as evidence arrives and is withdrawn; but genuinely temporal belief revision across feedback cycles still needs iterative fixed-point machinery [14], and quantitative aggregates ("the average across these claims") still call for a semimodule structure over the bilattice [15] rather than the lattice operations alone.</p>
-<p><strong>Capacity contention (routing).</strong> The §8 shortest-path routes <em>one</em> unit at a <em>fixed</em> cost. The moment two shipments contend for one lane's finite capacity, the problem becomes min-cost multi-commodity flow [27], a linear program or an auction, not a single semiring path. The <code>Reservable(CapacityToken)</code> field only <em>marks</em> the seam; it does not allocate.</p>
-
-<div class="callout">
-  <strong>The contribution, stated precisely.</strong> The mathematics is decades old: Belnap's four values (1977), Dunn's two-channel relational semantics, the Ginsberg–Fitting theory of bilattices and the twist representation, the Green–Karvounarakis–Tannen provenance semiring, and subjective logic. None of it is new. The claim is that the right wire format between LLM agents is a <em>graded bilattice</em> value—a <em>Testimony</em>: two-channel, gap-distinct-from-glut, negation-closed, fail-closed by the knowledge-meet annihilator, made trust-pluggable by a per-channel homomorphism—refined to a <em>Claim</em> by an orthogonal verification predicate. Committing to this object turns a list of correctness <em>hopes</em> into a list of <em>theorems and type errors</em>, with contradiction now among the things the type system can see rather than the things it silently drops. The value concentrates where verification is the binding constraint (high-stakes, auditable, regulated work), and that is the wedge worth taking.
-</div>
-
-<h2 id="refs">11 · References</h2>
-<ol class="refs">
-  <li>T. J. Green, G. Karvounarakis, V. Tannen. <em>Provenance semirings.</em> PODS, 2007. (The provenance polynomial \(\mathbb{N}[X]\) and the homomorphic-evaluation theorem.)</li>
-  <li>C. McBride, R. Paterson. <em>Applicative programming with effects.</em> Journal of Functional Programming, 2008. (Applicative functors; the accumulating, non-monadic <code>Validation</code> pattern.)</li>
-  <li>S. Mac Lane. <em>Categories for the Working Mathematician.</em> Springer, 2nd ed., 1998. (Symmetric monoidal categories.)</li>
-  <li>A. Joyal, R. Street. <em>The geometry of tensor calculus, I.</em> Advances in Mathematics, 1991. (String diagrams.)</li>
-  <li>P. Selinger. <em>A survey of graphical languages for monoidal categories.</em> In <em>New Structures for Physics</em>, Springer, 2010.</li>
-  <li>B. Coecke, A. Kissinger. <em>Picturing Quantum Processes.</em> Cambridge University Press, 2017. (String-diagram reasoning in monoidal categories.)</li>
-  <li>B. Day. <em>On closed categories of functors.</em> In <em>Reports of the Midwest Category Seminar IV</em>, Lecture Notes in Mathematics 137, Springer, 1970. (Day convolution and the monoidal-functor structure; with McBride &amp; Paterson [2], the categorical folklore that applicative functors are lax monoidal functors.)</li>
-  <li>S. Katsumata. <em>Parametric effect monads and semantics of effect systems.</em> POPL, 2014; D. Orchard et al., graded monads/comonads. (Effects graded by an algebraic structure.)</li>
-  <li>N. D. Belnap. <em>A useful four-valued logic.</em> In <em>Modern Uses of Multiple-Valued Logic</em>, Reidel, 1977. With M. L. Ginsberg, <em>Multivalued logics: a uniform approach to reasoning in artificial intelligence</em>, Computational Intelligence, 1988. (Belnap's four values and the bilattice generalization.)</li>
-  <li>J. M. Dunn. <em>Intuitive semantics for first-degree entailments and "coupled trees".</em> Philosophical Studies, vol. 29, pp. 149–168, 1976. (The two-channel evidence-for / evidence-against relational reading of FDE used throughout.)</li>
-  <li>M. Fitting. <em>Bilattices and the semantics of logic programming.</em> Journal of Logic Programming, 1991. (The twist / product representation of a distributive bilattice as two interlaced copies of a lattice.)</li>
-  <li>A. Jøsang. <em>Subjective Logic: A Formalism for Reasoning Under Uncertainty.</em> Springer, 2016. (Belief / disbelief / uncertainty as the graded Belnap value; fusion and discounting.)</li>
-  <li>G. Shafer. <em>A Mathematical Theory of Evidence.</em> Princeton University Press, 1976. (Dempster–Shafer; conflict and uncertainty mass.)</li>
-  <li>P. P. Shenoy, G. Shafer. <em>Axioms for probability and belief-function propagation.</em> In <em>Uncertainty in Artificial Intelligence 4</em>, North-Holland, 1990. (Local computation on a join tree.)</li>
-  <li>J. Kohlas, P. P. Shenoy. <em>Computation in valuation algebras.</em> In <em>Handbook of Defeasible Reasoning and Uncertainty Management Systems</em>, Vol. 5, Kluwer, 2000. (Semimodule / valuation-algebra structure for aggregates.)</li>
-  <li>J. Pearl. <em>Probabilistic Reasoning in Intelligent Systems.</em> Morgan Kaufmann, 1988. (Calibration and the independence assumptions confidence propagation relies on.)</li>
-  <li>N. Dalvi, D. Suciu. <em>Efficient query evaluation on probabilistic databases.</em> VLDB, 2004. (\(\#\mathrm{P}\)-hardness of exact probabilistic confidence under correlation.)</li>
-  <li>M. Mohri. <em>Semiring frameworks and algorithms for shortest-distance problems.</em> Journal of Automata, Languages and Combinatorics, 2002. (Algebraic shortest-distance over an arbitrary semiring.)</li>
-  <li>R. Bellman. <em>On a routing problem.</em> Quarterly of Applied Mathematics, 1958; L. R. Ford Jr. (The Bellman–Ford shortest-path recurrence as a tropical fixed point.)</li>
-  <li>R. W. Floyd. <em>Algorithm 97: Shortest path.</em> Communications of the ACM, 1962. (All-pairs closure of the tropical adjacency matrix.)</li>
-  <li>M. Gondran, M. Minoux. <em>Graphs, Dioids and Semirings.</em> Springer, 2008. (Closed semirings and the Kleene-star closure underlying algebraic path computation; the tropical dioid.)</li>
-  <li>M. Mohri. <em>Weighted finite-state transducer algorithms: an overview.</em> In <em>Formal Languages and Applications</em>, Springer, 2004 (and the OpenFst library). (The tropical-weight-with-output-label construction.)</li>
-  <li>D. Bertsekas, J. Tsitsiklis. <em>Parallel and Distributed Computation: Numerical Methods.</em> Prentice Hall, 1989. (Convergence of asynchronous distributed Bellman–Ford.)</li>
-  <li>Y. Rekhter, T. Li, S. Hares (eds.). <em>A Border Gateway Protocol 4 (BGP-4).</em> RFC 4271, IETF, 2006. (Path-vector AS_PATH loop avoidance and explicit route withdrawal.)</li>
-  <li>G. Malkin. <em>RIP Version 2.</em> RFC 2453, IETF, 1998. (Distance-vector count-to-infinity, the failure path-vector avoids.)</li>
-  <li>J. S. Baras, G. Theodorakopoulos. <em>Path Problems in Networks.</em> Morgan &amp; Claypool, 2010. (Semiring routing; lexicographic and Pareto/antichain cost structures.)</li>
-  <li>R. K. Ahuja, T. L. Magnanti, J. B. Orlin. <em>Network Flows: Theory, Algorithms, and Applications.</em> Prentice Hall, 1993. (Min-cost multi-commodity flow for capacity contention.)</li>
-  <li>A. B. Calhamer. <em>The Rules of Diplomacy.</em> Avalon Hill / Hasbro, 1959 (4th ed. 2000). (The deterministic, simultaneous-move, no-luck adjudication that makes it the negotiation benchmark.)</li>
-  <li>A. Bakhtin et al. (Meta FAIR Diplomacy Team). <em>Human-level play in the game of Diplomacy by combining language models with strategic reasoning (CICERO).</em> Science, 2022.</li>
-  <li>FAIR et al. <em>Mastering the game of no-press Diplomacy via human-regularized reinforcement learning and planning.</em> 2022. (Strategy and opponent modeling layered over communication.)</li>
-<li>N. Belnap, M. Perloff, M. Xu. <em>Facing the Future: Agents and Choices in Indeterminist Time.</em> Oxford University Press, 2001. <span class="muted">— the stit lineage behind the commitment kind's law table.</span></li>
-<li>J. F. Horty. <em>Agency and Deontic Logic.</em> Oxford University Press, 2001.</li>
-</ol>
-
-<p class="small" style="margin-top:2rem;border-top:1px solid var(--line);padding-top:1rem;">
-Working note. The verifiable inter-agent message as a bilattice-graded object: Belnap's four-valued logic via Dunn's two-channel reading, with gap and glut as distinct values, negation and verification each on their own axis, and the provenance homomorphism theorem surviving per channel through the twist representation. Companion to the focused-harness actor-model design and the Credit &amp; Loan Agreement Workbench. Rendered with MathJax (math) and Mermaid + inline SVG (diagrams).
-</p>
-
-</div>
-</body>
-</html>
+:root{--ink:#172033;--muted:#586174;--line:#d9dee8;--accent:#345ca8;--violet:#62439a;--ok:#247a4d;--warn:#9a4938;--bg:#f5f7fb;--panel:#fff;--code:#f1f4f8}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.62 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}.wrap{max-width:940px;margin:0 auto;padding:2.4rem 1.35rem 5rem}header{background:linear-gradient(135deg,#fff,#eef3fb);border:1px solid var(--line);border-radius:14px;padding:1.5rem 1.6rem;box-shadow:0 8px 28px rgba(31,50,85,.06)}h1{font-size:2rem;line-height:1.18;margin:0 0 .5rem;letter-spacing:-.02em}.subtitle{font-size:1.04rem;color:#303c55}.meta{margin-top:.7rem;color:var(--muted);font-size:.84rem}h2{font-size:1.38rem;margin:2.55rem 0 .8rem;padding-top:.65rem;border-top:1px solid var(--line);letter-spacing:-.01em}h3{font-size:1.1rem;margin:1.55rem 0 .45rem;color:#283550}p{margin:.72rem 0}a{color:var(--accent)}code{font:.88em/1.4 "SFMono-Regular",Consolas,Menlo,monospace;background:var(--code);border:1px solid var(--line);border-radius:4px;padding:.04em .34em}pre{background:#1f2637;color:#f2f5fb;border-radius:9px;padding:1rem 1.1rem;overflow:auto;font:.84rem/1.55 "SFMono-Regular",Consolas,Menlo,monospace}pre code{background:none;border:0;color:inherit;padding:0}.math{overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:9px;padding:.75rem 1rem;margin:1rem 0;text-align:center}.callout{background:#eef3fb;border-left:4px solid var(--accent);padding:.9rem 1.08rem;border-radius:0 8px 8px 0;margin:1.25rem 0}.callout.warn{background:#fbefec;border-color:var(--warn)}.callout.ok{background:#eaf8ef;border-color:var(--ok)}.callout.violet{background:#f3effb;border-color:var(--violet)}.toc{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:1rem 1.25rem;margin:1.35rem 0}.toc ol{margin:.2rem 0;padding-left:1.4rem}table{width:100%;border-collapse:collapse;margin:1.2rem 0;font-size:.92rem;background:#fff}th,td{border:1px solid var(--line);padding:.55rem .68rem;vertical-align:top;text-align:left}th{background:#edf1f7;color:#4a5468;font-size:.8rem;text-transform:uppercase;letter-spacing:.035em}.small{font-size:.88rem;color:var(--muted)}.badge{display:inline-block;padding:.12rem .48rem;border-radius:999px;font-size:.69rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}.proved{background:#e8f6ed;color:#22623f}.conditional{background:#fff4dc;color:#765815}.false{background:#f9e9e6;color:#7b392c}ul.tight li,ol.tight li{margin:.25rem 0}footer{margin-top:3rem;border-top:1px solid var(--line);padding-top:1rem;color:var(--muted);font-size:.84rem}
+figure{margin:1.7rem 0}.diagram{background:#fff;border:1px solid var(--line);border-radius:11px;padding:1rem .8rem;overflow-x:auto;text-align:center}.diagram svg{max-width:100%;height:auto}figcaption{font-size:.85rem;color:var(--muted);margin-top:.6rem;line-height:1.52;text-align:left}figcaption b{color:var(--ink)}</style></head><body><div class="wrap">
+<header><h1>A claim algebra for agent networks</h1><div class="subtitle">Revised formal specification: provenance-bearing candidate maps, a rendered distributive bilattice, and verification as an orthogonal refinement</div><div class="meta">Formal revision · 22 July 2026</div></header>
+<div class="callout"><strong>Central thesis.</strong> An inter-agent message should carry candidate values, independent support and refutation provenance, a renderable evidential grade, and a verifier contract. The formal system has three distinct layers: a provenance carrier, a rendered bilattice, and an external verification predicate.</div>
+<div class="toc"><strong>Contents</strong><ol><li><a href="#layers">Formal layers</a></li><li><a href="#prov">Provenance</a></li><li><a href="#carrier">Testimonies and corners</a></li><li><a href="#bilattice">Rendered bilattice</a></li><li><a href="#ops">Testimony operations</a></li><li><a href="#laws">Laws and side conditions</a></li><li><a href="#render">Rendering</a></li><li><a href="#gate">Verification and gate</a></li><li><a href="#impl">Implementation contract</a></li><li><a href="#limits">Limits</a></li></ol></div>
+
+<h2 id="layers">1 · The three formal layers</h2>
+<figure><div class="diagram"><svg viewBox="0 0 640 396" role="img" aria-label="Three formal layers: the provenance and candidate carrier renders to the evidential bilattice, which the verifier refines">
+<defs><marker id="dn" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#586174"/></marker></defs>
+<rect x="100" y="16" width="440" height="96" rx="12" fill="#f3effb" stroke="#62439a" stroke-width="1.4"/>
+<text x="320" y="48" text-anchor="middle" font-size="15" font-weight="700" fill="#4a2f78">1.1 · Provenance &amp; candidate carrier</text>
+<text x="320" y="76" text-anchor="middle" font-size="14" fill="#62439a" font-family="ui-monospace,Menlo,monospace">Testimony[A] = A ⇀ ℕ[X]²</text>
+<text x="320" y="99" text-anchor="middle" font-size="11.5" fill="#586174">finite candidate map · corroborate (+), derive (·) · not automatically a lattice</text>
+<line x1="320" y1="112" x2="320" y2="150" stroke="#586174" stroke-width="1.6" marker-end="url(#dn)"/>
+<text x="332" y="135" font-size="11.5" fill="#586174" font-style="italic">render (ν̂ per channel)</text>
+<rect x="100" y="150" width="440" height="96" rx="12" fill="#eef3fb" stroke="#345ca8" stroke-width="1.4"/>
+<text x="320" y="182" text-anchor="middle" font-size="15" font-weight="700" fill="#284a86">1.2 · Rendered evidential bilattice</text>
+<text x="320" y="210" text-anchor="middle" font-size="14" fill="#345ca8" font-family="ui-monospace,Menlo,monospace">Ev_L = L ⊙ L</text>
+<text x="320" y="233" text-anchor="middle" font-size="11.5" fill="#586174">distributive bilattice · the lattice and twist laws hold here</text>
+<line x1="320" y1="246" x2="320" y2="284" stroke="#586174" stroke-width="1.6" marker-end="url(#dn)"/>
+<text x="332" y="269" font-size="11.5" fill="#586174" font-style="italic">refine · gate</text>
+<rect x="100" y="284" width="440" height="96" rx="12" fill="#eaf8ef" stroke="#247a4d" stroke-width="1.4"/>
+<text x="320" y="316" text-anchor="middle" font-size="15" font-weight="700" fill="#1c5c3a">1.3 · Verification layer</text>
+<text x="320" y="344" text-anchor="middle" font-size="13.5" fill="#247a4d" font-family="ui-monospace,Menlo,monospace">verify(t) ∈ {true, false}</text>
+<text x="320" y="367" text-anchor="middle" font-size="11.5" fill="#586174">a separate Boolean refining the rendered value · the gate signs</text>
+</svg></div>
+<figcaption><b>Figure 1 — The three formal layers.</b> The carrier is a finite candidate map over provenance polynomials, whose corroboration and derivation are semiring constructions and need not be idempotent; only the middle layer \(Ev_L=L\odot L\) is the distributive bilattice on which the lattice and twist laws hold; verification is a third, separate Boolean predicate. Full bilattice laws are scoped to the rendered layer, and \(\mathbf T\) is clean evidential support — not verified truth.</figcaption></figure>
+<h3>1.1 · Provenance and candidate layer</h3><p>For payload set \(A\) and lineage alphabet \(X\), the universal testimony carrier is</p><div class="math">$$\mathsf{Testimony}_X(A)=A\rightharpoonup_f(\mathbb N[X]\times\mathbb N[X]).$$</div><p>This is a finite candidate map with two provenance polynomials per candidate. Its operations are semiring constructions. It is <strong>not automatically a lattice</strong>: provenance addition is not generally idempotent.</p>
+<h3>1.2 · Rendered evidential layer</h3><p>For bounded distributive lattice \(L\), the literal distributive bilattice is</p><div class="math">$$Ev_L=L\odot L=L\times L.$$</div><p>An element \((a^+,a^-)\) carries rendered support-for and support-against.</p>
+<h3>1.3 · Verification layer</h3><p>A verifier checks a declared reproduction or entailment contract:</p><div class="math">$$\operatorname{verify}_\Gamma(t)\in\{\mathsf{true},\mathsf{false}\}.$$</div><p>Verification is separate from evidential support and from external ground truth.</p>
+<div class="callout warn"><strong>Terminology.</strong> \(\mathbf T\) means clean evidential support, not verified semantic truth. A verified claim may faithfully reproduce a source that is itself wrong.</div>
+
+<h2 id="prov">2 · Provenance semiring</h2><p>A lineage token names one authenticated evidence occurrence. Provenances are polynomials in the free commutative semiring \(\mathbb N[X]\): addition means alternative derivations, multiplication means joint use, \(0\) means absence, and \(1\) is a declared nullary derivation.</p><p>The semiring is zero-sum-free: \(p+q=0\Rightarrow p=q=0\). For any admissible token valuation \(\nu:X\to M\), freeness supplies a unique homomorphism \(\widehat\nu:\mathbb N[X]\to M\). Stored provenance can therefore be rendered under multiple trust models without rerunning the agent network.</p>
+<div class="callout warn"><strong>Nullary provenance.</strong> The polynomial \(1\) is not an uncited ordinary assertion. It is reserved for an explicitly declared nullary axiom with authority and verifier contract recorded in \(\Gamma\).</div>
+
+<h2 id="carrier">3 · Candidate-preserving testimonies</h2><p>A normalized testimony is a finite partial map \(t:A\rightharpoonup_f\mathbb N[X]^2\) containing no \((0,0)\) entries. Missing candidates have both channels zero.</p><div class="math">$$\operatorname{provPro}(t)=\sum_a\operatorname{pro}(t,a),\qquad \operatorname{provCon}(t)=\sum_a\operatorname{con}(t,a).$$</div>
+<table><thead><tr><th>Pro total</th><th>Con total</th><th>Structural corner</th><th>Meaning</th></tr></thead><tbody><tr><td>0</td><td>0</td><td>\(\mathbf N\)</td><td>Gap</td></tr><tr><td>nonzero</td><td>0</td><td>\(\mathbf T\)</td><td>Clean support</td></tr><tr><td>0</td><td>nonzero</td><td>\(\mathbf F\)</td><td>Active refutation</td></tr><tr><td>nonzero</td><td>nonzero</td><td>\(\mathbf B\)</td><td>Slot-level glut</td></tr></tbody></table>
+<p><strong>Candidate-local conflict</strong> means one candidate has both channels nonzero. <strong>Slot-level glut</strong> means some pro and some con evidence exist anywhere in the slot, possibly on different candidates. <strong>Ambiguity</strong> means at least two candidates have nonzero pro support. These are distinct conditions.</p>
+<div class="math">$$\operatorname{card}(t)=\#\{a\mid\operatorname{pro}(t,a)\ne0\}.$$</div><p>The signable value is defined only when cardinality is one and the total con channel is zero.</p>
+
+<h2 id="bilattice">4 · Rendered evidential bilattice</h2><p>For \(Ev_L=L\times L\), define:</p><table><thead><tr><th>Operation</th><th>Definition</th></tr></thead><tbody><tr><td>Knowledge meet</td><td>\((a^+,a^-)\otimes_k(b^+,b^-)=(a^+\wedge b^+,a^-\wedge b^-)\)</td></tr><tr><td>Knowledge join</td><td>\((a^+,a^-)\oplus_k(b^+,b^-)=(a^+\vee b^+,a^-\vee b^-)\)</td></tr><tr><td>Truth meet</td><td>\((a^+,a^-)\wedge_t(b^+,b^-)=(a^+\wedge b^+,a^-\vee b^-)\)</td></tr><tr><td>Truth join</td><td>\((a^+,a^-)\vee_t(b^+,b^-)=(a^+\vee b^+,a^-\wedge b^-)\)</td></tr><tr><td>Negation</td><td>\(\neg(a^+,a^-)=(a^-,a^+)\)</td></tr></tbody></table><p>The crisp corners are \(\mathbf N=(\bot,\bot)\), \(\mathbf T=(\top,\bot)\), \(\mathbf F=(\bot,\top)\), and \(\mathbf B=(\top,\top)\). Full bilattice identities, interlacing, distributivity, and equations such as \(\mathbf N\otimes_kx=\mathbf N\) and \(\mathbf F\wedge_tx=\mathbf F\) hold at this rendered layer.</p>
+<figure><div class="diagram"><svg viewBox="0 0 560 322" role="img" aria-label="Belnap FOUR as the rendered evidential bilattice, with a vertical knowledge order and a horizontal truth order">
+<defs><marker id="ax4" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#586174"/></marker></defs>
+<g stroke="#c4b9de" stroke-width="1.6"><line x1="280" y1="236" x2="120" y2="158"/><line x1="280" y1="236" x2="440" y2="158"/><line x1="120" y1="158" x2="280" y2="80"/><line x1="440" y1="158" x2="280" y2="80"/></g>
+<line x1="50" y1="252" x2="50" y2="66" stroke="#586174" stroke-width="1.3" marker-end="url(#ax4)"/>
+<text x="42" y="160" font-size="11" fill="#586174" transform="rotate(-90 42 160)" text-anchor="middle">knowledge order (told more)</text>
+<line x1="140" y1="300" x2="424" y2="300" stroke="#586174" stroke-width="1.3" marker-end="url(#ax4)"/>
+<text x="282" y="316" font-size="11" fill="#586174" text-anchor="middle">truth order  (F → T)</text>
+<g text-anchor="middle">
+<rect x="230" y="56" width="100" height="48" rx="11" fill="#f3eefb" stroke="#62439a" stroke-width="1.4"/><text x="280" y="78" font-size="13" font-weight="700" fill="#4a2f78">B · glut</text><text x="280" y="94" font-size="10" fill="#586174">(⊤,⊤) — told both</text>
+<rect x="230" y="212" width="100" height="48" rx="11" fill="#fbf3dd" stroke="#b9902f" stroke-width="1.4"/><text x="280" y="234" font-size="13" font-weight="700" fill="#6b5410">N · gap</text><text x="280" y="250" font-size="10" fill="#586174">(⊥,⊥) — no evidence</text>
+<rect x="70" y="134" width="100" height="48" rx="11" fill="#fbefec" stroke="#9a4938" stroke-width="1.4"/><text x="120" y="156" font-size="13" font-weight="700" fill="#6b2f23">F · false</text><text x="120" y="172" font-size="10" fill="#586174">(⊥,⊤) — refuted</text>
+<rect x="390" y="134" width="100" height="48" rx="11" fill="#eaf8ef" stroke="#247a4d" stroke-width="1.4"/><text x="440" y="156" font-size="13" font-weight="700" fill="#1c5c3a">T · true</text><text x="440" y="172" font-size="10" fill="#586174">(⊤,⊥) — clean support</text>
+</g></svg></div>
+<figcaption><b>Figure 2 — The rendered evidential bilattice.</b> Belnap's four values on \(Ev_L=L\odot L\), two interlaced orders on one set: the vertical knowledge order runs from the gap \(\mathbf N\) (told nothing) up to the glut \(\mathbf B\) (told both); the horizontal truth order runs \(\mathbf F\to\mathbf T\). \(\mathbf T=(\top,\bot)\) is clean evidential support at this rendered layer — support and no refutation — not verified truth, which the §8 verifier decides separately. The full bilattice identities, interlacing, and distributivity hold here and only here.</figcaption></figure>
+<div class="callout"><strong>Scope.</strong> Those are literal lattice equations on \(Ev_L\). They are not automatically equations of candidate maps over \(\mathbb N[X]\).</div>
+
+<h2 id="ops">5 · Operations on testimonies</h2>
+<h3>5.1 · Corroboration</h3><div class="math">$$(t\boxplus u)(a)=(\operatorname{pro}(t,a)+\operatorname{pro}(u,a),\operatorname{con}(t,a)+\operatorname{con}(u,a)).$$</div><p>Corroboration preserves rival candidates and forms a commutative monoid with identity \(\varepsilon\). It is not generally idempotent.</p>
+<h3>5.2 · Required derivation</h3><p>For total \(f:A\times B\to C\), candidate pairs contribute joint provenance to \(f(a,b)\). If either candidate set is empty, there is no pair and the result is \(\varepsilon\). This is the candidate-level fail-closed rule.</p>
+<h3>5.3 · Truth-oriented derivation</h3><p>A truth-oriented conjunction can target rendered \(\wedge_t\), but a candidate-preserving lift must state candidate-formation side conditions. At candidate level, \(\mathbf F\) combined with a gap has no candidate pair and yields \(\mathbf N\), although rendered \(\mathbf F\wedge_t\mathbf N=\mathbf F\). The testimony operation is therefore not a homomorphic implementation of every truth-lattice law.</p>
+<h3>5.4 · Refutation</h3><div class="math">$$(\operatorname{refute}t)(a)=(\operatorname{con}(t,a),\operatorname{pro}(t,a)).$$</div><p>Refutation is involutive.</p>
+<h3>5.5 · Strike</h3><div class="math">$$(\operatorname{strike}t)(a)=(0,\operatorname{pro}(t,a)+\operatorname{con}(t,a)).$$</div><p>Strike is idempotent and models whole-slot deletion while retaining an audit trace.</p>
+<h3>5.6 · Supersession</h3><div class="math">$$\operatorname{supersede}(t,g)=(\operatorname{strike}t,g).$$</div><p>The pair stores the struck prior separately from the fresh operative testimony. Supersession uses <strong>strike, not negation</strong>. Negating an already-refuted prior would incorrectly convert its con evidence into pro evidence.</p>
+<h3>5.7 · Token withdrawal</h3><p>\(t\setminus\ell\) removes every monomial containing lineage token \(\ell\) from both channels and renormalizes. Unlike whole-slot strike, it leaves no con residue; independent derivations survive.</p>
+
+<h2 id="laws">6 · Law table and side conditions</h2><table><thead><tr><th>Statement</th><th>Layer</th><th>Status</th></tr></thead><tbody><tr><td>Bilattice laws</td><td>\(Ev_L\)</td><td><span class="badge proved">holds</span></td></tr><tr><td>Corroboration commutative monoid</td><td>Testimony</td><td><span class="badge proved">holds</span></td></tr><tr><td>Corroboration idempotent</td><td>Testimony</td><td><span class="badge false">false generally</span></td></tr><tr><td>Required derivation with a gap yields a gap</td><td>Testimony</td><td><span class="badge proved">holds</span></td></tr><tr><td>Candidate truth derivation satisfies all rendered truth laws</td><td>Testimony</td><td><span class="badge false">false generally</span></td></tr><tr><td>Refutation involution</td><td>Testimony</td><td><span class="badge proved">holds</span></td></tr><tr><td>Strike idempotence</td><td>Testimony</td><td><span class="badge proved">holds</span></td></tr><tr><td>Structural corner equals rendered corner</td><td>Cross-layer</td><td><span class="badge conditional">requires zero reflection</span></td></tr></tbody></table>
+
+<h2 id="render">7 · Rendering and two corner reads</h2><div class="math">$$\operatorname{render}_\nu(t)=(\widehat\nu(\operatorname{provPro}(t)),\widehat\nu(\operatorname{provCon}(t))).$$</div><p>A homomorphism preserves zero but need not reflect it. A nonzero provenance may evaluate to bottom. Thus the structural corner and rendered corner coincide only when the valuation is zero-reflecting on the relevant image.</p>
+<figure><div class="diagram"><svg viewBox="0 0 560 268" role="img" aria-label="Two corner reads: the structural corner tests literal zero of the provenance polynomials; the rendered corner tests whether their valuation is bottom">
+<defs><marker id="dn7" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#586174"/></marker></defs>
+<rect x="150" y="14" width="260" height="52" rx="11" fill="#eef3fb" stroke="#345ca8" stroke-width="1.4"/>
+<text x="280" y="36" text-anchor="middle" font-size="13.5" font-weight="700" fill="#284a86">testimony t</text>
+<text x="280" y="54" text-anchor="middle" font-size="11" fill="#586174">provPro(t), provCon(t) ∈ ℕ[X]  (per channel)</text>
+<line x1="240" y1="66" x2="160" y2="104" stroke="#586174" stroke-width="1.5" marker-end="url(#dn7)"/>
+<line x1="320" y1="66" x2="400" y2="104" stroke="#586174" stroke-width="1.5" marker-end="url(#dn7)"/>
+<rect x="40" y="108" width="212" height="72" rx="11" fill="#fff" stroke="#586174" stroke-width="1.3"/>
+<text x="146" y="132" text-anchor="middle" font-size="13" font-weight="700" fill="#172033">cornerₛ · structural</text>
+<text x="146" y="150" text-anchor="middle" font-size="10.5" fill="#586174">is the polynomial literally 0?</text>
+<text x="146" y="167" text-anchor="middle" font-size="10.5" fill="#247a4d">gate reads this for conflict exclusion</text>
+<rect x="308" y="108" width="212" height="72" rx="11" fill="#fff" stroke="#586174" stroke-width="1.3"/>
+<text x="414" y="132" text-anchor="middle" font-size="13" font-weight="700" fill="#172033">cornerᵥ · rendered</text>
+<text x="414" y="150" text-anchor="middle" font-size="10.5" fill="#586174">does ν̂(p) evaluate to ⊥?</text>
+<text x="414" y="167" text-anchor="middle" font-size="10.5" fill="#9a4938">a nonzero p may still render ⊥</text>
+<rect x="88" y="204" width="384" height="46" rx="9" fill="#fbefec" stroke="#9a4938" stroke-width="1.2"/>
+<text x="280" y="223" text-anchor="middle" font-size="11.5" font-weight="700" fill="#6b2f23">ν̂ preserves 0 but need not reflect it</text>
+<text x="280" y="240" text-anchor="middle" font-size="10.5" fill="#586174">the two corners coincide only for a zero-reflecting valuation</text>
+</svg></div>
+<figcaption><b>Figure 3 — Two corner reads.</b> The structural corner \(\operatorname{corner}_s\) asks whether each provenance channel is literally the zero polynomial; the rendered corner \(\operatorname{corner}_\nu\) asks whether its valuation \(\widehat\nu(p)\) is bottom. Because a homomorphism preserves zero but need not reflect it, a nonzero polynomial can still render to \(\bot\), so the two agree only when \(\widehat\nu\) is zero-reflecting on the relevant image. The gate deliberately reads the structural corner for conflict exclusion — even zero-trust con evidence stays represented and blocks — and applies a rendered pro grade only for thresholding.</figcaption></figure><div class="callout"><strong>Normative policy.</strong> The gate uses the structural corner for conflict exclusion and a rendered pro grade for thresholding. Even zero-trust con evidence remains represented and blocks.</div>
+
+<h2 id="gate">8 · Verification and signing gate</h2><p>The gate accepts unique value \(a\) exactly when:</p><div class="math">$$\operatorname{corner}_s(t)=\mathbf T\ \land\ \operatorname{card}(t)=1\ \land\ \widehat\nu(\operatorname{provPro}(t))\ge\theta\ \land\ \operatorname{verify}_\Gamma(t)\ \land\ a=\operatorname{value}(t).$$</div><p>Otherwise it blocks. Default routes distinguish malformed, gap, false, glut, ambiguous, low-grade, and unverified states.</p>
+
+<h2 id="impl">9 · Implementation contract</h2><p>A conforming implementation must enforce authenticated and uniquely issued lineage, normalized candidate maps, computed rather than self-asserted grades, <code>strike(prior)</code> in supersession, authorization for withdrawals, serialization of chronological events, and auditable verifier/gate decisions.</p><div class="callout warn"><strong>Implementation conformance is separate.</strong> Algebra–calculus adequacy does not prove a Scala, Go, database, or workflow implementation correct. A codebase needs an explicit refinement bridge supported by tests, mechanization, verified extraction, or equivalent evidence.</div>
+
+<h2 id="limits">10 · Limits and non-claims</h2><ul><li>Verification does not prove universal semantic truth.</li><li>Grades are not automatically calibrated probabilities.</li><li>Shared upstream causes can inflate evidence unless correlation is represented.</li><li>Distributed supersession and withdrawal require ordering.</li><li>No theorem establishes superiority over every fully fair structured control on binary metrics.</li><li>The formal value is uniform representation, composition, auditability, and explicit conflict routing.</li></ul>
+
+<h2>Revision summary</h2><table><thead><tr><th>Question</th><th>Revised answer</th></tr></thead><tbody><tr><td>What is the bilattice?</td><td>The rendered carrier \(Ev_L=L\odot L\).</td></tr><tr><td>What is testimony?</td><td>A candidate-indexed pair of provenance channels, not generally a lattice.</td></tr><tr><td>What is a glut?</td><td>Slot-level pro and con are both present; same-candidate conflict is stronger.</td></tr><tr><td>Does rendering preserve corners exactly?</td><td>Only under zero reflection.</td></tr><tr><td>How does supersession retire a prior?</td><td>With strike, not involutive negation.</td></tr><tr><td>Is \(\mathbf T\) verified truth?</td><td>No; verification is an orthogonal predicate.</td></tr></tbody></table>
+<footer>Revised formal edition. Technical specification and research note; not legal advice or a claim that bilattices or provenance semirings are new.</footer></div></body></html>

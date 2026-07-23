@@ -249,3 +249,26 @@ class FoldSemanticsSuite extends ScalaCheckSuite:
       (Ledger.resolve(slotPath).status == Status.Conflict)
     }
   }
+
+  // L12 — Non-theorem 5.2: full-language permutation invariance is FALSE by design. The SAME event
+  // multiset reordered changes the result once it contains a supersession. [Assert(g); Supersede(h)]
+  // supersedes g by h (Superseded, value h, g struck); [Supersede(h); Assert(g)] lands h into the empty
+  // slot as a fresh assertion (nothing to strike), then corroborates the rival g — two positive values,
+  // a Conflict. Order matters; supersessions must be serialized per slot. Complements the assertion-
+  // fragment permutation INVARIANCE (LedgerLawsSuite), which holds precisely because assert-only folds
+  // commute — this is the exact complement, the witness that the FULL language does not.
+  test(
+    "L12 fullLanguagePermutationIsFalse — reordering a supersession multiset changes the result"
+  ) {
+    val g = Testimony.leaf(1, Prov.single(lin("s1")))
+    val h = Testimony.leaf(2, Prov.single(lin("s2")))
+    val fwd = Seq(Evidence.Asserted(g), Evidence.Superseded(h))
+    val rev = Seq(Evidence.Superseded(h), Evidence.Asserted(g))
+    assertNotEquals(Ledger.resolve(fwd), Ledger.resolve(rev))
+    // fwd: h governs, g struck.
+    assertEquals(Ledger.resolve(fwd).status, Status.Superseded)
+    assertEquals(Ledger.resolve(fwd).value, Some(2))
+    // rev: h is fresh (nothing to supersede yet), then the rival g makes the slot ambiguous.
+    assertEquals(Ledger.resolve(rev).status, Status.Conflict)
+    assertEquals(Ledger.resolve(rev).value, None)
+  }

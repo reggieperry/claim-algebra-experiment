@@ -175,19 +175,25 @@ class TestimonySuite extends ScalaCheckSuite:
     assertEquals(s.operative.value, Some(120))
   }
 
-  // Supersession strikes the prior by REFUTE (¬), NOT by strike (withdrawal) — calculus Def 2.14 /
-  // Remark 6.4. The F5 test above uses a CLEAN (leaf) prior, on which the two coincide — refute swaps
-  // (pro, 0) → (0, pro), strike folds (pro, 0) → (0, pro) — so it cannot tell them apart. They diverge
-  // only on a CONTESTED prior: refute SWAPS the channels ((pro, con) → (con, pro)), strike CLEARS pro
-  // ((pro, con) → (0, pro + con)). Pin the choice there, so a strike-for-refute regression fails here.
-  test("supersede strikes the prior by refute, not strike — pinned on a contested prior") {
+  // Supersession strikes the prior by STRIKE (withdrawal), NOT by refute (¬ channel swap) — calculus
+  // Def 2.14 / Remark 6.4, per the strike-based-supersession revision. The F5 test above uses a CLEAN
+  // (leaf) prior, on which the two coincide — refute swaps (pro, 0) → (0, pro), strike folds
+  // (pro, 0) → (0, pro) — so it cannot tell them apart. They diverge only on a CONTESTED prior: strike
+  // CLEARS pro and folds all prior evidence to con ((pro, con) → (0, pro + con)), refute SWAPS the
+  // channels ((pro, con) → (con, pro)). Pin the choice there, so a refute-for-strike regression fails
+  // here. Strike is right because a re-superseded (already-struck) prior must stay struck: refute is
+  // involutive, so refuting a refuted prior would resurrect it, whereas strike is idempotent.
+  test("supersede strikes the prior by strike, not refute — pinned on a contested prior") {
     val contestedPrior = Testimony.single(1, Generators.prov("s1"), Generators.prov("s2"))
     val amendment = Testimony.single(2, Generators.prov("s3"), Prov.zero)
     val struck = Testimony.supersede(contestedPrior, amendment).struck
     assertEquals(
       struck,
-      Testimony.refute(contestedPrior),
-      "struck = refute(prior) — the channel swap"
+      Testimony.strike(contestedPrior),
+      "struck = strike(prior) — pro cleared, all prior evidence folded to con"
     )
-    assertNotEquals(struck, Testimony.strike(contestedPrior)) // strike would clear pro, not swap
+    assertNotEquals(
+      struck,
+      Testimony.refute(contestedPrior)
+    ) // refute would swap channels, not clear pro
   }
